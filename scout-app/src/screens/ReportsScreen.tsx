@@ -5,7 +5,7 @@ import { sortReports, taps } from "../reports";
 import { Correction } from "./Correction";
 
 // Changing `refresh` reloads the list without closing an open correction.
-export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = null, refresh = 0, onNew }: {
+export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = null, refresh = 0, onNew, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
@@ -13,6 +13,7 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = nul
   lastError?: string | null;
   refresh?: number;
   onNew(): void;
+  onCorrecting(open: boolean): void;
 }) {
   const [reports, setReports] = useState<Observation[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -27,6 +28,12 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = nul
     );
     return () => { live = false; };
   }, [api, eventUuid, tries, refresh]);
+
+  // Tells App while a correction is open; false again on closing or leaving the screen.
+  useEffect(() => {
+    onCorrecting(open !== null);
+    return () => onCorrecting(false);
+  }, [open, onCorrecting]);
 
   const reload = () => { setReports(null); setFailed(false); setTries((t) => t + 1); };
 

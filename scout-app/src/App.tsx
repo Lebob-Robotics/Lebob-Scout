@@ -60,6 +60,8 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const [screen, setScreen] = useState<Screen>(() => draft?.stage ?? (rememberedEvent() ? "reports" : "setup"));
   const [user, setUser] = useState(rememberedUser);
   const [saveError, setSaveError] = useState<string | null>(null);
+  // A correction is open in Reports or Teams: the tab bar hides so a stray tap cannot throw it away.
+  const [correcting, setCorrecting] = useState(false);
   const [signIn, setSignIn] = useState<"idle" | "working" | "failed">("idle");
   const [savingNow, setSavingNow] = useState(false);
   const saving = useRef(false);
@@ -196,10 +198,10 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       </FinalScreen>
     );
   } else if (screen === "reports" && eventUuid) {
-    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} />;
+    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} onCorrecting={setCorrecting} />;
   } else if (screen === "teams" && eventUuid) {
     // Task 9 fills set-up from the target.
-    body = <TeamsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} refresh={queue.saved} onScout={() => setScreen("setup")} />;
+    body = <TeamsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} refresh={queue.saved} onScout={() => setScreen("setup")} onCorrecting={setCorrecting} />;
   } else {
     body = <SetupScreen api={api} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
   }
@@ -207,8 +209,8 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   return (
     <>
       <Header />
-      {(screen === "reports" || screen === "teams") && eventUuid && (
-        <nav className="tabs">
+      {(screen === "reports" || screen === "teams") && eventUuid && !correcting && (
+        <nav className="tabs" aria-label="Screens">
           <button type="button" aria-current={screen === "reports" ? "page" : undefined} onClick={() => setScreen("reports")}>Reports</button>
           <button type="button" aria-current={screen === "teams" ? "page" : undefined} onClick={() => setScreen("teams")}>Teams</button>
         </nav>

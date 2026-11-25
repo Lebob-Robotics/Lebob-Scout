@@ -15,13 +15,14 @@ const FILTERS: [Filter, string][] = [["all", "All"], ["need", "Needs scouting"],
 // Loads on opening and whenever `refresh` changes; a reload keeps the last figures on screen.
 // The search, filter and open rows live here, so a refresh or a correction leaves them as they were.
 // onScout opens set-up for a robot from the coverage grid (Task 9).
-export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0 }: {
+export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
   waiting: number;
   refresh?: number;
   onScout(target: Target): void;
+  onCorrecting(open: boolean): void;
 }) {
   const [tries, setTries] = useState(0);
   // Which load the figures answer: busy until the current one does.
@@ -45,6 +46,12 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0 }: {
   const [report, setReport] = useState<Observation | null>(null);
   // Where the list was scrolled when the report opened: Correction starts at the top, and Back returns here.
   const listY = useRef(0);
+
+  // Tells App while a correction is open; false again on closing or leaving the screen.
+  useEffect(() => {
+    onCorrecting(report !== null);
+    return () => onCorrecting(false);
+  }, [report, onCorrecting]);
 
   const { data } = last;
   const busy = last.load !== load;

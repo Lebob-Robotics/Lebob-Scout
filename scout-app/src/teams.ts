@@ -12,7 +12,7 @@ export const noteLine = (eventName: string, playedBy: string) =>
 
 export const clockTime = (iso: string) => {
   const d = new Date(iso);
-  return `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")} ${d.getHours() < 12 ? "am" : "pm"}`;
+  return `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}\u00a0${d.getHours() < 12 ? "am" : "pm"}`;
 };
 
 export const scoutLine = (s: ScoutTally, userId: string) =>
