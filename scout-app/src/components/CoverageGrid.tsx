@@ -23,18 +23,18 @@ export function CoverageGrid({ coverage, eventUuid, gapsOnly, onGapsOnly, onScou
       <p className="caption">{coverageLine(coverage)}</p>
       <button type="button" aria-pressed={gapsOnly} onClick={() => onGapsOnly(!gapsOnly)}>Only matches with gaps</button>
       {rows.length ? (
-        <div className="coverage" style={{ gridTemplateColumns: `2.5rem repeat(${width}, minmax(4rem, 1fr))` }}>
+        <div className="coverage" style={{ gridTemplateColumns: `2.25rem repeat(${width}, minmax(3.5rem, 1fr))` }}>
           {rows.map((row) => (
             <div key={row.matchUuid || row.label} className={row.played ? "cov-row" : "cov-row later"}>
               <span className="cov-label">{row.label}</span>
-              {[...row.cells].sort(redFirst).map((c) => {
+              {[...row.cells].sort(redFirst).map((c, i) => {
                 const target = cellTarget(eventUuid, row, c);
                 return (
                   <button
-                    key={`${c.alliance}${c.teamNumber}`}
+                    key={c.presenceUuid || i}
                     type="button"
                     className={`cov-cell ${c.alliance} ${row.played ? tone(c) : ""}`}
-                    aria-label={cellName(row, c)}
+                    aria-label={cellName(row, c, target !== null)}
                     disabled={!target}
                     onClick={() => target && onScout(target)}
                   >

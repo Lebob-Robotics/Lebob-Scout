@@ -63,4 +63,5 @@ test("cellName says the match, alliance, team, reports and what a tap does", () 
   expect(cellName(r, r.cells[0])).toBe("Q3, red, 12345 Bolt, no report, scout this robot");
   expect(cellName(r, cell(1, "blue"))).toBe("Q3, blue, 12345 Bolt, 1 report, scout this robot");
   expect(cellName(r, cell(3))).toBe("Q3, red, 12345 Bolt, 3 reports, scout this robot");
+  expect(cellName(r, cell(3), false)).toBe("Q3, red, 12345 Bolt, 3 reports");
 });

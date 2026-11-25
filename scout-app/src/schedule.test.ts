@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { MATCH_MAX, TEAM_MAX, firstEvent, pickEvent, pickMatch, whole, withEvent } from "./schedule";
+import { MATCH_MAX, TEAM_MAX, firstEvent, onEvent, pickEvent, pickMatch, whole, withEvent } from "./schedule";
 import type { EventRow, MatchRow } from "./api";
 
 const ev = (code: string, a: string, b: string): EventRow => ({ eventUuid: code, eventCode: code, eventName: code, dateStart: a, dateEnd: b });
@@ -39,4 +39,11 @@ test("whole takes typed numbers from 1 up to the cap", () => {
 test("withEvent files the match under the event on screen", () => {
   const typedUnderA = { eventUuid: "A", matchUuid: null, presenceUuid: null, teamUuid: null, matchNumber: 3, matchType: "qualification", teamNumber: 29550, alliance: "red" } as const;
   expect(withEvent(typedUnderA, ev("B", "2026-11-24", "2026-11-26"))).toEqual({ ...typedUnderA, eventUuid: "B" });
+});
+test("onEvent keeps a robot only under the event it was picked in", () => {
+  const pickedInA = { eventUuid: "A", matchUuid: "mA", presenceUuid: "pA", teamUuid: "t", matchNumber: 3, matchType: "qualification", teamNumber: 12345, alliance: "red" } as const;
+  expect(onEvent(pickedInA, "A")).toBe(pickedInA);
+  expect(onEvent(pickedInA, "B")).toBeNull();
+  expect(onEvent(pickedInA, undefined)).toBeNull();
+  expect(onEvent(null, "A")).toBeNull();
 });

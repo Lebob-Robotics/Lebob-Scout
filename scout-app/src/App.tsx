@@ -118,6 +118,12 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   // The store is written before React state, so a refresh always finds the latest draft.
   const keep = (d: Draft) => { store.saveDraft(d); setDraft(d); };
 
+  // Back to a tab; to Teams at the place in the grid the scout tapped from.
+  const backTo = (next: Screen) => {
+    setScreen(next);
+    if (next === "teams") requestAnimationFrame(() => window.scrollTo(0, teamsY.current));
+  };
+
   const save = async () => {
     if (saving.current || !store.loadDraft()) return; // a second tap, or the draft is already queued
     saving.current = true;
@@ -147,7 +153,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       store.enqueue(observation);
       store.clearDraft(); // only once the report is safely queued
       setDraft(null);
-      setScreen(from);
+      backTo(from);
       queue.queued();
     } finally {
       saving.current = false;
@@ -165,7 +171,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     ),
     signedOut && signIn === "failed" && <p key="sign-in-failed" className="save-note error" role="alert">Couldn't reach Foundry. Check your signal and try again.</p>,
     screen === "setup" && event && (
-      <button key="back" type="button" onClick={() => { setScreen(from); if (from === "teams") requestAnimationFrame(() => window.scrollTo(0, teamsY.current)); }}>
+      <button key="back" type="button" onClick={() => backTo(from)}>
         {from === "teams" ? "Back to teams" : "Back to reports"}
       </button>
     ),
@@ -183,14 +189,16 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       <DiscardMatch
         key="discard"
         disabled={savingNow}
-        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); setScreen(event ? from : "setup"); }}
+        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); backTo(event ? from : "setup"); }}
       />
     ),
   ].filter(Boolean);
 
+  // The live screen stands alone: no header, tab bar or top buttons.
+  const live = screen === "live" && draft;
   let body;
-  if (screen === "live" && draft) {
-    return <LiveScreen draft={draft} onChange={keep} onEnd={() => { keep({ ...draft, stage: "final" }); setScreen("final"); }} />;
+  if (live) {
+    body = <LiveScreen draft={draft} onChange={keep} onEnd={() => { keep({ ...draft, stage: "final" }); setScreen("final"); }} />;
   } else if (screen === "final" && draft) {
     body = (
       <FinalScreen
@@ -215,16 +223,17 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
 
   return (
     <>
-      <Header />
-      {(screen === "reports" || screen === "teams") && eventUuid && !correcting && (
+      {!live && <Header />}
+      {!live && (screen === "reports" || screen === "teams") && eventUuid && !correcting && (
         <nav className="tabs" aria-label="Screens">
           <button type="button" aria-current={screen === "reports" ? "page" : undefined} onClick={() => setScreen("reports")}>Reports</button>
           <button type="button" aria-current={screen === "teams" ? "page" : undefined} onClick={() => setScreen("teams")}>Teams</button>
         </nav>
       )}
-      {top.length > 0 && <div className="top">{top}</div>}
-      {/* Kept, hidden, while set-up is open from it, so Back finds the search, filter, open rows and gaps switch as they were. */}
-      {eventUuid && (screen === "teams" || (screen === "setup" && from === "teams")) && (
+      {!live && top.length > 0 && <div className="top">{top}</div>}
+      {/* Kept, hidden, from a tapped cell through set-up, the match and the final page, so coming back finds the search,
+          filter, open rows, gaps switch and figures as they were. Hidden, it only reloads when a report saves. */}
+      {eventUuid && (screen === "teams" || (from === "teams" && screen !== "reports")) && (
         <div hidden={screen !== "teams"}>
           <TeamsScreen
             api={api}

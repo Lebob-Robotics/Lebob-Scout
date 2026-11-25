@@ -40,6 +40,10 @@ export const TEAM_MAX = 99999;
 export const whole = (text: string, max: number) => (/^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= max ? Number(text) : null);
 
 // A report is always filed under the event on screen, whatever event the picker's target was typed under.
+// The picked robot if it was picked under this event, else nothing: its match and presence ids belong to its own event.
+export const onEvent = (target: Target | null, eventUuid: string | undefined): Target | null =>
+  target && target.eventUuid === eventUuid ? target : null;
+
 export const withEvent = (target: Target, event: EventRow): Target => ({ ...target, eventUuid: event.eventUuid });
 
 export function pickMatch(matches: MatchRow[]): MatchRow | null {

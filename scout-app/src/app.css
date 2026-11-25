@@ -191,13 +191,13 @@ label, .label, legend, .final h2 {
 .team .report { font-family: var(--font-mono); font-weight: 500; font-size: .9375rem; }
 /* Coverage grid: a label column, then one cell per robot with its alliance as a bar along the top.
    Played: a gap has the muted outline, one report the yellow accent, more than one stays plain. Matches to come are muted. */
-.coverage { display: grid; gap: .375rem; min-width: 0; overflow-x: auto; }
+.coverage { display: grid; gap: .25rem; min-width: 0; overflow-x: auto; }
 .cov-row { display: contents; }
-.cov-label { grid-column: 1; align-self: center; color: var(--fg-dark); font: 500 .9375rem var(--font-mono); }
+.cov-label { grid-column: 1; align-self: center; color: var(--fg-dark); font: 500 .875rem var(--font-mono); }
 .cov-cell {
-  --c: var(--alliance-red); display: grid; align-content: center; min-width: 0; padding: .375rem .375rem .25rem;
+  --c: var(--alliance-red); display: grid; align-content: center; min-width: 0; padding: .375rem .25rem .25rem;
   border-color: var(--border); background: var(--bg); box-shadow: inset 0 4px 0 var(--c);
-  font: 500 .9375rem/1.2 var(--font-mono); text-align: left;
+  font: 500 .875rem/1.2 var(--font-mono); text-align: left;
 }
 .cov-cell.blue { --c: var(--alliance-blue); }
 .cov-cell b { display: block; font-weight: 600; }

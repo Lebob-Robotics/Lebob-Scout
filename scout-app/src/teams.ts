@@ -41,5 +41,6 @@ export function cellTarget(eventUuid: string, row: CoverageRow, cell: CoverageCe
   };
 }
 
-export const cellName = (row: CoverageRow, c: CoverageCell) =>
-  `${row.label}, ${c.alliance}, ${c.teamNumber} ${c.name}, ${c.reports ? `${c.reports} report${c.reports === 1 ? "" : "s"}` : "no report"}, scout this robot`;
+// The cell's accessible name; "scout this robot" only when a tap opens set-up.
+export const cellName = (row: CoverageRow, c: CoverageCell, tappable = true) =>
+  `${row.label}, ${c.alliance}, ${c.teamNumber} ${c.name}, ${c.reports ? `${c.reports} report${c.reports === 1 ? "" : "s"}` : "no report"}${tappable ? ", scout this robot" : ""}`;

@@ -4,7 +4,7 @@ import { StartPad } from "../components/StartPad";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
 import { startSquareFor } from "../startWall";
-import { firstEvent, remember, rememberedEvent, withEvent } from "../schedule";
+import { firstEvent, onEvent, remember, rememberedEvent, withEvent } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
 import { MatchRobotPicker } from "./MatchRobotPicker";
 
@@ -44,13 +44,14 @@ export function SetupScreen({ api, initial, onStart }: {
         if (first) remember(first); // the remembered event follows the calendar, so a later offline start uses it
         setEvents(es);
         setEventUuid(first?.eventUuid ?? null);
+        setTarget((t) => onEvent(t, first?.eventUuid)); // a robot picked under another event never carries over its ids
         setFailed(false);
         setRetrying(false);
       },
-      () => { if (live) { setFailed(true); setRetrying(false); } },
+      () => { if (live) { setFailed(true); setRetrying(false); setTarget((t) => onEvent(t, offlineEvent?.eventUuid)); } },
     );
     return () => { live = false; };
-  }, [api, tries, initialEvent]);
+  }, [api, tries, initialEvent, offlineEvent]);
 
   // Once per robot picked, and once the picker is on screen (a robot picked before set-up opens waits for it), scroll to the end so the whole pad, its caption and the sticky Start are in view and clear
   // of each other (the pad takes every touch, so a swipe on it cannot scroll). Not on dragging, flipping or typing:
