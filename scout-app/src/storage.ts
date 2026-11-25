@@ -10,6 +10,9 @@ export function createStore(backing?: Storage) {
   let store: Storage | null = null;
   try {
     store = backing ?? window.localStorage;
+    // Probe now, so a phone that can't store data is warned before the match, not after.
+    store.setItem("lsa:probe", "1");
+    store.removeItem("lsa:probe");
   } catch {
     ok = false;
   }

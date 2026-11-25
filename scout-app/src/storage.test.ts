@@ -48,3 +48,8 @@ test("no argument and a throwing window.localStorage counts as blocked", () => {
     w.window = old;
   }
 });
+test("storage that reads but refuses writes counts as blocked before anything is saved", () => {
+  const backing = fakeStorage();
+  backing.setItem = () => { throw new Error("quota"); };
+  expect(createStore(backing).ok).toBe(false);
+});

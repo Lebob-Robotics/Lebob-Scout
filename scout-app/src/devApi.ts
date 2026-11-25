@@ -17,8 +17,9 @@ const loadSaved = (): Observation[] => {
 };
 
 // failSchedule makes the event, match and robot lists fail, to check the offline paths. failSave makes modify fail.
+// failCreate makes create fail. create also refuses an observationId it already holds, so a duplicate save shows up.
 // Saved observations are kept in localStorage so they survive a reload.
-export function createDevApi({ failSchedule = false, failSave = false }: { failSchedule?: boolean; failSave?: boolean } = {}): Api {
+export function createDevApi({ failSchedule = false, failSave = false, failCreate = false }: { failSchedule?: boolean; failSave?: boolean; failCreate?: boolean } = {}): Api {
   const events: EventRow[] = [
     { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
     { eventUuid: "dev-event-next", eventCode: "DEVNEXT", eventName: "Dev Championship (next month)", dateStart: day(30), dateEnd: day(31) },
@@ -51,7 +52,12 @@ export function createDevApi({ failSchedule = false, failSave = false }: { failS
     },
     findTeamUuid: (teamNumber) => wait(TEAMS.includes(teamNumber) ? `dev-team-${teamNumber}` : null),
     exists: (id) => wait(saved.some((o) => o.observationId === id)),
-    create: (o) => { keep([...saved, o]); return wait(undefined); },
+    create: (o) => {
+      if (failCreate) return fail("Create failed");
+      if (saved.some((x) => x.observationId === o.observationId)) return fail(`Duplicate create of ${o.observationId}`);
+      keep([...saved, o]);
+      return wait(undefined);
+    },
     modify: (id, patch, nowMs) => {
       if (failSave) return fail("Save failed");
       keep(saved.map((o) => (o.observationId === id ? { ...o, ...patch, updatedAt: new Date(nowMs).toISOString() } : o)));

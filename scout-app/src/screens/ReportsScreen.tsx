@@ -7,11 +7,13 @@ import { MatchRobotPicker } from "./MatchRobotPicker";
 
 const taps = (o: Observation) => `${o.tapSeconds.length} tap${o.tapSeconds.length === 1 ? "" : "s"}`;
 
-export function ReportsScreen({ api, eventUuid, userId, waiting, onNew }: {
+// Changing `refresh` reloads the list without closing an open correction.
+export function ReportsScreen({ api, eventUuid, userId, waiting, refresh = 0, onNew }: {
   api: Api;
   eventUuid: string;
   userId: string;
   waiting: number;
+  refresh?: number;
   onNew(): void;
 }) {
   const [reports, setReports] = useState<Observation[] | null>(null);
@@ -23,7 +25,7 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, onNew }: {
     let live = true;
     api.observations(eventUuid).then((os) => live && setReports(os), () => live && setFailed(true));
     return () => { live = false; };
-  }, [api, eventUuid, tries]);
+  }, [api, eventUuid, tries, refresh]);
 
   const reload = () => { setReports(null); setFailed(false); setTries((t) => t + 1); };
 

@@ -108,3 +108,7 @@ button:disabled { cursor: default; }
 .tag { padding: 0 .4rem; border: 1px solid #fff6; border-radius: .3rem; font-size: .75rem; }
 .save-note { font-weight: 600; }
 .save-note.error { color: var(--intake); }
+
+/* Above every screen but the live one: storage warning, Back to reports, Flip field. */
+.top { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 0; }
+.top button { justify-self: start; min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
