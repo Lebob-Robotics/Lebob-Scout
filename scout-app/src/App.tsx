@@ -85,6 +85,14 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     linkUnlinked(api, eventUuid, Date.now()).catch(() => {});
   }, [api, eventUuid]);
 
+  // The Teams figures' first call after a quiet spell is slow: make it once in the background, result unused.
+  const warmed = useRef(false);
+  useEffect(() => {
+    if (!eventUuid || signedOut || warmed.current) return;
+    warmed.current = true;
+    api.teamsTab(eventUuid).catch(() => {});
+  }, [api, eventUuid, signedOut]);
+
   // Signed back in without leaving the page: send waiting reports now rather than at the next 30 s tick.
   useEffect(() => {
     if (wasSignedOut.current && !signedOut) queue.queued();
