@@ -1,7 +1,7 @@
 import { test, expect } from "vitest";
 import { FIELDS } from "./field";
 import { checkTaps, toLists } from "./taps";
-import type { Tap } from "./taps";
+import type { Kind, Tap } from "./taps";
 
 const f = FIELDS["ftc-2026"];
 
@@ -21,4 +21,13 @@ test("bad taps are reported", () => {
 test("bad kind and fractional count are reported", () => {
   expect(checkTaps([{ seconds: 5, square: "A1", kind: "dance" as never, count: 1 }], f)).toHaveLength(1);
   expect(checkTaps([{ seconds: 5, square: "A1", kind: "shoot", count: 1.5 }], f)).toHaveLength(1);
+});
+
+test("intake counts", () => {
+  const t = (kind: Kind, count: number): Tap => ({ seconds: 1, square: "A1", kind, count });
+  expect(checkTaps([t("intake", 0)], f)).toEqual([]);
+  expect(checkTaps([t("intake", 3)], f)).toEqual([]);      // saved before this change
+  expect(checkTaps([t("intake", 5)], f)).toHaveLength(1);
+  expect(checkTaps([t("shoot", 0)], f)).toHaveLength(1);
+  expect(checkTaps([t("shoot", 4)], f)).toEqual([]);
 });

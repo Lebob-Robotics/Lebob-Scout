@@ -13,8 +13,8 @@ const clockText = (remaining: number) => {
 
 export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(d: Draft): void; onEnd(): void }) {
   const field = FIELDS[draft.fieldKey];
-  // Mode and square are local; draft.taps is the only copy of the records.
-  const [pick, setPick] = useState<Pick<LiveState, "mode" | "square">>({ mode: null, square: null });
+  // Mode, square and area are local; draft.taps is the only copy of the records.
+  const [pick, setPick] = useState<Omit<LiveState, "taps">>({ mode: null, square: null, area: [] });
   const [now, setNow] = useState(Date.now);
   const [confirming, setConfirming] = useState(false);
 
@@ -47,14 +47,13 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
 
   const act = (action: LiveAction) => {
     const next = liveReducer({ ...pick, taps: draft.taps }, action);
-    setPick({ mode: next.mode, square: next.square });
+    setPick({ mode: next.mode, square: next.square, area: next.area });
     if (next.taps !== draft.taps) onChange({ ...draft, taps: next.taps });
   };
 
   const { phase, remaining } = phaseAt(matchSeconds(draft.startedAtMs, now), field);
-  const { mode, square } = pick;
-  const ready = mode !== null && square !== null;
-  const hint = !mode ? "Pick Shoot or Intake." : !square ? "Tap the square." : mode === "shoot" ? "How many scored?" : "How many picked up?";
+  const { mode, square, area } = pick;
+  const hint = !mode ? "Pick Shoot or Intake." : mode === "intake" ? "Tap every square it collects from." : !square ? "Tap the square." : "How many scored?";
   const records = draft.taps.length;
 
   return (
@@ -70,16 +69,18 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
       <div className="field-space">
         <div className="field">
           <FieldPicture fieldKey={draft.fieldKey} flipped={draft.flipped} />
-          <Grid field={field} flipped={draft.flipped} selected={square} disabled={!mode} onPick={(s) => act({ type: "square", square: s })} />
+          <Grid field={field} flipped={draft.flipped} selected={mode === "intake" ? area : square} disabled={!mode}
+            onPick={(s) => act({ type: "square", square: s, seconds: matchSeconds(draft.startedAtMs, Date.now()) })} />
         </div>
       </div>
 
       <div className="side counts">
-        {[1, 2, 3, 4].map((n) => (
-          <button key={n} type="button" disabled={!ready} onClick={() => act({ type: "count", count: n, seconds: matchSeconds(draft.startedAtMs, Date.now()) })}>
-            {n} {mode && <small>{mode === "shoot" ? "scored" : "picked up"}</small>}
+        {mode === "shoot" && [1, 2, 3, 4].map((n) => (
+          <button key={n} type="button" disabled={!square} onClick={() => act({ type: "count", count: n, seconds: matchSeconds(draft.startedAtMs, Date.now()) })}>
+            {n} <small>scored</small>
           </button>
         ))}
+        {mode === "intake" && <p>{area.length} <small>{area.length === 1 ? "square" : "squares"}</small></p>}
       </div>
 
       <div className="bar">

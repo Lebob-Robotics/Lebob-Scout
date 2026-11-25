@@ -18,7 +18,9 @@ export function checkTaps(taps: Tap[], field: Field): string[] {
     const at = `Tap ${i + 1}`;
     if (!isSquare(t.square, field)) problems.push(`${at}: ${t.square} is not a square on the field`);
     if (t.kind !== "shoot" && t.kind !== "intake") problems.push(`${at}: kind ${t.kind} is not shoot or intake`);
-    if (!Number.isInteger(t.count) || t.count < 1 || t.count > 4) problems.push(`${at}: count ${t.count} is not a whole number from 1 to 4`);
+    // An intake is an area with count 0; reports saved before that have 1 to 4.
+    const min = t.kind === "intake" ? 0 : 1;
+    if (!Number.isInteger(t.count) || t.count < min || t.count > 4) problems.push(`${at}: count ${t.count} is not a whole number from ${min} to 4`);
     if (!(t.seconds >= 0)) problems.push(`${at}: seconds ${t.seconds} is below 0`);
   });
   return problems;

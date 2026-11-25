@@ -5,7 +5,7 @@ import { flipSquare, squareName, type Field } from "../field";
 export function Grid({ field, flipped, selected, onPick, disabled }: {
   field: Field;
   flipped: boolean;
-  selected: string | null;
+  selected: string | string[] | null;
   onPick(square: string): void;
   disabled?: boolean;
 }) {
@@ -23,7 +23,7 @@ export function Grid({ field, flipped, selected, onPick, disabled }: {
           key={square}
           type="button"
           aria-label={square}
-          aria-pressed={square === selected}
+          aria-pressed={[selected].flat().includes(square)}
           disabled={disabled}
           onClick={() => onPick(square)}
         />
