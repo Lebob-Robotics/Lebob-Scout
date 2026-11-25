@@ -2,6 +2,7 @@
 // Q1: red 11115 (1 report), 12345 (2 reports); blue 14469 (none), 16021 (1).
 // Q2: red 14469 (none), 16021 (1); blue 11115 (1), 12345 (none).
 // So 5 of 8 played robot-matches have a report, one twice; 12345 and 14469 need scouting.
+// 18172 is on no schedule and has no report, so it needs scouting too and has no next match.
 import type { ReportSummary, TeamsTab } from "./api";
 
 const P = 20 / 7.5; // one piece scored, ftc-2026
@@ -34,7 +35,7 @@ const r6 = report({
   autoScored: 1, teleopScored: 3, cycles: 2, cycleSeconds: 40, autoPoints: P, teleopPoints: 3 * P, parkPoints: 5,
 });
 
-const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets" };
+const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets", 18172: "Wired Wombats" };
 const cell = (teamNumber: number, alliance: string, matchNumber: number, reports: number) => ({
   teamNumber, name: NAMES[teamNumber], alliance, presenceUuid: `dev-q${matchNumber}-${teamNumber}`, teamUuid: `dev-team-${teamNumber}`, reports,
 });
@@ -42,7 +43,7 @@ const next = { nextLabel: "Q3", nextTime: at(Q3) };
 const counts = { played: 2, toCome: 1, scheduled: 3 };
 
 export const DEV_TEAMS_TAB: TeamsTab = {
-  needScouting: 2,
+  needScouting: 3,
   scouts: [
     { scoutUserId: "dev-alice", scoutName: "Alice Nguyen", reports: 3, lastAt: at(Q1 + 5) },
     { scoutUserId: "dev", scoutName: "Dev Scout", reports: 2, lastAt: at(Q2 + 4) },
@@ -95,6 +96,11 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       squares: [{ square: "B5", scored: 3, pickedUp: 0 }, { square: "E5", scored: 2, pickedUp: 1 }],
       starts: [{ alliance: "blue", wallPos: 170, label: "Q1" }, { alliance: "red", wallPos: 100, label: "Q2" }],
       reports: [r5, r6],
+    },
+    {
+      teamNumber: 18172, name: NAMES[18172], need: true, matches: 0, played: 0, toCome: 0, scheduled: 0, missing: [], twice: [],
+      points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
+      squares: [], starts: [], reports: [],
     },
   ],
 };
