@@ -9,8 +9,10 @@ export const SIGN_IN_LIMIT_MS = 10_000;
 const auth = createPublicOauthClient(import.meta.env.VITE_FOUNDRY_CLIENT_ID, url, import.meta.env.VITE_FOUNDRY_REDIRECT_URL, {
   // useHistory: a refresh that lands on /auth/callback goes back with history.replaceState, never location.assign.
   useHistory: true,
-  // The library's defaults plus api:admin-read, which getCurrent needs.
-  scopes: ["api:read-data", "api:write-data", "api:use-ontologies-read", "api:use-ontologies-write", "api:admin-read"],
+  // The library's defaults plus api:use-admin-read, which getCurrent needs. The app is restricted in Developer Console,
+  // so the scope carries "use-" and "Admin read permission" must be on in the app's Platform SDK tab.
+  // Changing this list makes every phone sign in again: the library ignores a sign-in stored under other scopes.
+  scopes: ["api:read-data", "api:write-data", "api:use-ontologies-read", "api:use-ontologies-write", "api:use-admin-read"],
 });
 
 // The library sets its own refresh timer on every sign-in and refresh. It bypasses tokenSource's offline check and
