@@ -4,7 +4,7 @@ import { FieldPicture } from "../components/FieldPicture";
 import { Grid } from "../components/Grid";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
-import { pickEvent } from "../schedule";
+import { firstEvent } from "../schedule";
 import { MatchRobotPicker } from "./MatchRobotPicker";
 
 const EVENT_KEY = "lsa:event";
@@ -24,12 +24,6 @@ const remember = (e: EventRow) => {
   try { localStorage.setItem(EVENT_KEY, JSON.stringify(e)); } catch { /* not remembered; still usable */ }
 };
 
-function firstEvent(events: EventRow[]): string | null {
-  const remembered = rememberedEvent()?.eventUuid;
-  if (events.some((e) => e.eventUuid === remembered)) return remembered!;
-  return pickEvent(events, localToday())?.eventUuid ?? null;
-}
-
 export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean): void }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -38,14 +32,20 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
   const [target, setTarget] = useState<Target | null>(null);
   const [square, setSquare] = useState<string | null>(null);
   const [flipped, setFlipped] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const [offlineEvent] = useState(rememberedEvent);
 
   useEffect(() => {
     let live = true;
     api.ourEvents().then(
-      (es) => { if (live) { setEvents(es); setEventUuid(firstEvent(es)); } },
-      () => live && setFailed(true),
+      (es) => {
+        if (!live) return;
+        setEvents(es);
+        setEventUuid(firstEvent(es, rememberedEvent(), localToday())?.eventUuid ?? null);
+        setFailed(false);
+        setRetrying(false);
+      },
+      () => { if (live) { setFailed(true); setRetrying(false); } },
     );
     return () => { live = false; };
   }, [api, tries]);
@@ -61,19 +61,19 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
     if (e) remember(e);
   };
 
-  const start = async () => {
+  // Never waits: the clock starts on the tap.
+  const start = () => {
     if (!target || !square) return;
-    setStarting(true);
     if (event) remember(event);
-    // A hand-typed team may still be known to Foundry. If the lookup fails, start without the link.
-    const teamUuid = target.matchUuid ? target.teamUuid : await api.findTeamUuid(target.teamNumber).catch(() => null);
-    onStart({ ...target, teamUuid }, square, flipped);
+    onStart(target, square, flipped);
   };
 
   const retry = (
     <p>
       Couldn't load the schedule.{" "}
-      <button type="button" className="retry" onClick={() => { setFailed(false); setTarget(null); setTries((t) => t + 1); }}>Retry</button>
+      <button type="button" className="retry" disabled={retrying} onClick={() => { setRetrying(true); setTries((t) => t + 1); }}>
+        {retrying ? "Retrying…" : "Retry"}
+      </button>
     </p>
   );
   if (failed && !offline) return <div className="setup">{retry}</div>;
@@ -110,7 +110,7 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
         </div>
       </div>
 
-      <button type="button" className="start" disabled={!target || !square || starting} onClick={start}>Start</button>
+      <button type="button" className="start" disabled={!target || !square} onClick={start}>Start</button>
     </div>
   );
 }

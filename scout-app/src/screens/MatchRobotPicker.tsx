@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useEffectEvent, useState } from "react";
 import type { Api, MatchRow, PresenceRow } from "../api";
 import type { Target } from "../observation";
 import { pickMatch } from "../schedule";
@@ -29,6 +29,8 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   const [presences, setPresences] = useState<PresenceRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [tries, setTries] = useState(0);
+  const [found, setFound] = useState<{ teamNumber: number; teamUuid: string | null } | null>(null);
+  const typedTeam = typed ? whole(typed.teamNumber) : null;
 
   useEffect(() => {
     let live = true;
@@ -50,14 +52,31 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
     return () => { live = false; };
   }, [api, matchUuid, tries]);
 
-  const type = (next: Typed) => {
-    setTyped(next);
-    const matchNumber = whole(next.matchNumber), teamNumber = whole(next.teamNumber);
-    onChange(matchNumber && teamNumber && next.alliance
-      ? { eventUuid, matchUuid: null, presenceUuid: null, teamUuid: null, matchType: next.matchType, matchNumber, teamNumber, alliance: next.alliance }
+  // Hand-typed team: look it up in the background so Start never waits. Unknown or unanswered stays null.
+  useEffect(() => {
+    if (!typedTeam) return;
+    let live = true;
+    api.findTeamUuid(typedTeam).then((teamUuid) => live && setFound({ teamNumber: typedTeam, teamUuid }), () => {});
+    return () => { live = false; };
+  }, [api, typedTeam]);
+
+  // The hand-typed Target follows the inputs and the lookup.
+  const emit = useEffectEvent(onChange);
+  useEffect(() => {
+    if (!typed) return;
+    const matchNumber = whole(typed.matchNumber), teamNumber = whole(typed.teamNumber);
+    const teamUuid = found?.teamNumber === teamNumber ? found.teamUuid : null;
+    emit(matchNumber && teamNumber && typed.alliance
+      ? { eventUuid, matchUuid: null, presenceUuid: null, teamUuid, matchType: typed.matchType, matchNumber, teamNumber, alliance: typed.alliance }
       : null);
-  };
+  }, [typed, found, eventUuid]);
+
+  const type = (next: Typed) => setTyped(next);
   const leaveTyped = (next: Typed | null) => { setTyped(next); onChange(null); };
+  const backToSchedule = () => {
+    if (failed) { setFailed(false); setTries((t) => t + 1); } // the schedule failed before: try it again
+    leaveTyped(null);
+  };
 
   if (typed) {
     return (
@@ -76,7 +95,8 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
           <button type="button" className="red" aria-pressed={typed.alliance === "red"} onClick={() => type({ ...typed, alliance: "red" })}>Red</button>
           <button type="button" className="blue" aria-pressed={typed.alliance === "blue"} onClick={() => type({ ...typed, alliance: "blue" })}>Blue</button>
         </div>
-        <button type="button" className="link" onClick={() => leaveTyped(null)}>Back to the schedule</button>
+        {/* Opened because the schedule failed: going back would only fail again. */}
+        {!startTyped && <button type="button" className="link" onClick={backToSchedule}>Back to the schedule</button>}
       </div>
     );
   }
