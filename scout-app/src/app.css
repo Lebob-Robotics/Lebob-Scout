@@ -99,7 +99,7 @@ label, .label, legend, .final h2 {
 .square-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .square-bar button { white-space: nowrap; }
 /* Start stays on screen: the pad takes every touch, so a swipe on it cannot scroll down to Start. */
-.setup .start { position: sticky; bottom: 1rem; box-shadow: 0 0 0 1rem var(--bg); }
+.setup .start { position: sticky; bottom: 1rem; box-shadow: 0 0 0 .75rem var(--bg); } /* the ring matches the column gap */
 .setup .start:disabled { opacity: 1; background: var(--panel); border-color: var(--control-border); color: var(--muted); }
 .setup .field-space { height: min(60dvh, (100vw - 2rem) * 3 / 4, 30rem); }
 

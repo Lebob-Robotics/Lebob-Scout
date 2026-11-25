@@ -44,6 +44,16 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
     return () => { live = false; };
   }, [api, tries]);
 
+  // Once per robot picked, scroll to the end so the whole pad, its caption and the sticky Start are in view and clear
+  // of each other (the pad takes every touch, so a swipe on it cannot scroll). Not on dragging, flipping or typing:
+  // a hand-typed robot keeps one key while it is edited, and nothing scrolls while a number box has the focus.
+  const robotKey = target && (target.presenceUuid ?? "typed");
+  useEffect(() => {
+    if (!robotKey || document.activeElement instanceof HTMLInputElement) return;
+    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+  }, [robotKey]);
+
   // Offline: the schedule failed but the phone remembers the event, so the scout types the match in.
   const offline = failed && offlineEvent !== null;
   const event = offline ? offlineEvent : events?.find((e) => e.eventUuid === eventUuid);
