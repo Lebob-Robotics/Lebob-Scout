@@ -4,25 +4,12 @@ import { FieldPicture } from "../components/FieldPicture";
 import { Grid } from "../components/Grid";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
-import { firstEvent } from "../schedule";
+import { firstEvent, remember, rememberedEvent } from "../schedule";
 import { MatchRobotPicker } from "./MatchRobotPicker";
 
-const EVENT_KEY = "lsa:event";
 const field = FIELDS[CURRENT_FIELD_KEY];
 const localToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
 
-// The last event used, kept whole so set-up still works when the schedule won't load.
-function rememberedEvent(): EventRow | null {
-  try {
-    const e = JSON.parse(localStorage.getItem(EVENT_KEY) ?? "null");
-    return e && typeof e.eventUuid === "string" ? e : null;
-  } catch {
-    return null; // storage blocked or not JSON
-  }
-}
-const remember = (e: EventRow) => {
-  try { localStorage.setItem(EVENT_KEY, JSON.stringify(e)); } catch { /* not remembered; still usable */ }
-};
 
 export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean): void }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { AutoPathPad } from "../components/AutoPathPad";
 import type { FinalPage } from "../observation";
 
@@ -14,13 +15,16 @@ const RATINGS: ["driverSkill" | "robotSpeed", string][] = [
   ["robotSpeed", "Robot speed (1 = slow, 5 = very fast)"],
 ];
 
-export function FinalScreen({ value, onChange, onSave, saveLabel, fieldKey, flipped }: {
+// children show just above the Save button.
+export function FinalScreen({ value, onChange, onSave, saveLabel, saveDisabled = false, fieldKey, flipped, children }: {
   value: FinalPage;
   onChange(f: FinalPage): void;
   onSave(): void;
   saveLabel: string;
+  saveDisabled?: boolean;
   fieldKey: string;
   flipped: boolean;
+  children?: ReactNode;
 }) {
   const set = (change: Partial<FinalPage>) => onChange({ ...value, ...change });
 
@@ -61,7 +65,8 @@ export function FinalScreen({ value, onChange, onSave, saveLabel, fieldKey, flip
       <label htmlFor="notes">Notes</label>
       <textarea id="notes" value={value.notes ?? ""} onChange={(e) => set({ notes: e.target.value || null })} />
 
-      <button type="button" className="save" onClick={onSave}>{saveLabel}</button>
+      {children}
+      <button type="button" className="save" disabled={saveDisabled} onClick={onSave}>{saveLabel}</button>
     </div>
   );
 }

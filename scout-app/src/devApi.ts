@@ -10,10 +10,15 @@ const day = (offset: number) => {
 };
 const TEAMS = [11115, 12345, 14469, 16021, 18172, 19044, 21230, 23511];
 
-const fail = () => new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Schedule unavailable")), 150));
+const fail = (why = "Schedule unavailable") => new Promise<never>((_, reject) => setTimeout(() => reject(new Error(why)), 150));
+const SAVED_KEY = "lsa:dev-observations";
+const loadSaved = (): Observation[] => {
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]"); } catch { return []; }
+};
 
-// failSchedule makes the event, match and robot lists fail, to check the offline paths.
-export function createDevApi({ failSchedule = false }: { failSchedule?: boolean } = {}): Api {
+// failSchedule makes the event, match and robot lists fail, to check the offline paths. failSave makes modify fail.
+// Saved observations are kept in localStorage so they survive a reload.
+export function createDevApi({ failSchedule = false, failSave = false }: { failSchedule?: boolean; failSave?: boolean } = {}): Api {
   const events: EventRow[] = [
     { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
     { eventUuid: "dev-event-next", eventCode: "DEVNEXT", eventName: "Dev Championship (next month)", dateStart: day(30), dateEnd: day(31) },
@@ -29,7 +34,11 @@ export function createDevApi({ failSchedule = false }: { failSchedule?: boolean 
       return { presenceUuid: `${m.matchUuid}-${alliance}${station}`, matchUuid: m.matchUuid, teamUuid: `dev-team-${teamNumber}`, teamNumber, alliance, station };
     }),
   );
-  let saved: Observation[] = [];
+  let saved = loadSaved();
+  const keep = (next: Observation[]) => {
+    saved = next;
+    try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* kept in memory only */ }
+  };
 
   return {
     currentUser: () => wait({ id: "dev", name: "Dev Scout" }),
@@ -42,9 +51,10 @@ export function createDevApi({ failSchedule = false }: { failSchedule?: boolean 
     },
     findTeamUuid: (teamNumber) => wait(TEAMS.includes(teamNumber) ? `dev-team-${teamNumber}` : null),
     exists: (id) => wait(saved.some((o) => o.observationId === id)),
-    create: (o) => { saved = [...saved, o]; return wait(undefined); },
+    create: (o) => { keep([...saved, o]); return wait(undefined); },
     modify: (id, patch, nowMs) => {
-      saved = saved.map((o) => (o.observationId === id ? { ...o, ...patch, updatedAt: new Date(nowMs).toISOString() } : o));
+      if (failSave) return fail("Save failed");
+      keep(saved.map((o) => (o.observationId === id ? { ...o, ...patch, updatedAt: new Date(nowMs).toISOString() } : o)));
       return wait(undefined);
     },
     observations: (eventUuid) => wait(saved.filter((o) => o.eventUuid === eventUuid)),

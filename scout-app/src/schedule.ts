@@ -1,5 +1,20 @@
 import type { EventRow, MatchRow } from "./api";
 
+const EVENT_KEY = "lsa:event";
+
+// The last event used, kept whole so set-up still works when the schedule won't load.
+export function rememberedEvent(): EventRow | null {
+  try {
+    const e = JSON.parse(localStorage.getItem(EVENT_KEY) ?? "null");
+    return e && typeof e.eventUuid === "string" ? e : null;
+  } catch {
+    return null; // storage blocked or not JSON
+  }
+}
+export const remember = (e: EventRow) => {
+  try { localStorage.setItem(EVENT_KEY, JSON.stringify(e)); } catch { /* not remembered; still usable */ }
+};
+
 const runningOn = (events: EventRow[], todayIso: string) => events.find((e) => e.dateStart <= todayIso && todayIso <= e.dateEnd);
 
 export function pickEvent(events: EventRow[], todayIso: string): EventRow | null {

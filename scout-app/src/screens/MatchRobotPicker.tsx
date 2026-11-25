@@ -8,10 +8,12 @@ type Typed = { matchType: Target["matchType"]; matchNumber: string; teamNumber: 
 const emptyTyped: Typed = { matchType: "qualification", matchNumber: "", teamNumber: "", alliance: null };
 const matchLabel = (m: MatchRow) => `${m.matchType === "qualification" ? "Q" : "P"}${m.matchNumber}${m.actualTime ? " (played)" : ""}`;
 const robotOrder = (a: PresenceRow, b: PresenceRow) => Number(a.alliance === "blue") - Number(b.alliance === "blue") || a.station - b.station;
+const typedFrom = (v: Target): Typed => ({ matchType: v.matchType, matchNumber: String(v.matchNumber), teamNumber: String(v.teamNumber), alliance: v.alliance });
 const whole = (text: string) => (/^\d+$/.test(text) && Number(text) >= 1 ? Number(text) : null);
 
 // Picks the match and the robot from the schedule, or takes them hand-typed when the match is not listed.
 // Use a new key per event: the schedule loads once per mount. startTyped opens the hand-typed path.
+// A value whose match is not listed opens hand-typed with its details rather than picking another match.
 export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped = false }: {
   api: Api;
   eventUuid: string;
@@ -19,11 +21,8 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   onChange(target: Target | null): void;
   startTyped?: boolean;
 }) {
-  const [typed, setTyped] = useState<Typed | null>(() =>
-    value && !value.matchUuid
-      ? { matchType: value.matchType, matchNumber: String(value.matchNumber), teamNumber: String(value.teamNumber), alliance: value.alliance }
-      : startTyped ? emptyTyped : null,
-  );
+  const [typed, setTyped] = useState<Typed | null>(() => (value && !value.matchUuid ? typedFrom(value) : startTyped ? emptyTyped : null));
+  const [start] = useState(value);
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
   const [matchUuid, setMatchUuid] = useState(value?.matchUuid ?? null);
   const [presences, setPresences] = useState<PresenceRow[] | null>(null);
@@ -32,12 +31,15 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   const [found, setFound] = useState<{ teamNumber: number; teamUuid: string | null } | null>(null);
   const typedTeam = typed ? whole(typed.teamNumber) : null;
 
+  const unlisted = useEffectEvent((ms: MatchRow[]) => (value?.matchUuid && !ms.some((x) => x.matchUuid === value.matchUuid) ? value : null));
   useEffect(() => {
     let live = true;
     api.matches(eventUuid).then(
       (ms) => {
         if (!live) return;
         setMatches(ms);
+        const lost = unlisted(ms);
+        if (lost) setTyped(typedFrom(lost));
         setMatchUuid((m) => (m && ms.some((x) => x.matchUuid === m) ? m : pickMatch(ms)?.matchUuid ?? null));
       },
       () => live && setFailed(true),
@@ -66,10 +68,13 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
     if (!typed) return;
     const matchNumber = whole(typed.matchNumber), teamNumber = whole(typed.teamNumber);
     const teamUuid = found?.teamNumber === teamNumber ? found.teamUuid : null;
-    emit(matchNumber && teamNumber && typed.alliance
+    // Unchanged from the value it opened with: keep that value, links and all.
+    const same = start && start.matchType === typed.matchType && start.matchNumber === matchNumber
+      && start.teamNumber === teamNumber && start.alliance === typed.alliance;
+    emit(same ? start : matchNumber && teamNumber && typed.alliance
       ? { eventUuid, matchUuid: null, presenceUuid: null, teamUuid, matchType: typed.matchType, matchNumber, teamNumber, alliance: typed.alliance }
       : null);
-  }, [typed, found, eventUuid]);
+  }, [typed, found, eventUuid, start]);
 
   const type = (next: Typed) => setTyped(next);
   const leaveTyped = (next: Typed | null) => { setTyped(next); onChange(null); };

@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { CURRENT_FIELD_KEY } from "./field";
 import { createDevApi } from "./devApi";
+import { buildObservation } from "./observation";
 import type { Draft, Target } from "./observation";
 import { FinalScreen } from "./screens/FinalScreen";
 import { LiveScreen } from "./screens/LiveScreen";
+import { ReportsScreen } from "./screens/ReportsScreen";
+import { rememberedEvent } from "./schedule";
 import { SetupScreen } from "./screens/SetupScreen";
 import { createStore } from "./storage";
 
-// TEMPORARY dev harness for the set-up, live and final screens. A later task replaces it with the real app.
+// TEMPORARY dev harness for the reports, set-up, live and final screens. A later task replaces it with the real app and save queue.
+// ?fail makes the schedule fail; ?failsave makes corrections fail.
 const store = createStore();
-const api = createDevApi({ failSchedule: new URLSearchParams(location.search).has("fail") });
+const params = new URLSearchParams(location.search);
+const api = createDevApi({ failSchedule: params.has("fail"), failSave: params.has("failsave") });
 
 const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft => ({
   ...target,
@@ -24,19 +29,19 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft 
 
 export default function App() {
   const [draft, setDraft] = useState(store.loadDraft);
-  const [saved, setSaved] = useState(false);
+  const [setup, setSetup] = useState(false);
+  const [userId, setUserId] = useState("");
+  useEffect(() => { api.currentUser().then((u) => setUserId(u.id)); }, []);
   const save = (d: Draft) => { store.saveDraft(d); setDraft(d); };
-  const reset = () => { store.clearDraft(); setDraft(null); setSaved(false); };
+  const finish = (d: Draft) =>
+    api.currentUser()
+      .then((user) => api.create(buildObservation(d, user, Date.now())))
+      .then(() => { store.clearDraft(); setDraft(null); setSetup(false); }, (e) => alert(String(e)));
 
-  if (!draft) return <SetupScreen api={api} onStart={(t, square, flipped) => save(newDraft(t, square, flipped))} />;
-
-  if (saved) {
-    return (
-      <div style={{ padding: 16 }}>
-        <pre>{JSON.stringify(draft.final, null, 2)}</pre>
-        <button type="button" onClick={reset}>Reset</button>
-      </div>
-    );
+  if (!draft) {
+    const event = rememberedEvent();
+    if (setup || !event) return <SetupScreen api={api} onStart={(t, square, flipped) => save(newDraft(t, square, flipped))} />;
+    return <ReportsScreen api={api} eventUuid={event.eventUuid} userId={userId} waiting={0} onNew={() => setSetup(true)} />;
   }
   if (draft.stage === "final") {
     return (
@@ -47,7 +52,7 @@ export default function App() {
         <FinalScreen
           value={draft.final}
           onChange={(f) => save({ ...draft, final: f })}
-          onSave={() => setSaved(true)}
+          onSave={() => finish(draft)}
           saveLabel="Save report"
           fieldKey={draft.fieldKey}
           flipped={draft.flipped}
