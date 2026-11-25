@@ -30,7 +30,7 @@ test("hand-typed reports are linked once the match exists", async () => {
   expect(api.modified).toEqual([["a", { matchUuid: "m", presenceUuid: "p", teamUuid: "t", alliance: "red" }]]);
 });
 test("qualification 3 is not linked to playoff 3, and linked reports are left alone", async () => {
-  const api = fake({ observations: [obs("a", { matchUuid: null, matchType: "playoff", matchNumber: 3, teamNumber: 29550 }), obs("b", { matchUuid: "m" })],
+  const api = fake({ observations: [obs("a", { matchUuid: null, matchType: "playoff", matchNumber: 3, teamNumber: 29550 }), obs("b", { matchUuid: "m", matchType: "qualification", matchNumber: 3, teamNumber: 29550 })],
     presence: { key: "qualification 3 29550", row: anyPresence } });
   expect(await linkUnlinked(api, "e", 5)).toBe(0);
   expect(api.modified).toEqual([]);
