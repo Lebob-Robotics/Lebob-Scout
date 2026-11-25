@@ -20,8 +20,8 @@ export function liveReducer(state: LiveState, action: LiveAction): LiveState {
       const { square } = action;
       if (state.area.includes(square)) {
         // The area's records are the newest taps, so its record for this square is the last one.
-        const i = state.taps.findLastIndex(t => t.square === square);
-        return { ...state, area: state.area.filter(s => s !== square), taps: state.taps.toSpliced(i, 1) };
+        const i = state.taps.map(t => t.square).lastIndexOf(square);
+        return { ...state, area: state.area.filter(s => s !== square), taps: state.taps.filter((_, j) => j !== i) };
       }
       const tap: Tap = { seconds: action.seconds, square, kind: "intake", count: 0 };
       return { ...state, area: [...state.area, square], taps: [...state.taps, tap] };

@@ -62,6 +62,13 @@ test("leaving Intake ends the area and keeps its records", () => {
   expect(again.taps.map(t => t.seconds)).toEqual([5, 9]);   // a new area: the same square is a new record
 });
 
+test("removing a square leaves an earlier area's record of it alone", () => {
+  const s = run({ type: "mode", mode: "intake" }, { type: "square", square: "A1", seconds: 5 }, { type: "mode", mode: "intake" },
+    { type: "square", square: "A1", seconds: 9 }, { type: "square", square: "A1", seconds: 10 });
+  expect(s.taps.map(t => t.seconds)).toEqual([5]);
+  expect(s.area).toEqual([]);
+});
+
 test("a count does nothing in Intake", () => {
   expect(run({ type: "mode", mode: "intake" }, { type: "square", square: "A1", seconds: 5 }, { type: "count", count: 3, seconds: 6 }).taps).toHaveLength(1);
 });
