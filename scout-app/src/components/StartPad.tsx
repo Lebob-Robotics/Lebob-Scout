@@ -63,6 +63,8 @@ export function StartPad({ fieldKey, flipped, alliance, value, onChange }: {
       <div className="field-space">
         <div className="field">
           {picture}
+          {/* The other alliance's half, dimmed. Red's wall is on the left unless the scout flipped the field. */}
+          <div className={(alliance === "red") !== flipped ? "start-dim right" : "start-dim"} aria-hidden="true" />
           <div
             className={`start-surface ${alliance}`}
             role="slider"

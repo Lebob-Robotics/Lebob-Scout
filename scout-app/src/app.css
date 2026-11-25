@@ -102,6 +102,8 @@ label, .label, legend, .final h2 {
 
 /* Start pad: the whole picture takes taps; the track and the dot sit on the grid area (the middle 75%).
    Allowed stretches are thick and solid, forbidden ones thin and dashed. */
+.start-dim { position: absolute; inset: 0 50% 0 0; background: rgb(0 0 0 / .55); pointer-events: none; }
+.start-dim.right { inset: 0 0 0 50%; }
 .start-surface { --c: var(--alliance-red); position: absolute; inset: 0; touch-action: none; cursor: pointer; border-radius: var(--radius); }
 .start-surface.blue { --c: var(--alliance-blue); }
 .start-track { position: absolute; top: 0; left: 12.5%; width: 75%; height: 100%; pointer-events: none; }
