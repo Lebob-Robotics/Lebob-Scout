@@ -59,36 +59,39 @@ export function StartPad({ fieldKey, flipped, alliance, value, onChange }: {
 
   const dot = value === null ? null : onScreen(value);
   return (
-    <div className="field-space">
-      <div className="field">
-        {picture}
-        <div
-          className={`start-surface ${alliance}`}
-          role="slider"
-          tabIndex={0}
-          aria-label="Start position along the robot's wall"
-          aria-valuemin={0}
-          aria-valuemax={200}
-          aria-valuenow={value ?? undefined}
-          aria-valuetext={value === null ? undefined : `Start: ${startSquareFor(value, alliance, field)}`}
-          onKeyDown={step}
-          onPointerDown={(e) => {
-            if (!e.isPrimary) return;
-            e.currentTarget.setPointerCapture(e.pointerId);
-            dragging.current = true;
-            pick(e);
-          }}
-          onPointerMove={(e) => e.isPrimary && dragging.current && pick(e)}
-          onPointerUp={(e) => { if (e.isPrimary) dragging.current = false; }}
-          onPointerCancel={(e) => { if (e.isPrimary) dragging.current = false; }}
-        >
-          <svg className="start-track" viewBox="0 0 100 100" aria-hidden="true">
-            <polyline className="forbidden" points={line(0, 200)} />
-            {field.startOk.map(([a, b]) => <polyline key={a} points={line(a, b)} />)}
-          </svg>
-          {dot && <span className="start-dot" style={{ left: `${(GRID_LEFT + GRID_WIDTH * inset(dot.x) / 100) * 100}%`, top: `${inset(dot.y)}%` }} />}
+    <>
+      <div className="field-space">
+        <div className="field">
+          {picture}
+          <div
+            className={`start-surface ${alliance}`}
+            role="slider"
+            tabIndex={0}
+            aria-label="Start position along the robot's wall"
+            aria-valuemin={0}
+            aria-valuemax={200}
+            aria-valuenow={value ?? undefined}
+            aria-valuetext={value === null ? undefined : `Start: ${startSquareFor(value, alliance, field)}`}
+            onKeyDown={step}
+            onPointerDown={(e) => {
+              if (!e.isPrimary) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              dragging.current = true;
+              pick(e);
+            }}
+            onPointerMove={(e) => e.isPrimary && dragging.current && pick(e)}
+            onPointerUp={(e) => { if (e.isPrimary) dragging.current = false; }}
+            onPointerCancel={(e) => { if (e.isPrimary) dragging.current = false; }}
+          >
+            <svg className="start-track" viewBox="0 0 100 100" aria-hidden="true">
+              <polyline className="forbidden" points={line(0, 200)} />
+              {field.startOk.map(([a, b]) => <polyline key={a} points={line(a, b)} />)}
+            </svg>
+            {dot && <span className="start-dot" style={{ left: `${(GRID_LEFT + GRID_WIDTH * inset(dot.x) / 100) * 100}%`, top: `${inset(dot.y)}%` }} />}
+          </div>
         </div>
       </div>
-    </div>
+      <p className="caption">Drag the dot along your wall. It only rests where a robot may start.</p>
+    </>
   );
 }

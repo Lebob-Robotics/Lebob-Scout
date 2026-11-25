@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Api } from "./api";
+import { Header } from "./components/Header";
 import { CURRENT_FIELD_KEY } from "./field";
 import { buildObservation } from "./observation";
 import type { Draft, Target } from "./observation";
@@ -201,6 +202,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
 
   return (
     <>
+      <Header />
       {top.length > 0 && <div className="top">{top}</div>}
       {body}
     </>

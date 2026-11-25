@@ -98,7 +98,7 @@ function Correction({ api, report, onBack, onSaved }: { api: Api; report: Observ
     <>
       <div className="reports">
         <button type="button" className="back" onClick={onBack}>Back</button>
-        <h1>{report.label}</h1>
+        <h1 className="match-label">{report.label}</h1>
         <p>Recorded by {report.scoutName} · {taps(report)} (taps can't be changed)</p>
         <MatchRobotPicker key={report.observationId} api={api} eventUuid={report.eventUuid} value={target} onChange={setTarget} />
       </div>

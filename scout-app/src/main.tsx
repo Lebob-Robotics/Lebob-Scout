@@ -1,8 +1,13 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import '@fontsource/ibm-plex-sans/latin-400.css'
+import '@fontsource/ibm-plex-sans/latin-500.css'
+import '@fontsource/ibm-plex-sans/latin-600.css'
+import '@fontsource/ibm-plex-mono/latin-500.css'
 import './app.css'
 import App from './App.tsx'
 import { createApi } from './api'
+import { Header } from './components/Header'
 import type { Api } from './api'
 import { createDevApi } from './devApi'
 import { client, isSignedOut, onSignedOutChange, refreshSilently, signIn } from './client'
@@ -27,7 +32,7 @@ function showReal() {
 // The initial no-draft load: one signIn() attempt with its time limit. Once it fails or times out,
 // signIn() guarantees nothing left over from it redirects, so "Continue without signing in" is safe.
 function signInFirst() {
-  root.render(<p>Signing in…</p>)
+  root.render(<><Header /><div className="signin"><p>Signing in…</p></div></>)
   signIn().then(
     () => {
       if (location.pathname === callbackPath) history.replaceState(null, '', '/')
@@ -35,9 +40,12 @@ function signInFirst() {
     },
     () => root.render(
       <>
-        <p>Couldn't sign in to Foundry.</p>
-        <button type="button" onClick={signInFirst}>Retry</button>
-        <button type="button" onClick={showReal}>Continue without signing in</button>
+        <Header />
+        <div className="signin">
+          <p>Couldn't sign in to Foundry.</p>
+          <button type="button" className="primary" onClick={signInFirst}>Retry</button>
+          <button type="button" onClick={showReal}>Continue without signing in</button>
+        </div>
       </>,
     ),
   )
