@@ -40,14 +40,16 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft 
   },
 });
 
-export default function App({ api, signedOut = false, onSignIn }: { api: Api; signedOut?: boolean; onSignIn?: () => void }) {
+export default function App({ api, signedOut = false, onSignIn }: { api: Api; signedOut?: boolean; onSignIn?: () => Promise<void> }) {
   const [draft, setDraft] = useState(store.loadDraft);
   const [screen, setScreen] = useState<Screen>(() => draft?.stage ?? (rememberedEvent() ? "reports" : "setup"));
   const [user, setUser] = useState(rememberedUser);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [signIn, setSignIn] = useState<"idle" | "working" | "failed">("idle");
   const saving = useRef(false);
   const linked = useRef(false);
   const queue = useSaveQueue(api, store);
+  const wasSignedOut = useRef(signedOut);
   const event = rememberedEvent();
   const eventUuid = event?.eventUuid;
 
@@ -60,6 +62,17 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     linked.current = true;
     linkUnlinked(api, eventUuid, Date.now()).catch(() => {});
   }, [api, eventUuid]);
+
+  // Signed back in without leaving the page: send waiting reports now rather than at the next 30 s tick.
+  useEffect(() => {
+    if (wasSignedOut.current && !signedOut) queue.queued();
+    wasSignedOut.current = signedOut;
+  });
+
+  const tapSignIn = () => {
+    setSignIn("working");
+    onSignIn?.().then(() => setSignIn("idle"), () => setSignIn("failed"));
+  };
 
   // Only nag when a reload would lose work: storage is broken and something is unsaved.
   useEffect(() => {
@@ -114,7 +127,12 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const top = [
     !store.ok && <p key="ok" className="banner" role="alert">This phone can't store data. Keep this page open until your report has saved.</p>,
     signedOut && <p key="signed-out" className="banner">You're signed out. Reports will save after you sign in.</p>,
-    signedOut && <button key="sign-in" type="button" onClick={onSignIn}>Sign in</button>,
+    signedOut && (
+      <button key="sign-in" type="button" onClick={tapSignIn} disabled={signIn === "working"}>
+        {signIn === "working" ? "Signing in…" : "Sign in"}
+      </button>
+    ),
+    signedOut && signIn === "failed" && <p key="sign-in-failed" className="save-note error" role="alert">Couldn't reach Foundry. Check your signal and try again.</p>,
     screen === "setup" && event && <button key="back" type="button" onClick={() => setScreen("reports")}>Back to reports</button>,
     screen === "final" && draft && (
       <button key="flip" type="button" onClick={() => keep({ ...draft, flipped: !draft.flipped })}>

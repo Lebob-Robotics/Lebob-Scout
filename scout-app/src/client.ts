@@ -1,9 +1,10 @@
 import { createClient } from "@osdk/client";
 import { createPublicOauthClient } from "@osdk/oauth";
 import { $ontologyRid } from "@lebob-scout/sdk";
-import { tokenWithoutRedirect } from "./token";
+import { tokenSource } from "./token";
 
 const url = import.meta.env.VITE_FOUNDRY_URL;
+export const SIGN_IN_LIMIT_MS = 10_000;
 
 const auth = createPublicOauthClient(import.meta.env.VITE_FOUNDRY_CLIENT_ID, url, import.meta.env.VITE_FOUNDRY_REDIRECT_URL, {
   // useHistory: a refresh that lands on /auth/callback goes back with history.replaceState, never location.assign.
@@ -22,15 +23,36 @@ const setSignedOut = (v: boolean) => {
 export const isSignedOut = () => signedOut;
 export const onSignedOutChange = (f: () => void) => { listeners.add(f); };
 
-export const refreshSilently = () => tokenWithoutRedirect(auth, setSignedOut);
+export const refreshSilently = tokenSource(auth, setSignedOut);
 
-// The only thing that may send the browser to Foundry's login page. It also finishes the /auth/callback return,
-// then puts back the address the user started from. It touches only the library's own storage keys.
-export const signIn = async () => {
-  // Never send the browser to a login page it can't reach: offline, this rejects and the caller offers to carry on.
-  await fetch(url, { mode: "no-cors", cache: "no-store" });
-  await auth.signIn();
-  setSignedOut(false);
-};
+// RULE: a redirect to Foundry's login page happens only as the direct result of a tap on a sign-in button,
+// or during the initial no-draft load before its time limit. Both go through signIn() below, and the one
+// auth.signIn() call in the app is guarded so that nothing from an attempt can redirect once its limit has passed.
+//
+// Why the guard is enough: auth.signIn() first retries the stored refresh token, then finishes a callback,
+// then redirects. It is only reached after refreshSilently() has failed, and a failed refresh makes the library
+// delete the stored refresh token. So once inside, the step before the redirect needs no network
+// (a callback exchange never redirects: it returns, or it throws).
+//
+// signIn() resolves when the user is signed in without leaving the page (a refresh worked, or a callback finished),
+// and rejects on failure, offline, or after SIGN_IN_LIMIT_MS.
+export function signIn(): Promise<void> {
+  let live = true;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const limit = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => { live = false; reject(new Error("Timed out")); }, SIGN_IN_LIMIT_MS);
+  });
+  const attempt = (async () => {
+    try { await refreshSilently(); return; } catch { /* no token; may need the login page */ }
+    if (!navigator.onLine) throw new Error("offline");
+    // Never send the browser to a login page it can't reach. HEAD so a redirect to the login page has no body to
+    // download (browsers refuse redirect: "manual" with mode: "no-cors").
+    await fetch(url, { method: "HEAD", mode: "no-cors", cache: "no-store", signal: AbortSignal.timeout(SIGN_IN_LIMIT_MS) });
+    if (!live) throw new Error("Timed out"); // too late: this attempt must not redirect any more
+    await auth.signIn();
+    setSignedOut(false);
+  })();
+  return Promise.race([attempt, limit]).finally(() => { live = false; clearTimeout(timer); });
+}
 
 export const client = createClient(url, $ontologyRid, refreshSilently);

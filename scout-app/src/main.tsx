@@ -13,26 +13,22 @@ import { createStore } from './storage'
 const params = new URLSearchParams(location.search)
 const root = createRoot(document.getElementById('root')!)
 const callbackPath = new URL(import.meta.env.VITE_FOUNDRY_REDIRECT_URL).pathname
-const SIGN_IN_LIMIT_MS = 10_000
 
-const showApp = (api: Api, signedOut = false, onSignIn?: () => void) =>
+const showApp = (api: Api, signedOut = false, onSignIn?: () => Promise<void>) =>
   root.render(<StrictMode><App api={api} signedOut={signedOut} onSignIn={onSignIn} /></StrictMode>)
 
 function showReal() {
   const api = createApi(client)
-  const render = () => showApp(api, isSignedOut(), () => { signIn().catch(() => {}) })
+  const render = () => showApp(api, isSignedOut(), signIn)
   onSignedOutChange(render)
   render()
 }
 
+// The initial no-draft load: one signIn() attempt with its time limit. Once it fails or times out,
+// signIn() guarantees nothing left over from it redirects, so "Continue without signing in" is safe.
 function signInFirst() {
   root.render(<p>Signing in…</p>)
-  let timer: ReturnType<typeof setTimeout> | undefined
-  const limit = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('Timed out')), SIGN_IN_LIMIT_MS) })
-  // Silent refresh first, so a slow refresh can't fall through to a login redirect after the limit has passed
-  // and the scout has carried on. signIn() then only finishes a callback or redirects straight away.
-  const attempt = refreshSilently().catch(() => signIn())
-  Promise.race([attempt, limit]).finally(() => clearTimeout(timer)).then(
+  signIn().then(
     () => {
       if (location.pathname === callbackPath) history.replaceState(null, '', '/')
       showReal()
@@ -49,9 +45,9 @@ function signInFirst() {
 
 // Development builds only: ?dev=1 uses made-up data instead of Foundry.
 // With it, ?fail makes the schedule fail, ?failsave makes corrections fail, ?failcreate makes saving a new report fail,
-// and ?signedout shows the signed-out line.
+// ?signedout shows the signed-out line, and ?signinfails makes its Sign in button fail.
 if (import.meta.env.DEV && params.has('dev')) {
-  showApp(createDevApi({ failSchedule: params.has('fail'), failSave: params.has('failsave'), failCreate: params.has('failcreate') }), params.has('signedout'), () => {})
+  showApp(createDevApi({ failSchedule: params.has('fail'), failSave: params.has('failsave'), failCreate: params.has('failcreate') }), params.has('signedout'), () => new Promise((resolve, reject) => setTimeout(params.has('signinfails') ? reject : resolve, 1500)))
 } else if (createStore().loadDraft() && location.pathname !== callbackPath) {
   // A match is in progress: show it now, and get a token in the background without redirecting.
   showReal()
