@@ -183,9 +183,11 @@ label, .label, legend, .final h2 {
    so every control sits low, in reach. .modes and .bar step aside
    so Undo can join the bar; the last button in the bar (End match, then Keep going) holds the left end. */
 @media (orientation: portrait) {
-  .live { grid-template: auto 1fr minmax(auto, 96px) minmax(auto, 120px) auto / repeat(10, 1fr); }
+  .live { grid-template: auto 1fr minmax(48px, 96px) minmax(48px, 120px) auto / repeat(10, 1fr); }
   .live .modes, .live .bar { display: contents; }
-  .live .field-space { grid-area: 1 / 1 / 2 / -1; container-type: inline-size; overflow: clip; }
+  /* min-height: auto (the base rule has 0) keeps the row at least the field's height, so the field is never cropped:
+     short screens take the height from Shoot/Intake and the counts first, then scroll. */
+  .live .field-space { grid-area: 1 / 1 / 2 / -1; container-type: inline-size; overflow: clip; min-height: auto; }
   /* Only 24 px of each alliance strip shows, so the grid (75% of the picture) takes the rest of the width. */
   .live .area-label { display: none; } /* clipped by the trim */
   .live .field { --w: calc((100cqw - 48px) * 4 / 3); width: var(--w); margin-inline: calc((100cqw - var(--w)) / 2); }
@@ -209,6 +211,10 @@ label, .label, legend, .final h2 {
   /* No Skip (teleop) or the confirm: the button there takes both spots. */
   .bar:not(:has(.skip)) .flip { grid-column: 7 / 11; }
   .end.confirmed { grid-column: 7 / 11; }
+}
+/* Short portrait screens: the count row can shrink to 48 px, so the numeral shrinks to keep "scored" inside the button. */
+@media (orientation: portrait) and (max-height: 600px) {
+  .live .counts button { font-size: 1.75rem; }
 }
 
 /* The field. .field-space is the room the field is given; .field is the largest 4:3 box that fits in it. */
