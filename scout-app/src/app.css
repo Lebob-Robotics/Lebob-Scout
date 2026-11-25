@@ -1,0 +1,20 @@
+:root { color-scheme: dark; --shoot: #f5c542; --intake: #f0606b; --count: #5aa9f0; }
+* { box-sizing: border-box; margin: 0; }
+body { height: 100dvh; background: #1c1d20; color: #e6e6e6; font: 16px/1.4 system-ui, sans-serif; }
+#root { height: 100%; }
+button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+button:disabled { cursor: default; }
+
+/* .field-space is the room the field is given; .field is the largest 4:3 box that fits in it. */
+.field-space { container-type: size; display: grid; place-items: center; min-height: 0; }
+.field { position: relative; aspect-ratio: 4 / 3; width: min(100cqw, 100cqh * 4 / 3); }
+.field-picture { display: block; width: 100%; height: 100%; }
+.field-picture text { fill: #fff; font-size: 4.5px; text-anchor: middle; }
+/* Flipped: turn the field a half-turn, and each label back so it stays readable. */
+.field-picture.flipped { rotate: 180deg; }
+.field-picture.flipped text { transform-box: fill-box; transform-origin: center; rotate: 180deg; }
+
+/* The grid covers the middle 75% of the picture's width. */
+.grid { --c: var(--shoot); position: absolute; inset: 0 12.5%; display: grid; }
+.grid button { padding: 0; border: 1px solid #fff2; background: none; }
+.grid button[aria-pressed=true] { background: color-mix(in srgb, var(--c) 55%, transparent); border: 2px solid var(--c); }
