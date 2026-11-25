@@ -1,18 +1,20 @@
 import { useState } from "react";
 import { CURRENT_FIELD_KEY } from "./field";
-import type { Draft } from "./observation";
+import { createDevApi } from "./devApi";
+import type { Draft, Target } from "./observation";
 import { FinalScreen } from "./screens/FinalScreen";
 import { LiveScreen } from "./screens/LiveScreen";
+import { SetupScreen } from "./screens/SetupScreen";
 import { createStore } from "./storage";
 
-// TEMPORARY dev harness for the live and final screens. A later task replaces it with the real app.
+// TEMPORARY dev harness for the set-up, live and final screens. A later task replaces it with the real app.
 const store = createStore();
+const api = createDevApi();
 
-const newDraft = (): Draft => ({
-  eventUuid: "dev-event", matchUuid: null, presenceUuid: null, teamUuid: null,
-  matchNumber: 1, matchType: "qualification", teamNumber: 1234, alliance: "red",
-  observationId: crypto.randomUUID(), fieldKey: CURRENT_FIELD_KEY, startSquare: "A3",
-  startedAtMs: Date.now(), taps: [], flipped: false, stage: "live",
+const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft => ({
+  ...target,
+  observationId: crypto.randomUUID(), fieldKey: CURRENT_FIELD_KEY, startSquare,
+  startedAtMs: Date.now(), taps: [], flipped, stage: "live",
   final: {
     autoLeave: false, autoPark: false, teleopPark: false, brokeDown: false,
     minorFouls: 0, majorFouls: 0, driverSkill: null, robotSpeed: null,
@@ -21,14 +23,12 @@ const newDraft = (): Draft => ({
 });
 
 export default function App() {
-  const [draft, setDraft] = useState(() => {
-    const d = store.loadDraft() ?? newDraft();
-    store.saveDraft(d);
-    return d;
-  });
+  const [draft, setDraft] = useState(store.loadDraft);
   const [saved, setSaved] = useState(false);
   const save = (d: Draft) => { store.saveDraft(d); setDraft(d); };
-  const reset = () => { save(newDraft()); setSaved(false); };
+  const reset = () => { store.clearDraft(); setDraft(null); setSaved(false); };
+
+  if (!draft) return <SetupScreen api={api} onStart={(t, square, flipped) => save(newDraft(t, square, flipped))} />;
 
   if (saved) {
     return (

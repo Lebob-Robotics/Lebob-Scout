@@ -69,3 +69,24 @@ button:disabled { cursor: default; }
 .pad-lines.flipped { rotate: 180deg; }
 .pad-lines polyline { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .pad-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .5rem; }
+
+/* Set-up screen: one scrolling column, thumb-sized controls. */
+.setup { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
+.setup label, .setup .label { font-weight: 600; }
+.setup select, .setup input { min-height: 48px; padding: 0 .5rem; font: inherit; color: inherit; background: #26272b; border: 2px solid #fff4; border-radius: .4rem; }
+/* Not .setup button: the grid's squares keep their own look. */
+.picker button, .square-bar button, .setup > button { min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
+.picker button[aria-pressed=true] { background: var(--count); border-color: var(--count); color: #111; }
+.setup button:disabled { opacity: .3; }
+.picker button.link { justify-self: start; min-height: 44px; padding: 0; border: 0; color: var(--count); text-decoration: underline; }
+.picker .red { --c: var(--red); }
+.picker .blue { --c: var(--blue); }
+.picker .red, .picker .blue { border: 3px solid var(--c); background: color-mix(in srgb, var(--c) 22%, transparent); }
+.picker .red[aria-pressed=true], .picker .blue[aria-pressed=true] { background: var(--c); border-color: #fff; color: #fff; }
+.picker { --red: #e5484d; --blue: #3b82f6; display: grid; gap: .75rem; }
+.robots { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; }
+.robots button { min-height: 64px; padding: 0; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.square-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.setup .field-space { height: min(60dvh, (100vw - 2rem) * 3 / 4, 30rem); }
+.setup .start { border-color: var(--count); background: var(--count); color: #111; font-size: 1.2rem; }

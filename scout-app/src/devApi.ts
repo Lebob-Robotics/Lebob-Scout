@@ -1,0 +1,49 @@
+// Development stand-in for the real server: fixed made-up data held in memory.
+import type { Api, EventRow, MatchRow, PresenceRow } from "./api";
+import type { Observation } from "./observation";
+
+const wait = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), 150));
+const day = (offset: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offset);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+};
+const TEAMS = [11115, 12345, 14469, 16021, 18172, 19044, 21230, 23511];
+
+export function createDevApi(): Api {
+  const events: EventRow[] = [
+    { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
+    { eventUuid: "dev-event-next", eventCode: "DEVNEXT", eventName: "Dev Championship (next month)", dateStart: day(30), dateEnd: day(31) },
+  ];
+  const played = new Date(Date.now() - 3600000).toISOString();
+  const matches: MatchRow[] = [
+    ...[1, 2, 3, 4, 5, 6].map((n): MatchRow => ({ matchUuid: `dev-q${n}`, matchNumber: n, matchType: "qualification", scheduledTime: null, actualTime: n <= 2 ? played : null })),
+    ...[1, 2].map((n): MatchRow => ({ matchUuid: `dev-p${n}`, matchNumber: n, matchType: "playoff", scheduledTime: null, actualTime: null })),
+  ];
+  const presences: PresenceRow[] = matches.flatMap((m, i) =>
+    ([["red", 1], ["red", 2], ["blue", 1], ["blue", 2]] as const).map(([alliance, station], j): PresenceRow => {
+      const teamNumber = TEAMS[(i * 3 + j) % TEAMS.length];
+      return { presenceUuid: `${m.matchUuid}-${alliance}${station}`, matchUuid: m.matchUuid, teamUuid: `dev-team-${teamNumber}`, teamNumber, alliance, station };
+    }),
+  );
+  let saved: Observation[] = [];
+
+  return {
+    currentUser: () => wait({ id: "dev", name: "Dev Scout" }),
+    ourEvents: () => wait(events),
+    matches: (eventUuid) => wait(eventUuid === events[0].eventUuid ? matches : []),
+    presences: (matchUuid) => wait(presences.filter((p) => p.matchUuid === matchUuid)),
+    findPresence: (eventUuid, matchType, matchNumber, teamNumber) => {
+      const m = eventUuid === events[0].eventUuid ? matches.find((x) => x.matchType === matchType && x.matchNumber === matchNumber) : undefined;
+      return wait(presences.find((p) => p.matchUuid === m?.matchUuid && p.teamNumber === teamNumber) ?? null);
+    },
+    findTeamUuid: (teamNumber) => wait(TEAMS.includes(teamNumber) ? `dev-team-${teamNumber}` : null),
+    exists: (id) => wait(saved.some((o) => o.observationId === id)),
+    create: (o) => { saved = [...saved, o]; return wait(undefined); },
+    modify: (id, patch, nowMs) => {
+      saved = saved.map((o) => (o.observationId === id ? { ...o, ...patch, updatedAt: new Date(nowMs).toISOString() } : o));
+      return wait(undefined);
+    },
+    observations: (eventUuid) => wait(saved.filter((o) => o.eventUuid === eventUuid)),
+  };
+}
