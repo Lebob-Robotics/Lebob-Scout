@@ -86,7 +86,7 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
       <div className="bar">
         <output className="clock">{phase.toUpperCase()} {clockText(remaining)}</output>
         {!confirming && (phase === "auto" || phase === "changeover") && (
-          <button type="button" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
+          <button type="button" className="skip" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
         )}
         {/* One hint, always mounted, so screen readers hear the change. */}
         <p className="hint" aria-live="polite">{confirming ? "End the match now?" : hint}</p>
@@ -103,8 +103,6 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
           </>
         )}
       </div>
-
-      <div className="turn">Turn your phone sideways (and turn off rotation lock)</div>
     </div>
   );
 }
