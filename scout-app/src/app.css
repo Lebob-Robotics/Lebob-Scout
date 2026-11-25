@@ -195,6 +195,7 @@ label, .label, legend, .final h2 {
   .live .bar > *, .live .modes .undo { grid-row: 5; }
   .live .bar button, .live .modes .undo { padding: 0 .25rem; font-size: .9375rem; white-space: normal; }
   .live .side small { font-size: .6875rem; }
+  .live .counts button { font-size: 2.5rem; }
   .live .bar > :last-child { grid-column: 1 / 3; }
   .live .clock { grid-column: 3 / 5; align-self: center; font-size: 1rem; line-height: 1.2; text-align: center; white-space: normal; }
   .live .modes .undo { grid-column: 5 / 7; }
