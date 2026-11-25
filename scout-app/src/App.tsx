@@ -41,13 +41,13 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft 
 });
 
 // Secondary and away from Save; asks first, with Cancel where Discard match was.
-function DiscardMatch({ onDiscard }: { onDiscard(): void }) {
+function DiscardMatch({ onDiscard, disabled }: { onDiscard(): void; disabled: boolean }) {
   const [asking, setAsking] = useState(false);
-  if (!asking) return <button type="button" onClick={() => setAsking(true)}>Discard match</button>;
+  if (!asking) return <button type="button" disabled={disabled} onClick={() => setAsking(true)}>Discard match</button>;
   return (
     <div className="confirm">
       <button type="button" onClick={() => setAsking(false)}>Cancel</button>
-      <button type="button" className="danger" onClick={onDiscard}>Discard</button>
+      <button type="button" className="danger" disabled={disabled} onClick={onDiscard}>Discard</button>
       <p role="alert">Discard this match? Its taps will be lost.</p>
     </div>
   );
@@ -128,7 +128,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         }
       }
       const d = store.loadDraft(); // read after the wait, so edits made meanwhile are kept
-      if (!d) return;
+      if (!d || d.stage !== "final") return; // gone back to the match meanwhile: never queue a match still running
       let observation;
       try {
         observation = buildObservation(d, who, Date.now());
@@ -158,7 +158,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     signedOut && signIn === "failed" && <p key="sign-in-failed" className="save-note error" role="alert">Couldn't reach Foundry. Check your signal and try again.</p>,
     screen === "setup" && event && <button key="back" type="button" onClick={() => setScreen("reports")}>Back to reports</button>,
     screen === "final" && draft && (
-      <button key="back-to-match" type="button" onClick={() => { keep({ ...draft, stage: "live" }); setScreen("live"); }}>
+      <button key="back-to-match" type="button" disabled={savingNow} onClick={() => { keep({ ...draft, stage: "live" }); setScreen("live"); }}>
         Back to match
       </button>
     ),
@@ -170,6 +170,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     screen === "final" && draft && (
       <DiscardMatch
         key="discard"
+        disabled={savingNow}
         onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); setScreen(event ? "reports" : "setup"); }}
       />
     ),

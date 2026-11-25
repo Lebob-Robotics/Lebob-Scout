@@ -112,6 +112,7 @@ button:disabled { cursor: default; }
 
 /* Above every screen but the live one: storage warning, Back to reports, Flip field. */
 .top { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 0; }
+.top button:disabled { opacity: .3; }
 .top .confirm { display: flex; align-items: center; gap: .75rem; }
 .top .confirm p { flex: 1; font-weight: 600; }
 .top .danger { border-color: var(--intake); background: var(--intake); color: #111; }
