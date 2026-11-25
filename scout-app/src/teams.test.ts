@@ -1,16 +1,29 @@
 import { test, expect } from "vitest";
-import { cellName, cellTarget, coverageLine, gapRows, noteLine, scoutLine } from "./teams";
+import { cellName, cellTarget, clockTime, coverageLine, gapRows, noteLine, scoutLine } from "./teams";
 
+const now = new Date(2026, 10, 25, 18, 0).getTime(); // a Wednesday evening, phone's own time
 const scout = { scoutUserId: "u1", scoutName: "Alice", reports: 3, lastAt: new Date(2026, 10, 25, 14, 5).toISOString() };
 
 test("scoutLine gives name, reports and the latest time in the phone's own time", () => {
-  expect(scoutLine(scout, "u2")).toBe("Alice · 3 match reports · last 2:05\u00a0pm");
+  expect(scoutLine(scout, "u2", now)).toBe("Alice · 3 match reports · last 2:05\u00a0pm");
 });
 
 test("scoutLine marks the signed-in scout, says 1 report, and shows ? for no name", () => {
-  expect(scoutLine({ ...scout, reports: 1 }, "u1")).toBe("Alice (you) · 1 match report · last 2:05\u00a0pm");
-  expect(scoutLine({ ...scout, scoutName: "", lastAt: new Date(2026, 10, 25, 0, 30).toISOString() }, "u2")).toBe("? · 3 match reports · last 12:30\u00a0am");
-  expect(scoutLine({ ...scout, lastAt: new Date(2026, 10, 25, 12, 0).toISOString() }, "u2")).toBe("Alice · 3 match reports · last 12:00\u00a0pm");
+  expect(scoutLine({ ...scout, reports: 1 }, "u1", now)).toBe("Alice (you) · 1 match report · last 2:05\u00a0pm");
+  expect(scoutLine({ ...scout, scoutName: "", lastAt: new Date(2026, 10, 25, 0, 30).toISOString() }, "u2", now)).toBe("? · 3 match reports · last 12:30\u00a0am");
+  expect(scoutLine({ ...scout, lastAt: new Date(2026, 10, 25, 12, 0).toISOString() }, "u2", now)).toBe("Alice · 3 match reports · last 12:00\u00a0pm");
+});
+
+test("clockTime adds the short weekday only for a time on another day", () => {
+  expect(clockTime(new Date(2026, 10, 25, 9, 0).toISOString(), now)).toBe("9:00\u00a0am");
+  expect(clockTime(new Date(2026, 10, 25, 23, 59).toISOString(), now)).toBe("11:59\u00a0pm");
+  expect(clockTime(new Date(2026, 10, 22, 9, 0).toISOString(), now)).toBe("Sun 9:00\u00a0am");
+  expect(clockTime(new Date(2026, 10, 21, 16, 10).toISOString(), now)).toBe("Sat 4:10\u00a0pm");
+  expect(clockTime(new Date(2026, 10, 26, 0, 5).toISOString(), now)).toBe("Thu 12:05\u00a0am");
+});
+
+test("scoutLine names the day of a latest report from another day", () => {
+  expect(scoutLine({ ...scout, lastAt: new Date(2026, 10, 21, 16, 10).toISOString() }, "u2", now)).toBe("Alice · 3 match reports · last Sat 4:10\u00a0pm");
 });
 
 test("noteLine names the event and how a match counts as played", () => {

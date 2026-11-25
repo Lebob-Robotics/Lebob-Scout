@@ -9,8 +9,9 @@ const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) 
 
 // One team: a summary row with its chips, and when open its next match, profile tiles and report lines.
 // `opening` is the report being loaded for correction; `failed` the one that couldn't be.
-export function TeamRow({ team: t, open, onToggle, opening, failed, onReport }: {
+export function TeamRow({ team: t, now, open, onToggle, opening, failed, onReport }: {
   team: TeamProfile;
+  now: number; // read times against this day
   open: boolean;
   onToggle(open: boolean): void;
   opening: string | null;
@@ -38,7 +39,7 @@ export function TeamRow({ team: t, open, onToggle, opening, failed, onReport }: 
         <span className="chips">{chips(t).map((c) => <span key={c.text} className={`chip ${c.tone}`}>{c.text}</span>)}</span>
       </summary>
       <div className="team-body">
-        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{t.nextTime ? ` at ${clockTime(t.nextTime)}` : ""}.</p>}
+        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{t.nextTime ? ` at ${clockTime(t.nextTime, now)}` : ""}.</p>}
         {t.matches ? (
           <>
             <dl className="tiles">{tiles.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>

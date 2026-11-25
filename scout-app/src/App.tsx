@@ -240,19 +240,20 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       )}
       {!live && top.length > 0 && <div className="top">{top}</div>}
       {/* Kept, hidden, from a tapped cell through set-up, the match and the final page, so coming back finds the search,
-          filter, open rows, gaps switch and figures as they were. Hidden, it only reloads when a report saves. */}
+          filter, open rows, gaps switch and figures as they were. Hidden, it renders nothing and only reloads when a report
+          saves. Keyed by event, so another event's figures are never shown, or tapped, under this one. */}
       {eventUuid && (screen === "teams" || (from === "teams" && screen !== "reports")) && (
-        <div hidden={screen !== "teams"}>
-          <TeamsScreen
-            api={api}
-            eventUuid={eventUuid}
-            userId={user?.id ?? ""}
-            waiting={queue.waiting}
-            refresh={queue.saved}
-            onScout={(t) => { teamsY.current = window.scrollY; setFrom("teams"); setScoutTarget(t); setScreen("setup"); }}
-            onCorrecting={setCorrecting}
-          />
-        </div>
+        <TeamsScreen
+          key={eventUuid}
+          hidden={screen !== "teams"}
+          api={api}
+          eventUuid={eventUuid}
+          userId={user?.id ?? ""}
+          waiting={queue.waiting}
+          refresh={queue.saved}
+          onScout={(t) => { teamsY.current = window.scrollY; setFrom("teams"); setScoutTarget(t); setScreen("setup"); }}
+          onCorrecting={setCorrecting}
+        />
       )}
       {body}
     </>

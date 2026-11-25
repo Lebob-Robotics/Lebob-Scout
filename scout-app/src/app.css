@@ -181,7 +181,7 @@ label, .label, legend, .final h2 {
 .team .num { color: var(--fg-dark); font: 600 1.1rem var(--font-mono); }
 .team .name { flex: 1 1 8rem; min-width: 0; color: var(--fg-dark); overflow-wrap: anywhere; }
 .chips { display: flex; flex-wrap: wrap; gap: .25rem; }
-.chip { padding: 1px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--muted); font: 500 .75rem/1.4 var(--font-mono); white-space: nowrap; }
+.chip { padding: 1px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--muted); font: 500 .75rem/1.4 var(--font-mono); overflow-wrap: anywhere; }
 .chip.ok { border-color: var(--accent); color: var(--accent); }
 .chip.warn { color: var(--fg-dark); }
 .chip.plain { border-color: var(--border); }

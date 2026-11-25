@@ -11,13 +11,17 @@ const PLAYED_RULE: Record<string, string> = {
 export const noteLine = (eventName: string, playedBy: string) =>
   [eventName, PLAYED_RULE[playedBy]].filter(Boolean).join(" · ");
 
-export const clockTime = (iso: string) => {
+const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+// A time in the phone's own time; with the short weekday in front when it is not on the same day as `now`.
+export const clockTime = (iso: string, now: number) => {
   const d = new Date(iso);
-  return `${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}\u00a0${d.getHours() < 12 ? "am" : "pm"}`;
+  const day = d.toDateString() === new Date(now).toDateString() ? "" : `${DAYS[d.getDay()]} `;
+  return `${day}${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}\u00a0${d.getHours() < 12 ? "am" : "pm"}`;
 };
 
-export const scoutLine = (s: ScoutTally, userId: string) =>
-  `${s.scoutName || "?"}${s.scoutUserId === userId ? " (you)" : ""} · ${s.reports} match report${s.reports === 1 ? "" : "s"} · last ${clockTime(s.lastAt)}`;
+export const scoutLine = (s: ScoutTally, userId: string, now: number) =>
+  `${s.scoutName || "?"}${s.scoutUserId === userId ? " (you)" : ""} · ${s.reports} match report${s.reports === 1 ? "" : "s"} · last ${clockTime(s.lastAt, now)}`;
 
 // The coverage card's summary, from the counts the function gives.
 export const coverageLine = (c: Coverage) =>

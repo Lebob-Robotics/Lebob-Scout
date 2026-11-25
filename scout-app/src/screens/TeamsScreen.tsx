@@ -16,25 +16,28 @@ const FILTERS: [Filter, string][] = [["all", "All"], ["need", "Needs scouting"],
 // Loads on opening and whenever `refresh` changes; a reload keeps the last figures on screen.
 // The search, filter, open rows and the gaps switch live here, so a refresh or a correction leaves them as they were.
 // onScout opens set-up for a robot tapped in the coverage grid.
-export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onScout, onCorrecting }: {
+// hidden: kept by App, out of sight, while a match started from the grid runs; it renders nothing but keeps its state.
+export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidden = false, onScout, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
   waiting: number;
   refresh?: number;
+  hidden?: boolean;
   onScout(target: Target): void;
   onCorrecting(open: boolean): void;
 }) {
   const [tries, setTries] = useState(0);
   // Which load the figures answer: busy until the current one does.
   const load = `${eventUuid}|${refresh}|${tries}`;
-  const [last, setLast] = useState<{ load: string; data: TeamsTab | null; failed: boolean }>({ load: "", data: null, failed: false });
+  // `at`: when the figures arrived, the "today" their times are read against.
+  const [last, setLast] = useState<{ load: string; data: TeamsTab | null; at: number; failed: boolean }>({ load: "", data: null, at: 0, failed: false });
 
   useEffect(() => {
     let live = true;
     withTimeout(api.teamsTab(eventUuid), LIMIT_MS).then(
-      (data) => { if (live) setLast({ load, data, failed: false }); },
-      () => { if (live) setLast((l) => ({ load, data: l.data, failed: true })); },
+      (data) => { if (live) setLast({ load, data, at: Date.now(), failed: false }); },
+      () => { if (live) setLast((l) => ({ ...l, load, failed: true })); },
     );
     return () => { live = false; };
   }, [api, eventUuid, load]);
@@ -81,6 +84,9 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onSc
   };
 
   const closeReport = () => { ask.current++; setReport(null); requestAnimationFrame(() => window.scrollTo(0, listY.current)); };
+  // Leaving for set-up drops any report line still opening, so a late answer cannot act while hidden.
+  const scout = (t: Target) => { ask.current++; setPick(null); onScout(t); };
+  if (hidden) return null;
   if (report) {
     return (
       <Correction
@@ -105,7 +111,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onSc
         busy ? <p>Loading…</p> : <p>Couldn't load teams. {retry}</p>
       ) : (
         <>
-          {failed && <p className="save-note error" role="alert">Couldn't refresh. Showing the last figures. {retry}</p>}
+          {failed && <p className="save-note error" role="alert">Couldn't refresh. Showing the last figures.</p>}
           <section className="card">
             <h2>Scouting status</h2>
             <dl className="tiles">
@@ -130,6 +136,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onSc
                   <TeamRow
                     key={t.teamNumber}
                     team={t}
+                    now={last.at}
                     open={open.has(t.teamNumber)}
                     onToggle={(o) => toggle(t.teamNumber, o)}
                     opening={pick && !pick.failed ? pick.id : null}
@@ -144,12 +151,12 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onSc
           </section>
           <section className="card">
             <h2>Match coverage</h2>
-            <CoverageGrid coverage={data.coverage} eventUuid={eventUuid} gapsOnly={gapsOnly} onGapsOnly={setGapsOnly} onScout={onScout} />
+            <CoverageGrid coverage={data.coverage} eventUuid={eventUuid} gapsOnly={gapsOnly} onGapsOnly={setGapsOnly} onScout={scout} />
           </section>
           <section className="card">
             <h2>Scouts</h2>
             {data.scouts.length ? (
-              <ul className="scouts">{data.scouts.map((s) => <li key={s.scoutUserId}>{scoutLine(s, userId)}</li>)}</ul>
+              <ul className="scouts">{data.scouts.map((s) => <li key={s.scoutUserId}>{scoutLine(s, userId, last.at)}</li>)}</ul>
             ) : (
               <p>No reports yet for this event.</p>
             )}

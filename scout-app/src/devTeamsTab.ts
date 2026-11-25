@@ -1,14 +1,15 @@
-// The Teams tab for the dev stand-in: four teams, Q1 and Q2 played, Q3 to come.
+// The Teams tab for the dev stand-in: eight teams, Q1 to Q10 played, Q11 to come.
 // Q1: red 11115 (1 report), 12345 (2 reports); blue 14469 (none), 16021 (1).
 // Q2: red 14469 (1), 16021 (1); blue 11115 (1), 12345 (1).
-// So 7 of 8 played robot-matches have a report, one twice; 14469 needs scouting (no report in Q1).
-// The Q1 to Q3 line-ups are the dev stand-in's schedule too (devApi), so a coverage cell opens set-up with it picked.
-// 18172 is on no schedule and has no report, so it needs scouting too and has no next match.
+// Q3 to Q10: 18172, 19044, 21230 and 23511 every time, never scouted: each needs scouting, with a long missing list.
+// Q11 (to come): red 11115, 14469; blue 12345, 16021.
+// So 7 of 40 played robot-matches have a report, one twice; five teams need scouting (14469 has no report in Q1).
+// These line-ups are the dev stand-in's schedule too (devApi), so a coverage cell opens set-up with it picked.
 import type { ReportSummary, TeamsTab } from "./api";
 
 const P = 20 / 7.5; // one piece scored, ftc-2026
 const at = (minutes: number) => new Date(Date.now() + minutes * 60000).toISOString();
-const Q1 = -90, Q2 = -60, Q3 = 30; // start times, minutes from now
+const Q1 = -90, Q2 = -60, Q11 = 30; // start times, minutes from now; Q3 to Q10 every 5 minutes from 55 minutes ago
 
 const report = (r: Omit<ReportSummary, "matchType">): ReportSummary => ({ ...r, matchType: "qualification" });
 const r1 = report({
@@ -45,30 +46,40 @@ const r8 = report({
   autoScored: 2, teleopScored: 8, cycles: 4, cycleSeconds: 18, autoPoints: 3 + 5 + 2 * P, teleopPoints: 8 * P, parkPoints: 5,
 });
 
-const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets", 18172: "Wired Wombats" };
+const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets",
+  18172: "Wired Wombats", 19044: "Kelp Forest", 21230: "Null Pointers", 23511: "Spare Parts Society",
+};
 // Stations go red 1, red 2, blue 1, blue 2 in each row, as in devApi.
 const cell = (teamNumber: number, alliance: string, station: number, matchNumber: number, reports: number) => ({
   teamNumber, name: NAMES[teamNumber], alliance, presenceUuid: `dev-q${matchNumber}-${alliance}${station}`, teamUuid: `dev-team-${teamNumber}`, reports,
 });
-const next = { nextLabel: "Q3", nextTime: at(Q3) };
+const next = { nextLabel: "Q11", nextTime: at(Q11) };
 const counts = { played: 2, toCome: 1, scheduled: 3 };
+const UNSCOUTED = [18172, 19044, 21230, 23511];
+const LATER = [3, 4, 5, 6, 7, 8, 9, 10];
+const laterRow = (n: number) => {
+  const [a, b, c, d] = n % 2 ? UNSCOUTED : [...UNSCOUTED.slice(2), ...UNSCOUTED.slice(0, 2)];
+  return { matchUuid: `dev-q${n}`, matchType: "qualification", matchNumber: n, label: `Q${n}`, played: true, scheduledTime: at(-55 + (n - 3) * 5),
+    cells: [cell(a, "red", 1, n, 0), cell(b, "red", 2, n, 0), cell(c, "blue", 1, n, 0), cell(d, "blue", 2, n, 0)] };
+};
 
 export const DEV_TEAMS_TAB: TeamsTab = {
-  needScouting: 2,
+  needScouting: 5,
   scouts: [
     { scoutUserId: "dev-alice", scoutName: "Alice Nguyen", reports: 3, lastAt: at(Q1 + 5) },
     { scoutUserId: "dev", scoutName: "Dev Scout", reports: 3, lastAt: at(Q2 + 5) },
     { scoutUserId: "dev-sam", scoutName: "Sam", reports: 2, lastAt: at(Q2 + 3) },
   ],
   coverage: {
-    slots: 8, have: 7, duplicates: 1, strays: 0, unscheduled: 0, playedBy: "times",
+    slots: 40, have: 7, duplicates: 1, strays: 0, unscheduled: 0, playedBy: "times",
     rows: [
       { matchUuid: "dev-q1", matchType: "qualification", matchNumber: 1, label: "Q1", played: true, scheduledTime: at(Q1),
         cells: [cell(11115, "red", 1, 1, 1), cell(12345, "red", 2, 1, 2), cell(14469, "blue", 1, 1, 0), cell(16021, "blue", 2, 1, 1)] },
       { matchUuid: "dev-q2", matchType: "qualification", matchNumber: 2, label: "Q2", played: true, scheduledTime: at(Q2),
         cells: [cell(14469, "red", 1, 2, 1), cell(16021, "red", 2, 2, 1), cell(11115, "blue", 1, 2, 1), cell(12345, "blue", 2, 2, 1)] },
-      { matchUuid: "dev-q3", matchType: "qualification", matchNumber: 3, label: "Q3", played: false, scheduledTime: at(Q3),
-        cells: [cell(11115, "red", 1, 3, 0), cell(14469, "red", 2, 3, 0), cell(12345, "blue", 1, 3, 0), cell(16021, "blue", 2, 3, 0)] },
+      ...LATER.map(laterRow),
+      { matchUuid: "dev-q11", matchType: "qualification", matchNumber: 11, label: "Q11", played: false, scheduledTime: at(Q11),
+        cells: [cell(11115, "red", 1, 11, 0), cell(14469, "red", 2, 11, 0), cell(12345, "blue", 1, 11, 0), cell(16021, "blue", 2, 11, 0)] },
     ],
   },
   teams: [
@@ -111,10 +122,10 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       starts: [{ alliance: "blue", wallPos: 170, label: "Q1" }, { alliance: "red", wallPos: 100, label: "Q2" }],
       reports: [r5, r6],
     },
-    {
-      teamNumber: 18172, name: NAMES[18172], need: true, matches: 0, played: 0, toCome: 0, scheduled: 0, missing: [], twice: [],
+    ...UNSCOUTED.map((teamNumber) => ({
+      teamNumber, name: NAMES[teamNumber], need: true, matches: 0, played: 8, toCome: 0, scheduled: 8, missing: LATER.map((n) => `Q${n}`), twice: [],
       points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
       squares: [], starts: [], reports: [],
-    },
+    })),
   ],
 };

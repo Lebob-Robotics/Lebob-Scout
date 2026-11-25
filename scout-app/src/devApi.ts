@@ -1,5 +1,5 @@
 // Development stand-in for the real server: fixed made-up data held in memory.
-import type { Api, EventRow, MatchRow, PresenceRow } from "./api";
+import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "./api";
 import { DEV_TEAMS_TAB } from "./devTeamsTab";
 import type { Observation } from "./observation";
 
@@ -21,6 +21,9 @@ const loadSaved = (): Observation[] => {
 // failSchedule makes the event, match and robot lists fail, to check the offline paths. failSave makes modify fail.
 // failCreate makes create fail. failTeams makes the Teams tab fail. create also refuses an observationId it already holds, so a duplicate save shows up.
 // Saved observations are kept in localStorage so they survive a reload.
+// Any other event: no schedule and no reports yet.
+const NO_SCHEDULE: TeamsTab = { teams: [], scouts: [], needScouting: 0, coverage: { rows: [], slots: 0, have: 0, duplicates: 0, strays: 0, unscheduled: 0, playedBy: "none" } };
+
 export function createDevApi({ failSchedule = false, failSave = false, failCreate = false, failTeams = false }: { failSchedule?: boolean; failSave?: boolean; failCreate?: boolean; failTeams?: boolean } = {}): Api {
   const events: EventRow[] = [
     { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
@@ -28,12 +31,12 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
   ];
   const played = new Date(Date.now() - 3600000).toISOString();
   const matches: MatchRow[] = [
-    ...[1, 2, 3, 4, 5, 6].map((n): MatchRow => ({ matchUuid: `dev-q${n}`, matchNumber: n, matchType: "qualification", scheduledTime: null, actualTime: n <= 2 ? played : null })),
+    ...[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((n): MatchRow => ({ matchUuid: `dev-q${n}`, matchNumber: n, matchType: "qualification", scheduledTime: null, actualTime: n <= 10 ? played : null })),
     ...[1, 2].map((n): MatchRow => ({ matchUuid: `dev-p${n}`, matchNumber: n, matchType: "playoff", scheduledTime: null, actualTime: null })),
   ];
   const presences: PresenceRow[] = matches.flatMap((m, i) =>
     ([["red", 1], ["red", 2], ["blue", 1], ["blue", 2]] as const).map(([alliance, station], j): PresenceRow => {
-      // Q1 to Q3 follow the Teams tab's coverage rows, so a tapped cell is on the schedule.
+      // Qualification line-ups follow the Teams tab's coverage rows, so a tapped cell is on the schedule.
       const teamNumber = DEV_TEAMS_TAB.coverage.rows.find((r) => r.matchUuid === m.matchUuid)?.cells[j].teamNumber ?? TEAMS[(i * 3 + j) % TEAMS.length];
       return { presenceUuid: `${m.matchUuid}-${alliance}${station}`, matchUuid: m.matchUuid, teamUuid: `dev-team-${teamNumber}`, teamNumber, alliance, station };
     }),
@@ -71,6 +74,6 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
       const o = saved.find((x) => x.observationId === id);
       return o ? wait(o) : fail(`No report ${id}`);
     },
-    teamsTab: () => new Promise((resolve, reject) => setTimeout(() => (failTeams ? reject(new Error("Teams unavailable")) : resolve(DEV_TEAMS_TAB)), 300)),
+    teamsTab: (eventUuid) => new Promise((resolve, reject) => setTimeout(() => (failTeams ? reject(new Error("Teams unavailable")) : resolve(eventUuid === events[0].eventUuid ? DEV_TEAMS_TAB : NO_SCHEDULE)), 300)),
   };
 }

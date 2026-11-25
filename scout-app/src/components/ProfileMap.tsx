@@ -38,11 +38,11 @@ export function ProfileMap({ fieldKey, squares, starts }: { fieldKey: string; sq
       </div>
       <div className="field">
         <FieldPicture fieldKey={fieldKey} flipped={false} />
-        <svg className={`map-overlay ${measure}`} viewBox="0 0 100 100">
+        <svg className={`map-overlay ${measure}`} viewBox="0 0 100 100" role="img" aria-label={measure === "scored" ? "Teleop map: pieces scored" : "Teleop map: pick-ups"}>
           {cells}
           {starts.map((s, i) => {
             const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
-            return <circle key={i} className={s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="4.5"><title>{s.label}</title></circle>;
+            return <circle key={i} className={s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
           })}
         </svg>
       </div>

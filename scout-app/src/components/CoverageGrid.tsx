@@ -4,9 +4,8 @@ import { cellName, cellTarget, coverageLine, gapRows } from "../teams";
 
 const mark = (n: number) => (n === 0 ? "–" : n === 1 ? "✓" : `×${n}`);
 const tone = (c: CoverageCell) => (c.reports === 0 ? "gap" : c.reports === 1 ? "ok" : "plain");
-const redFirst = (a: CoverageCell, b: CoverageCell) => Number(a.alliance !== "red") - Number(b.alliance !== "red");
 
-// One row per match, red robots before blue. Matches to come are muted and still open set-up.
+// One row per match, cells as given (red first, by station). Matches to come are muted and still open set-up.
 // The grid scrolls sideways inside the card when the robots do not fit.
 export function CoverageGrid({ coverage, eventUuid, gapsOnly, onGapsOnly, onScout }: {
   coverage: Coverage;
@@ -27,7 +26,7 @@ export function CoverageGrid({ coverage, eventUuid, gapsOnly, onGapsOnly, onScou
           {rows.map((row) => (
             <div key={row.matchUuid || row.label} className={row.played ? "cov-row" : "cov-row later"}>
               <span className="cov-label">{row.label}</span>
-              {[...row.cells].sort(redFirst).map((c, i) => {
+              {row.cells.map((c, i) => {
                 const target = cellTarget(eventUuid, row, c);
                 return (
                   <button
