@@ -9,8 +9,8 @@ const PICTURES: Record<string, ReactNode> = {
       <rect x="40" width="240" height="240" fill="#3d4046" />
       <rect x="16" y="109" width="19" height="23" fill="#e5484d" />
       <rect x="285" y="109" width="19" height="23" fill="#3b82f6" />
-      <text x="20" y="88">RED<tspan x="20" dy="6">ALLIANCE</tspan><tspan x="20" dy="6">AREA</tspan></text>
-      <text x="300" y="88">BLUE<tspan x="300" dy="6">ALLIANCE</tspan><tspan x="300" dy="6">AREA</tspan></text>
+      <text className="area-label" x="20" y="88">RED<tspan x="20" dy="6">ALLIANCE</tspan><tspan x="20" dy="6">AREA</tspan></text>
+      <text className="area-label" x="300" y="88">BLUE<tspan x="300" dy="6">ALLIANCE</tspan><tspan x="300" dy="6">AREA</tspan></text>
 
       <rect x="40" y="42" width="24" height="38" fill="#e5484d55" stroke="#e5484d" />
       <text x="52" y="59">LOADING<tspan x="52" dy="6">ZONE</tspan></text>

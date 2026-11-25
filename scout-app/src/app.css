@@ -174,13 +174,15 @@ label, .label, legend, .final h2 {
 .clock { color: var(--fg-dark); font: 500 1.4rem var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .hint { flex: 1; color: var(--fg-dark); font-size: .9375rem; font-weight: 600; line-height: 1.25; }
 /* Portrait: the field across the top, then the hint, Shoot and Intake, the counts, and the bar.
-   The spare height goes to the hint so every control sits low, in reach. .modes and .bar step aside
+   Spare height grows Shoot/Intake (to 96 px) and the counts (to 120 px); the rest goes to the hint,
+   so every control sits low, in reach. .modes and .bar step aside
    so Undo can join the bar; the last button in the bar (End match, then Keep going) holds the left end. */
 @media (orientation: portrait) {
-  .live { grid-template: auto 1fr auto auto auto / repeat(10, 1fr); }
+  .live { grid-template: auto 1fr minmax(auto, 96px) minmax(auto, 120px) auto / repeat(10, 1fr); }
   .live .modes, .live .bar { display: contents; }
   .live .field-space { grid-area: 1 / 1 / 2 / -1; container-type: inline-size; overflow: clip; }
   /* Only 24 px of each alliance strip shows, so the grid (75% of the picture) takes the rest of the width. */
+  .live .area-label { display: none; } /* clipped by the trim */
   .live .field { --w: calc((100cqw - 48px) * 4 / 3); width: var(--w); margin-inline: calc((100cqw - var(--w)) / 2); }
   .live .bar .hint { grid-area: 2 / 1 / 3 / -1; align-self: center; text-align: center; }
   .live .shoot { grid-area: 3 / 1 / 4 / 6; }
@@ -192,10 +194,10 @@ label, .label, legend, .final h2 {
   .live .bar button, .live .modes .undo { padding: 0 .25rem; font-size: .9375rem; white-space: normal; }
   .live .side small { font-size: .6875rem; }
   .live .bar > :last-child { grid-column: 1 / 3; }
-  .clock { grid-column: 3 / 5; align-self: center; font-size: 1rem; line-height: 1.2; text-align: center; white-space: normal; }
+  .live .clock { grid-column: 3 / 5; align-self: center; font-size: 1rem; line-height: 1.2; text-align: center; white-space: normal; }
   .live .modes .undo { grid-column: 5 / 7; }
   .live .flip { grid-column: 7 / 9; }
-  .skip { grid-column: 9 / 11; }
+  .live .skip { grid-column: 9 / 11; }
   /* No Skip (teleop) or the confirm: the button there takes both spots. */
   .bar:not(:has(.skip)) .flip, .end.confirmed { grid-column: 7 / 11; }
 }
