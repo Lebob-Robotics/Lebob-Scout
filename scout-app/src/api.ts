@@ -1,11 +1,19 @@
 import { PalantirApiError } from "@osdk/client";
 import type { Client } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
-import { Event, Match, MatchObservation, Presence, Team, createMatchObservation, modifyMatchObservation } from "@lebob-scout/sdk";
+import { Event, Match, MatchObservation, Presence, Team, createMatchObservation, modifyMatchObservation, teamsTab } from "@lebob-scout/sdk";
 import type { FinalPage, Observation, Target } from "./observation";
-import type { TeamsTab } from "./teamsTypes";
 
-export type { Coverage, CoverageCell, CoverageRow, ReportSummary, ScoutTally, SquareTotal, StartDot, TeamProfile, TeamsTab } from "./teamsTypes";
+// The Teams tab's result types come from the SDK, so they cannot drift from the function.
+export type TeamsTab = teamsTab.ReturnType;
+export type TeamProfile = TeamsTab["teams"][number];
+export type ReportSummary = TeamProfile["reports"][number];
+export type SquareTotal = TeamProfile["squares"][number];
+export type StartDot = TeamProfile["starts"][number];
+export type Coverage = TeamsTab["coverage"];
+export type CoverageRow = Coverage["rows"][number];
+export type CoverageCell = CoverageRow["cells"][number];
+export type ScoutTally = TeamsTab["scouts"][number];
 
 export type EventRow = { eventUuid: string; eventCode: string; eventName: string; dateStart: string; dateEnd: string };
 export type MatchRow = { matchUuid: string; matchNumber: number; matchType: "qualification" | "playoff"; scheduledTime: string | null; actualTime: string | null };
@@ -147,9 +155,8 @@ export function createApi(client: Client): Api {
     async observation(observationId) {
       return toObservation(await client(MatchObservation).fetchOne(observationId));
     },
-    // TEMP: call the function once @lebob-scout/sdk has teamsTab.
-    async teamsTab() {
-      throw new Error("teamsTab is not in the SDK yet");
+    teamsTab(eventUuid) {
+      return client(teamsTab).executeFunction({ eventUuid });
     },
   };
 }
