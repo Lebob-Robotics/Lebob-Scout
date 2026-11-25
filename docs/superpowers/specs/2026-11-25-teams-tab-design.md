@@ -117,7 +117,7 @@ Rules:
 - The field picture with the 6 by 6 grid, squares shaded by how much the team did there in teleop. A switch chooses **Scored** (pieces scored from each square) or **Picked up** (intake records in each square). The old tab had scoring spots only.
 - Nothing is turned and nothing is dimmed. Every match, red or blue, is drawn on the one map, with squares where they were recorded on the field. Harry: "Red/Blue matches should not be rotated", and dimming is "only … in auto select prematch. Nothing for match."
 - With two reports for one match, each counts for half.
-- **Auto start**: one dot for each match on the wall the robot started from, red matches on the red wall and blue on the blue wall, in the alliance's colour. This replaces the old "Auto start: zone (3/5)" line, because the zone names were game words and are not stored. *Our call.* Reports with no wall position get no dot.
+- **Auto start**: one dot for each match on the wall the robot started from, red matches on the red wall and blue on the blue wall, in the alliance's colour. This replaces the old "Auto start: zone (3/5)" line, because the zone names were game words and are not stored. *Our call.* Reports with no wall position get no dot. The dot is placed from the wall position and the report's alliance, never from `startSquare`, because a correction can change the alliance and leaves the start fields as they were.
 - A caption says what the shading means.
 
 ### 5. Report lines
