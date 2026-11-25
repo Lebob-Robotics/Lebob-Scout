@@ -27,6 +27,7 @@ Four changes from Harry's notes after using the first version. This builds on `2
 - The position is a whole number from 0 to 200, as on the old site: 0 to 50 runs along the top wall from the centre line to the corner, 50 to 150 down the outer wall, 150 to 200 along the bottom wall back to the centre line. It is measured on the red side of the picture, and a blue robot's wall is the same path turned a half-turn. Old and new start positions mean the same thing.
 - The dot cannot rest where a robot may not start. For this season the allowed ranges are 0 to 9, 23 to 67, 83 to 109 and 123 to 200, taken from the old site. They live in the field settings for `ftc-2026`, so next season supplies its own.
 - The dot shows in the alliance's colour, and needs the robot picked first.
+- On this set-up picture only, the other alliance's half of the field is dimmed once the robot is picked. The live screen and the final page are never dimmed. Harry, 25 Nov: "dimming should only occur in auto select prematch. Nothing for match."
 - Stored data: a new property on Match Observation, `startWallPos` (whole number, may be empty for reports saved before this change). `startSquare` is still saved, worked out from the dot's position, so the heatmap work is unaffected.
 - Foundry: one proposal adds the property and adds it to the create action. Harry approves it, and the SDK is regenerated. The modify action does not change. Start position stays uncorrectable after saving, as now.
 - The zone names the old site attached to wall positions are game words, and we do not store them.
