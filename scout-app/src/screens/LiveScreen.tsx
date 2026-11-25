@@ -84,19 +84,21 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
 
       <div className="bar">
         <output className="clock">{phase.toUpperCase()} {clockText(remaining)}</output>
-        {(phase === "auto" || phase === "changeover") && (
-          <button type="button" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
-        )}
-        <p className="hint" aria-live="polite">{hint}</p>
-        <button type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Flip field</button>
         {confirming ? (
-          <span className="confirm">
-            End now?
+          <>
+            <p className="hint" aria-live="polite">End the match now?</p>
             <button type="button" onClick={() => setConfirming(false)}>Keep going</button>
-            <button type="button" className="end" onClick={onEnd}>End match</button>
-          </span>
+            <button type="button" className="end confirmed" onClick={onEnd}>End match</button>
+          </>
         ) : (
-          <button type="button" className="end" onClick={() => (phase === "over" ? onEnd() : setConfirming(true))}>End match</button>
+          <>
+            {(phase === "auto" || phase === "changeover") && (
+              <button type="button" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
+            )}
+            <p className="hint" aria-live="polite">{hint}</p>
+            <button type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Flip field</button>
+            <button type="button" className="end" onClick={() => (phase === "over" ? onEnd() : setConfirming(true))}>End match</button>
+          </>
         )}
       </div>
 
