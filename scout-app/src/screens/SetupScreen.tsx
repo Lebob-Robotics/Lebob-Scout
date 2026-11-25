@@ -46,12 +46,23 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
 
   // Once per robot picked, scroll to the end so the whole pad, its caption and the sticky Start are in view and clear
   // of each other (the pad takes every touch, so a swipe on it cannot scroll). Not on dragging, flipping or typing:
-  // a hand-typed robot keeps one key while it is edited, and nothing scrolls while a number box has the focus.
+  // a hand-typed robot keeps one key while it is edited, and the scroll waits until the focus leaves the number boxes.
   const robotKey = target && (target.presenceUuid ?? "typed");
   useEffect(() => {
-    if (!robotKey || document.activeElement instanceof HTMLInputElement) return;
-    const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+    if (!robotKey) return;
+    const scroll = () => {
+      const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
+    };
+    if (!(document.activeElement instanceof HTMLInputElement)) return scroll();
+    // Owed: once, when the focus leaves for anything but another box. A new or cleared robot drops it.
+    const leave = (e: FocusEvent) => {
+      if (e.relatedTarget instanceof HTMLInputElement) return;
+      document.removeEventListener("focusout", leave);
+      scroll();
+    };
+    document.addEventListener("focusout", leave);
+    return () => document.removeEventListener("focusout", leave);
   }, [robotKey]);
 
   // Offline: the schedule failed but the phone remembers the event, so the scout types the match in.
