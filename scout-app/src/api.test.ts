@@ -32,7 +32,7 @@ test("toCreateParams writes a null path as empty text and keeps other nulls", ()
   expect(p.auto_path_points).toBe("");
   expect(p.notes).toBeNull();
   expect(p.match_uuid).toBeNull();
-  expect(Object.keys(p)).toHaveLength(32);
+  expect(Object.keys(p)).toHaveLength(33);   // every property, including the wall position
   expect(toCreateParams(obs("o1", { autoPathPoints: "1,2" })).auto_path_points).toBe("1,2");
 });
 
@@ -70,7 +70,11 @@ test("toEventRow keeps only the date of each event day", () => {
 });
 
 // START-WALL: the create half waits for the regenerated SDK.
-test.todo("create sends the wall position once the SDK has it");
+test("create sends the wall position, and null for a report queued before it existed", () => {
+  expect(toCreateParams(obs("a", { startWallPos: 100 })).start_wall_pos).toBe(100);
+  const old = obs("a"); delete (old as Partial<typeof old>).startWallPos;
+  expect(toCreateParams(old).start_wall_pos).toBeNull();
+});
 test("modify does not send the wall position", () => {
   expect("start_wall_pos" in toModifyParams(obs("a"), {}, 0)).toBe(false);
 });

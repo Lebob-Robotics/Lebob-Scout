@@ -60,7 +60,7 @@ export const toCreateParams = (o: Observation) => ({
   scout_user_id: o.scoutUserId, scout_name: o.scoutName,
   created_at: o.createdAt, updated_at: o.updatedAt, timer_started_at: o.timerStartedAt,
   field_key: o.fieldKey, start_square: o.startSquare,
-  // START-WALL: add `start_wall_pos: o.startWallPos ?? null` here once the SDK has the parameter (older queued reports have none).
+  start_wall_pos: o.startWallPos ?? null, // reports queued by an older version have none
 });
 
 // The object reference takes the primary key (the object itself also works). Sending null clears a nullable value.
