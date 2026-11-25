@@ -13,6 +13,13 @@ const auth = createPublicOauthClient(import.meta.env.VITE_FOUNDRY_CLIENT_ID, url
   scopes: ["api:read-data", "api:write-data", "api:use-ontologies-read", "api:use-ontologies-write", "api:admin-read"],
 });
 
+// The library sets its own refresh timer on every sign-in and refresh. It bypasses tokenSource's offline check and
+// shared refresh, and a failed refresh deletes the stored sign-in. Clear it each time (this listener runs after the
+// library's own); tokenSource refreshes on the first call after the token expires. rmTimeout is missing from the types.
+const stopLibraryTimer = () => (auth as typeof auth & { rmTimeout(): void }).rmTimeout();
+auth.addEventListener("signIn", stopLibraryTimer);
+auth.addEventListener("refresh", stopLibraryTimer);
+
 let signedOut = false;
 const listeners = new Set<() => void>();
 const setSignedOut = (v: boolean) => {

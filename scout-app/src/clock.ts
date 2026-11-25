@@ -3,7 +3,7 @@ import type { Field } from "./field";
 export type Phase = "auto" | "changeover" | "teleop" | "endgame" | "over";
 
 export function matchSeconds(startedAtMs: number, nowMs: number): number {
-  return Math.round((nowMs - startedAtMs) / 100) / 10;
+  return Math.max(0, Math.round((nowMs - startedAtMs) / 100) / 10); // a phone clock set back never reads below 0
 }
 
 export function phaseAt(

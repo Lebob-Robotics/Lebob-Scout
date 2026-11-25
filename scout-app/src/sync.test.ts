@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { flush, linkUnlinked } from "./sync";
+import { flush, linkUnlinked, shortError } from "./sync";
 import { createStore } from "./storage";
 import { anyPresence, fake, fakeStorage, obs, storeWith } from "./testHelpers";
 
@@ -19,6 +19,19 @@ test("a lost reply does not create a second report", async () => {
   api.createThrows = false; api.existing.add("a");
   expect(await flush(api, s)).toEqual({ saved: 1, waiting: 0 });
   expect(api.calls).toEqual(["create a", "exists a"]); // no second create
+});
+test("a failed save keeps a short last error, and a later failure replaces it", async () => {
+  const s = storeWith(obs("a")); const api = fake({ createThrows: true });
+  await flush(api, s);
+  expect(s.pending()[0].lastError).toBe("network");
+  api.createThrows = false; api.existsThrows = true;
+  await flush(api, s);
+  expect(s.pending()[0].lastError).toBe("exists failed");
+});
+test("a long or many-line error is cut to one short line", () => {
+  expect(shortError(new Error("Failed to fetch 400 Bad Request\n    at applyAction (client.js:1)"))).toBe("Failed to fetch 400 Bad Request");
+  expect(shortError(new Error("x".repeat(300)))).toHaveLength(120);
+  expect(shortError("plain")).toBe("plain");
 });
 test("one failure does not block the rest", async () => {
   const s = storeWith(obs("a"), obs("b")); const api = fake({ createThrowsFor: "a" });

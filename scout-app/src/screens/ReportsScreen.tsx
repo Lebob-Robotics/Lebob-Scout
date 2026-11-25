@@ -8,11 +8,12 @@ import { MatchRobotPicker } from "./MatchRobotPicker";
 const taps = (o: Observation) => `${o.tapSeconds.length} tap${o.tapSeconds.length === 1 ? "" : "s"}`;
 
 // Changing `refresh` reloads the list without closing an open correction.
-export function ReportsScreen({ api, eventUuid, userId, waiting, refresh = 0, onNew }: {
+export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = null, refresh = 0, onNew }: {
   api: Api;
   eventUuid: string;
   userId: string;
   waiting: number;
+  lastError?: string | null;
   refresh?: number;
   onNew(): void;
 }) {
@@ -23,7 +24,10 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, refresh = 0, on
 
   useEffect(() => {
     let live = true;
-    api.observations(eventUuid).then((os) => live && setReports(os), () => live && setFailed(true));
+    api.observations(eventUuid).then(
+      (os) => { if (live) { setReports(os); setFailed(false); } },
+      () => live && setFailed(true),
+    );
     return () => { live = false; };
   }, [api, eventUuid, tries, refresh]);
 
@@ -44,7 +48,12 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, refresh = 0, on
   return (
     <div className="reports">
       <h1>Reports</h1>
-      {waiting > 0 && <p className="banner">{waiting === 1 ? "1 report waiting to save" : `${waiting} reports waiting to save`}</p>}
+      {waiting > 0 && (
+        <div className="banner">
+          <p>{waiting === 1 ? "1 report waiting to save" : `${waiting} reports waiting to save`}</p>
+          {lastError && <p className="last-error">Last try: {lastError}</p>}
+        </div>
+      )}
       <button type="button" className="new" onClick={onNew}>New match</button>
       {failed ? (
         <p>Couldn't load reports. <button type="button" className="retry" onClick={reload}>Retry</button></p>

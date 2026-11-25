@@ -5,8 +5,12 @@ import { flush } from "./sync";
 
 // Sends waiting reports: on load, when the signal returns, and every 30 s while any wait.
 // `saved` goes up whenever a report reaches the server, so the list can reload.
+// The distinct last errors of the waiting reports, joined, or null.
+const lastErrors = (store: Store) => [...new Set(store.pending().map((p) => p.lastError).filter(Boolean))].join("; ") || null;
+
 export function useSaveQueue(api: Api, store: Store) {
   const [waiting, setWaiting] = useState(() => store.pending().length);
+  const [lastError, setLastError] = useState(() => lastErrors(store));
   const [saved, setSaved] = useState(0);
   const busy = useRef(false);
   const again = useRef(false);
@@ -17,8 +21,10 @@ export function useSaveQueue(api: Api, store: Store) {
     flush(api, store)
       .then((result) => {
         setWaiting(result.waiting);
+        setLastError(lastErrors(store));
         if (result.saved) setSaved((n) => n + result.saved);
       })
+      .catch(() => { /* reports stay queued; the next try sends them */ })
       .finally(() => {
         busy.current = false;
         if (again.current) { again.current = false; send(); }
@@ -40,5 +46,5 @@ export function useSaveQueue(api: Api, store: Store) {
   // After Save: the new report shows as waiting before the network answers.
   const queued = () => { setWaiting(store.pending().length); send(); };
 
-  return { waiting, saved, queued };
+  return { waiting, lastError, saved, queued };
 }

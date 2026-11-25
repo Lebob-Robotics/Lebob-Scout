@@ -53,3 +53,35 @@ test("storage that reads but refuses writes counts as blocked before anything is
   backing.setItem = () => { throw new Error("quota"); };
   expect(createStore(backing).ok).toBe(false);
 });
+test("a stored draft missing its essentials is treated as no draft", () => {
+  const good = draft({});
+  const bad: unknown[] = [
+    { ...good, observationId: 7 },
+    { ...good, taps: "none" },
+    { ...good, startedAtMs: "0" },
+    { ...good, final: null },
+    { ...good, stage: "done" },
+    { ...good, fieldKey: "nope" },
+    "a draft",
+  ];
+  for (const d of bad) expect(createStore(fakeStorage({ "lsa:draft": JSON.stringify(d) })).loadDraft()).toBeNull();
+  expect(createStore(fakeStorage({ "lsa:draft": JSON.stringify(good) })).loadDraft()).toEqual(good);
+});
+test("bad outbox entries are dropped and good ones kept, with or without a last error", () => {
+  const entries = [
+    { observation: obs("a"), attempts: 1 },
+    { observation: obs("b"), attempts: 2, lastError: "Bad Request" },
+    { observation: { observationId: 5 }, attempts: 0 },
+    { observation: obs("c"), attempts: "1" },
+    { attempts: 0 },
+    null,
+  ];
+  const s = createStore(fakeStorage({ "lsa:outbox": JSON.stringify(entries) }));
+  expect(s.pending()).toEqual([entries[0], entries[1]]);
+});
+test("a queued report keeps its last error across a reload", () => {
+  const backing = fakeStorage();
+  const s = createStore(backing);
+  s.enqueue(obs("a")); s.setError("a", "Bad Request");
+  expect(createStore(backing).pending()).toEqual([{ observation: obs("a"), attempts: 0, lastError: "Bad Request" }]);
+});

@@ -4,12 +4,16 @@ import { FieldPicture } from "../components/FieldPicture";
 import { Grid } from "../components/Grid";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
-import { firstEvent, remember, rememberedEvent } from "../schedule";
+import { firstEvent, remember, rememberedEvent, withEvent } from "../schedule";
+import { READ_LIMIT_MS, withTimeout } from "../sync";
 import { MatchRobotPicker } from "./MatchRobotPicker";
 
 const field = FIELDS[CURRENT_FIELD_KEY];
 const localToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-
+const FLIP_KEY = "lsa:flip";
+const rememberedFlip = () => {
+  try { return localStorage.getItem(FLIP_KEY) === "1"; } catch { return false; }
+};
 
 export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean): void }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
@@ -18,17 +22,19 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
   const [eventUuid, setEventUuid] = useState<string | null>(null);
   const [target, setTarget] = useState<Target | null>(null);
   const [square, setSquare] = useState<string | null>(null);
-  const [flipped, setFlipped] = useState(false);
+  const [flipped, setFlipped] = useState(rememberedFlip);
   const [retrying, setRetrying] = useState(false);
   const [offlineEvent] = useState(rememberedEvent);
 
   useEffect(() => {
     let live = true;
-    api.ourEvents().then(
+    withTimeout(api.ourEvents(), READ_LIMIT_MS).then(
       (es) => {
         if (!live) return;
+        const first = firstEvent(es, rememberedEvent(), localToday());
+        if (first) remember(first); // the remembered event follows the calendar, so a later offline start uses it
         setEvents(es);
-        setEventUuid(firstEvent(es, rememberedEvent(), localToday())?.eventUuid ?? null);
+        setEventUuid(first?.eventUuid ?? null);
         setFailed(false);
         setRetrying(false);
       },
@@ -50,9 +56,13 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
 
   // Never waits: the clock starts on the tap.
   const start = () => {
-    if (!target || !square) return;
-    if (event) remember(event);
-    onStart(target, square, flipped);
+    if (!target || !square || !event) return;
+    remember(event);
+    onStart(withEvent(target, event), square, flipped);
+  };
+  const flip = () => {
+    setFlipped(!flipped);
+    try { localStorage.setItem(FLIP_KEY, flipped ? "0" : "1"); } catch { /* not remembered */ }
   };
 
   const retry = (
@@ -88,7 +98,7 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
 
       <div className="square-bar">
         <span className="label">Start square: {square ?? "tap where the robot starts"}</span>
-        <button type="button" onClick={() => setFlipped(!flipped)}>Flip field</button>
+        <button type="button" onClick={flip}>Flip field</button>
       </div>
       <div className="field-space">
         <div className="field">

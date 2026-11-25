@@ -66,8 +66,13 @@ export function fake(options: {
     calls: [] as string[],
     existing: new Set<string>(),
     createThrows: options.createThrows ?? false,
+    existsThrows: false,
     modified: [] as [string, Patch][],
-    async exists(id: string) { api.calls.push(`exists ${id}`); return api.existing.has(id); },
+    async exists(id: string) {
+      api.calls.push(`exists ${id}`);
+      if (api.existsThrows) throw new Error("exists failed");
+      return api.existing.has(id);
+    },
     async create(o: Observation) {
       api.calls.push(`create ${o.observationId}`);
       if (options.createHangs) return new Promise<void>(() => {}); // a request that never answers

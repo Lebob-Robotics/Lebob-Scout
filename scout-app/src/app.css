@@ -98,17 +98,21 @@ button:disabled { cursor: default; }
 .reports .new { border-color: var(--count); background: var(--count); color: #111; font-size: 1.2rem; }
 .reports .back { justify-self: start; }
 .banner { padding: .5rem .75rem; border-radius: .4rem; background: #f5c54233; border: 2px solid var(--shoot); font-weight: 600; }
+.banner .last-error { font-size: .8rem; font-weight: 400; overflow-wrap: anywhere; }
 .report-list { display: grid; gap: .5rem; padding: 0; list-style: none; }
 .report { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .6rem; width: 100%; min-height: 48px; padding: .5rem .75rem; border: 2px solid #fff4; border-radius: .4rem; background: #26272b; text-align: left; }
 .report strong { font-size: 1.1rem; font-variant-numeric: tabular-nums; }
 .report .meta { flex-basis: 100%; color: #bbb; font-size: .9rem; }
 .alliance { padding: 0 .4rem; border-radius: .3rem; font-size: .75rem; font-weight: 700; color: #fff; }
 .alliance.red { background: #e5484d; }
-.alliance.blue { background: #3b82f6; }
+.alliance.blue { background: #2563eb; }
 .tag { padding: 0 .4rem; border: 1px solid #fff6; border-radius: .3rem; font-size: .75rem; }
 .save-note { font-weight: 600; }
 .save-note.error { color: var(--intake); }
 
 /* Above every screen but the live one: storage warning, Back to reports, Flip field. */
 .top { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 0; }
+.top .confirm { display: flex; align-items: center; gap: .75rem; }
+.top .confirm p { flex: 1; font-weight: 600; }
+.top .danger { border-color: var(--intake); background: var(--intake); color: #111; }
 .top button { justify-self: start; min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }

@@ -1,7 +1,8 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Api, MatchRow, PresenceRow } from "../api";
 import type { Target } from "../observation";
-import { pickMatch } from "../schedule";
+import { MATCH_MAX, TEAM_MAX, pickMatch, whole } from "../schedule";
+import { READ_LIMIT_MS, withTimeout } from "../sync";
 
 type Typed = { matchType: Target["matchType"]; matchNumber: string; teamNumber: string; alliance: Target["alliance"] | null };
 
@@ -9,7 +10,6 @@ const emptyTyped: Typed = { matchType: "qualification", matchNumber: "", teamNum
 const matchLabel = (m: MatchRow) => `${m.matchType === "qualification" ? "Q" : "P"}${m.matchNumber}${m.actualTime ? " (played)" : ""}`;
 const robotOrder = (a: PresenceRow, b: PresenceRow) => Number(a.alliance === "blue") - Number(b.alliance === "blue") || a.station - b.station;
 const typedFrom = (v: Target): Typed => ({ matchType: v.matchType, matchNumber: String(v.matchNumber), teamNumber: String(v.teamNumber), alliance: v.alliance });
-const whole = (text: string) => (/^\d+$/.test(text) && Number(text) >= 1 ? Number(text) : null);
 
 // Picks the match and the robot from the schedule, or takes them hand-typed when the match is not listed.
 // Use a new key per event: the schedule loads once per mount. startTyped opens the hand-typed path.
@@ -29,12 +29,12 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   const [failed, setFailed] = useState(false);
   const [tries, setTries] = useState(0);
   const [found, setFound] = useState<{ teamNumber: number; teamUuid: string | null } | null>(null);
-  const typedTeam = typed ? whole(typed.teamNumber) : null;
+  const typedTeam = typed ? whole(typed.teamNumber, TEAM_MAX) : null;
 
   const unlisted = useEffectEvent((ms: MatchRow[]) => (value?.matchUuid && !ms.some((x) => x.matchUuid === value.matchUuid) ? value : null));
   useEffect(() => {
     let live = true;
-    api.matches(eventUuid).then(
+    withTimeout(api.matches(eventUuid), READ_LIMIT_MS).then(
       (ms) => {
         if (!live) return;
         setMatches(ms);
@@ -50,7 +50,7 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   useEffect(() => {
     if (!matchUuid) return;
     let live = true;
-    api.presences(matchUuid).then((ps) => live && setPresences(ps), () => live && setFailed(true));
+    withTimeout(api.presences(matchUuid), READ_LIMIT_MS).then((ps) => live && setPresences(ps), () => live && setFailed(true));
     return () => { live = false; };
   }, [api, matchUuid, tries]);
 
@@ -66,7 +66,7 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
   const emit = useEffectEvent(onChange);
   useEffect(() => {
     if (!typed) return;
-    const matchNumber = whole(typed.matchNumber), teamNumber = whole(typed.teamNumber);
+    const matchNumber = whole(typed.matchNumber, MATCH_MAX), teamNumber = whole(typed.teamNumber, TEAM_MAX);
     const teamUuid = found?.teamNumber === teamNumber ? found.teamUuid : null;
     // Unchanged from the value it opened with: keep that value, links and all.
     const same = start && start.matchType === typed.matchType && start.matchNumber === matchNumber
@@ -92,9 +92,9 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
           <button type="button" aria-pressed={typed.matchType === "playoff"} onClick={() => type({ ...typed, matchType: "playoff" })}>Playoff</button>
         </div>
         <label htmlFor="typed-match">Match number</label>
-        <input id="typed-match" type="number" inputMode="numeric" min={1} value={typed.matchNumber} onChange={(e) => type({ ...typed, matchNumber: e.target.value })} />
+        <input id="typed-match" type="number" inputMode="numeric" min={1} max={MATCH_MAX} value={typed.matchNumber} onChange={(e) => type({ ...typed, matchNumber: e.target.value })} />
         <label htmlFor="typed-team">Team number</label>
-        <input id="typed-team" type="number" inputMode="numeric" min={1} value={typed.teamNumber} onChange={(e) => type({ ...typed, teamNumber: e.target.value })} />
+        <input id="typed-team" type="number" inputMode="numeric" min={1} max={TEAM_MAX} value={typed.teamNumber} onChange={(e) => type({ ...typed, teamNumber: e.target.value })} />
         <span className="label">Alliance</span>
         <div className="pair">
           <button type="button" className="red" aria-pressed={typed.alliance === "red"} onClick={() => type({ ...typed, alliance: "red" })}>Red</button>

@@ -44,14 +44,16 @@ export function AutoPathPad({ fieldKey, flipped, value, onChange }: {
           <FieldPicture fieldKey={fieldKey} flipped={flipped} />
           <div
             className="pad-surface"
+            // Only the first finger draws: a second one would merge into the stroke.
             onPointerDown={(e) => {
+              if (!e.isPrimary) return;
               e.currentTarget.setPointerCapture(e.pointerId);
               points.current = [];
               add(e);
             }}
-            onPointerMove={(e) => points.current && add(e)}
-            onPointerUp={() => end(true)}
-            onPointerCancel={() => end(false)}
+            onPointerMove={(e) => e.isPrimary && points.current && add(e)}
+            onPointerUp={(e) => e.isPrimary && end(true)}
+            onPointerCancel={(e) => e.isPrimary && end(false)}
           >
             <svg className={flipped ? "pad-lines flipped" : "pad-lines"} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               {[...strokes, ...(drawing ? [drawing] : [])].map((s, i) => <polyline key={i} points={line(s)} />)}

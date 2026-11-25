@@ -17,3 +17,8 @@ test("clock", () => {
   expect(matchSeconds(1000, 13_340)).toBe(12.3);
   expect(skipToTeleop(100_000, f)).toBe(62_000);
 });
+
+test("the clock never reads below 0", () => {
+  expect(matchSeconds(5000, 1000)).toBe(0); // the phone's clock went back
+  expect(matchSeconds(1000, 950)).toBe(0);
+});

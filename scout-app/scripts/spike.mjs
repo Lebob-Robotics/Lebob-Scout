@@ -2,6 +2,8 @@
 // Run from scout-app/ with FOUNDRY_TOKEN in the environment:
 //   set -a; . ~/.config/lebob-foundry.env; set +a; node scripts/spike.mjs
 // Creates at most one Match Observation (label "SPIKE 1", eventUuid "spike").
+// `node scripts/spike.mjs zero` runs only step z: one observation with four empty tap lists
+// (label "SPIKE zero taps", eventUuid "spike"), for a robot that never moves.
 import { createClient } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
 import { $ontologyRid, Event, Match, MatchObservation, createMatchObservation, modifyMatchObservation } from "@lebob-scout/sdk";
@@ -39,6 +41,21 @@ const createParams = {
   scout_user_id: "spike", scout_name: "Spike", created_at: t0, updated_at: t0, timer_started_at: t0,
   field_key: "ftc-2026", start_square: "A1",
 };
+
+// z. empty tap lists, run alone
+if (process.argv[2] === "zero") {
+  const zid = crypto.randomUUID();
+  console.log("observationId", zid);
+  await step("z.create", () => client(createMatchObservation).applyAction(
+    { ...createParams, observation_id: zid, label: "SPIKE zero taps", tap_seconds: [], tap_kinds: [], tap_squares: [], tap_counts: [] },
+    { $returnEdits: true },
+  ));
+  await step("z.readback", async () => {
+    const o = await client(MatchObservation).fetchOne(zid);
+    return { label: o.label, eventUuid: o.eventUuid, tapLists: [o.tapSeconds, o.tapKinds, o.tapSquares, o.tapCounts].map((l) => (l === undefined ? "<undefined>" : `array(${l.length})`)) };
+  });
+  process.exit(0);
+}
 
 // a. create and read back
 await step("a.create", () => client(createMatchObservation).applyAction(createParams, { $returnEdits: true }));

@@ -9,7 +9,7 @@ import { LiveScreen } from "./screens/LiveScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
 import { SetupScreen } from "./screens/SetupScreen";
 import { createStore } from "./storage";
-import { linkUnlinked } from "./sync";
+import { READ_LIMIT_MS, linkUnlinked, withTimeout } from "./sync";
 import { useSaveQueue } from "./useSaveQueue";
 
 type User = { id: string; name: string };
@@ -40,12 +40,26 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft 
   },
 });
 
+// Secondary and away from Save; asks first, with Cancel where Discard match was.
+function DiscardMatch({ onDiscard }: { onDiscard(): void }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking) return <button type="button" onClick={() => setAsking(true)}>Discard match</button>;
+  return (
+    <div className="confirm">
+      <button type="button" onClick={() => setAsking(false)}>Cancel</button>
+      <button type="button" className="danger" onClick={onDiscard}>Discard</button>
+      <p role="alert">Discard this match? Its taps will be lost.</p>
+    </div>
+  );
+}
+
 export default function App({ api, signedOut = false, onSignIn }: { api: Api; signedOut?: boolean; onSignIn?: () => Promise<void> }) {
   const [draft, setDraft] = useState(store.loadDraft);
   const [screen, setScreen] = useState<Screen>(() => draft?.stage ?? (rememberedEvent() ? "reports" : "setup"));
   const [user, setUser] = useState(rememberedUser);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [signIn, setSignIn] = useState<"idle" | "working" | "failed">("idle");
+  const [savingNow, setSavingNow] = useState(false);
   const saving = useRef(false);
   const linked = useRef(false);
   const queue = useSaveQueue(api, store);
@@ -68,6 +82,13 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     if (wasSignedOut.current && !signedOut) queue.queued();
     wasSignedOut.current = signedOut;
   });
+
+  // Signed in or out from elsewhere: the Sign in button starts fresh.
+  const [signInFor, setSignInFor] = useState(signedOut);
+  if (signInFor !== signedOut) {
+    setSignInFor(signedOut);
+    setSignIn("idle");
+  }
 
   const tapSignIn = () => {
     setSignIn("working");
@@ -92,12 +113,13 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const save = async () => {
     if (saving.current || !store.loadDraft()) return; // a second tap, or the draft is already queued
     saving.current = true;
+    setSavingNow(true);
     setSaveError(null);
     try {
       let who = user;
       if (!who) {
         try {
-          who = await api.currentUser();
+          who = await withTimeout(api.currentUser(), READ_LIMIT_MS);
           rememberUser(who);
           setUser(who);
         } catch {
@@ -121,6 +143,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       queue.queued();
     } finally {
       saving.current = false;
+      setSavingNow(false);
     }
   };
 
@@ -135,9 +158,20 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     signedOut && signIn === "failed" && <p key="sign-in-failed" className="save-note error" role="alert">Couldn't reach Foundry. Check your signal and try again.</p>,
     screen === "setup" && event && <button key="back" type="button" onClick={() => setScreen("reports")}>Back to reports</button>,
     screen === "final" && draft && (
+      <button key="back-to-match" type="button" onClick={() => { keep({ ...draft, stage: "live" }); setScreen("live"); }}>
+        Back to match
+      </button>
+    ),
+    screen === "final" && draft && (
       <button key="flip" type="button" onClick={() => keep({ ...draft, flipped: !draft.flipped })}>
         Flip field ({draft.flipped ? "flipped" : "not flipped"})
       </button>
+    ),
+    screen === "final" && draft && (
+      <DiscardMatch
+        key="discard"
+        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); setScreen(event ? "reports" : "setup"); }}
+      />
     ),
   ].filter(Boolean);
 
@@ -150,7 +184,8 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         value={draft.final}
         onChange={(f) => keep({ ...draft, final: f })}
         onSave={save}
-        saveLabel="Save report"
+        saveLabel={savingNow ? "Saving…" : "Save report"}
+        saveDisabled={savingNow}
         fieldKey={draft.fieldKey}
         flipped={draft.flipped}
       >
@@ -158,7 +193,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       </FinalScreen>
     );
   } else if (screen === "reports" && eventUuid) {
-    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} refresh={queue.saved} onNew={() => setScreen("setup")} />;
+    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} />;
   } else {
     body = <SetupScreen api={api} onStart={(t, square, flipped) => { keep(newDraft(t, square, flipped)); setScreen("live"); }} />;
   }

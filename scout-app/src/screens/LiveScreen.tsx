@@ -84,25 +84,26 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
 
       <div className="bar">
         <output className="clock">{phase.toUpperCase()} {clockText(remaining)}</output>
+        {!confirming && (phase === "auto" || phase === "changeover") && (
+          <button type="button" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
+        )}
+        {/* One hint, always mounted, so screen readers hear the change. */}
+        <p className="hint" aria-live="polite">{confirming ? "End the match now?" : hint}</p>
+        {/* Keep going sits where End match was, so a double tap keeps the match running. */}
         {confirming ? (
           <>
-            <p className="hint" aria-live="polite">End the match now?</p>
-            <button type="button" onClick={() => setConfirming(false)}>Keep going</button>
-            <button type="button" className="end confirmed" onClick={onEnd}>End match</button>
+            <button key="end-now" type="button" className="end confirmed" onClick={onEnd}>End match</button>
+            <button key="keep" type="button" onClick={() => setConfirming(false)}>Keep going</button>
           </>
         ) : (
           <>
-            {(phase === "auto" || phase === "changeover") && (
-              <button type="button" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
-            )}
-            <p className="hint" aria-live="polite">{hint}</p>
-            <button type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Flip field</button>
-            <button type="button" className="end" onClick={() => (phase === "over" ? onEnd() : setConfirming(true))}>End match</button>
+            <button key="flip" type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Flip field</button>
+            <button key="end" type="button" className="end" onClick={() => (phase === "over" ? onEnd() : setConfirming(true))}>End match</button>
           </>
         )}
       </div>
 
-      <div className="turn">Turn your phone sideways</div>
+      <div className="turn">Turn your phone sideways (and turn off rotation lock)</div>
     </div>
   );
 }

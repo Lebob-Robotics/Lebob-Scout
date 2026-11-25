@@ -1,4 +1,5 @@
 import type { EventRow, MatchRow } from "./api";
+import type { Target } from "./observation";
 
 const EVENT_KEY = "lsa:event";
 
@@ -32,6 +33,14 @@ export function firstEvent(events: EventRow[], remembered: EventRow | null, toda
 
 const order = (a: MatchRow, b: MatchRow) =>
   Number(a.matchType === "playoff") - Number(b.matchType === "playoff") || a.matchNumber - b.matchNumber;
+
+// Hand-typed numbers: whole, from 1 up to the cap. Foundry refuses a team number past its integer range for good.
+export const MATCH_MAX = 999;
+export const TEAM_MAX = 99999;
+export const whole = (text: string, max: number) => (/^\d+$/.test(text) && Number(text) >= 1 && Number(text) <= max ? Number(text) : null);
+
+// A report is always filed under the event on screen, whatever event the picker's target was typed under.
+export const withEvent = (target: Target, event: EventRow): Target => ({ ...target, eventUuid: event.eventUuid });
 
 export function pickMatch(matches: MatchRow[]): MatchRow | null {
   const sorted = [...matches].sort(order);
