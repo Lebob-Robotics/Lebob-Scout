@@ -64,7 +64,10 @@ export default function App({ api }: { api: Api }) {
   // Only nag when a reload would lose work: storage is broken and something is unsaved.
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (!store.ok && (store.loadDraft() || store.pending().length)) e.preventDefault();
+      if (!store.ok && (store.loadDraft() || store.pending().length)) {
+        e.preventDefault();
+        e.returnValue = ""; // older browsers
+      }
     };
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
@@ -74,8 +77,7 @@ export default function App({ api }: { api: Api }) {
   const keep = (d: Draft) => { store.saveDraft(d); setDraft(d); };
 
   const save = async () => {
-    const d = store.loadDraft();
-    if (saving.current || !d) return; // a second tap, or the draft is already queued
+    if (saving.current || !store.loadDraft()) return; // a second tap, or the draft is already queued
     saving.current = true;
     setSaveError(null);
     try {
@@ -90,6 +92,8 @@ export default function App({ api }: { api: Api }) {
           return;
         }
       }
+      const d = store.loadDraft(); // read after the wait, so edits made meanwhile are kept
+      if (!d) return;
       let observation;
       try {
         observation = buildObservation(d, who, Date.now());

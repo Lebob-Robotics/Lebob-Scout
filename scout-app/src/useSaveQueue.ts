@@ -9,16 +9,20 @@ export function useSaveQueue(api: Api, store: Store) {
   const [waiting, setWaiting] = useState(() => store.pending().length);
   const [saved, setSaved] = useState(0);
   const busy = useRef(false);
+  const again = useRef(false);
 
-  const send = useCallback(() => {
-    if (busy.current) return; // never two flushes at once
+  const send = useCallback(function send() {
+    if (busy.current) { again.current = true; return; } // never two flushes at once; run once more after this one
     busy.current = true;
     flush(api, store)
       .then((result) => {
         setWaiting(result.waiting);
         if (result.saved) setSaved((n) => n + result.saved);
       })
-      .finally(() => { busy.current = false; });
+      .finally(() => {
+        busy.current = false;
+        if (again.current) { again.current = false; send(); }
+      });
   }, [api, store]);
 
   useEffect(() => {

@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
 import { flush, linkUnlinked } from "./sync";
-import { anyPresence, fake, obs, storeWith } from "./testHelpers";
+import { createStore } from "./storage";
+import { anyPresence, fake, fakeStorage, obs, storeWith } from "./testHelpers";
 
 test("a good save leaves the queue empty", async () => {
   const s = storeWith(obs("a")); const api = fake({});
@@ -22,6 +23,18 @@ test("a lost reply does not create a second report", async () => {
 test("one failure does not block the rest", async () => {
   const s = storeWith(obs("a"), obs("b")); const api = fake({ createThrowsFor: "a" });
   expect(await flush(api, s)).toEqual({ saved: 1, waiting: 1 });
+});
+test("a reload while the first create is in flight does not create a second copy", async () => {
+  const backing = fakeStorage();
+  createStore(backing).enqueue(obs("a"));
+  void flush(fake({ createHangs: true }), createStore(backing)); // the page is reloaded before the reply
+  const api = fake({}); api.existing.add("a");
+  expect(await flush(api, createStore(backing))).toEqual({ saved: 1, waiting: 0 });
+  expect(api.calls).toEqual(["exists a"]);
+});
+test("a request that never answers gives up after the limit and stays queued", async () => {
+  const s = storeWith(obs("a"));
+  expect(await flush(fake({ createHangs: true }), s, 10)).toEqual({ saved: 0, waiting: 1 });
 });
 test("hand-typed reports are linked once the match exists", async () => {
   const api = fake({ observations: [obs("a", { matchUuid: null, presenceUuid: null, teamUuid: null, matchType: "qualification", matchNumber: 3, teamNumber: 29550 })],

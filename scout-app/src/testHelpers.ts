@@ -59,7 +59,7 @@ export const storeWith = (...observations: Observation[]): Store => {
 export const anyPresence: PresenceRow = { presenceUuid: "p", matchUuid: "m", teamUuid: "t", teamNumber: 29550, alliance: "red", station: 1 };
 
 export function fake(options: {
-  createThrows?: boolean; createThrowsFor?: string; observations?: Observation[];
+  createThrows?: boolean; createThrowsFor?: string; createHangs?: boolean; observations?: Observation[];
   presence?: { key: string; row: PresenceRow };
 }) {
   const api = {
@@ -70,6 +70,7 @@ export function fake(options: {
     async exists(id: string) { api.calls.push(`exists ${id}`); return api.existing.has(id); },
     async create(o: Observation) {
       api.calls.push(`create ${o.observationId}`);
+      if (options.createHangs) return new Promise<void>(() => {}); // a request that never answers
       if (api.createThrows || options.createThrowsFor === o.observationId) throw new Error("network");
     },
     async observations(_eventUuid: string) { return options.observations ?? []; },
