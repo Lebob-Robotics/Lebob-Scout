@@ -16,7 +16,7 @@ test("toObservation reads missing nullables as null and an empty path as null", 
   const o = toObservation(fromFoundry);
   expect(o).toEqual({
     ...fromFoundry, matchUuid: null, presenceUuid: null, teamUuid: null,
-    driverSkill: null, robotSpeed: null, autoNotes: null, notes: null, autoPathPoints: null,
+    driverSkill: null, robotSpeed: null, autoNotes: null, notes: null, autoPathPoints: null, startWallPos: null,
   });
   expect(toObservation({ ...fromFoundry, autoPathPoints: "10,20;30,40" }).autoPathPoints).toBe("10,20;30,40");
 });
@@ -67,4 +67,15 @@ test("isAlreadySaved is true only for Foundry's ObjectAlreadyExists error", () =
 test("toEventRow keeps only the date of each event day", () => {
   expect(toEventRow({ eventUuid: "e1", eventCode: "AUPEQ", eventName: "WA Qualifier", dateStart: "2026-11-15T00:00:00Z", dateEnd: "2026-11-16T00:00:00Z" }))
     .toEqual({ eventUuid: "e1", eventCode: "AUPEQ", eventName: "WA Qualifier", dateStart: "2026-11-15", dateEnd: "2026-11-16" });
+});
+
+// START-WALL: the create half waits for the regenerated SDK.
+test.todo("create sends the wall position once the SDK has it");
+test("modify does not send the wall position", () => {
+  expect("start_wall_pos" in toModifyParams(obs("a"), {}, 0)).toBe(false);
+});
+
+test("toObservation reads the wall position, and a missing one as null", () => {
+  expect(toObservation({ ...fromFoundry, startWallPos: 100 } as Parameters<typeof toObservation>[0]).startWallPos).toBe(100);
+  expect(toObservation(fromFoundry).startWallPos).toBeNull();
 });

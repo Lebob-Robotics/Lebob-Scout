@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Api, EventRow } from "../api";
-import { FieldPicture } from "../components/FieldPicture";
-import { Grid } from "../components/Grid";
+import { StartPad } from "../components/StartPad";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
+import { startSquareFor } from "../startWall";
 import { firstEvent, remember, rememberedEvent, withEvent } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
 import { MatchRobotPicker } from "./MatchRobotPicker";
@@ -15,13 +15,14 @@ const rememberedFlip = () => {
   try { return localStorage.getItem(FLIP_KEY) === "1"; } catch { return false; }
 };
 
-export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean): void }) {
+export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean, startWallPos: number): void }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [tries, setTries] = useState(0);
   const [eventUuid, setEventUuid] = useState<string | null>(null);
   const [target, setTarget] = useState<Target | null>(null);
-  const [square, setSquare] = useState<string | null>(null);
+  // Kept when the robot or match changes: a robot on the other alliance gets the same spot on its own wall.
+  const [wallPos, setWallPos] = useState<number | null>(null);
   const [flipped, setFlipped] = useState(rememberedFlip);
   const [retrying, setRetrying] = useState(false);
   const [offlineEvent] = useState(rememberedEvent);
@@ -54,11 +55,13 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
     if (e) remember(e);
   };
 
+  const square = target && wallPos !== null ? startSquareFor(wallPos, target.alliance, field) : null;
+
   // Never waits: the clock starts on the tap.
   const start = () => {
-    if (!target || !square || !event) return;
+    if (!target || !square || wallPos === null || !event) return;
     remember(event);
-    onStart(withEvent(target, event), square, flipped);
+    onStart(withEvent(target, event), square, flipped, wallPos);
   };
   const flip = () => {
     setFlipped(!flipped);
@@ -97,15 +100,10 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
       <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} />
 
       <div className="square-bar">
-        <span className="label">Start square: {square ?? "tap where the robot starts"}</span>
+        <span className="label">Start: {square ?? "tap where the robot starts"}</span>
         <button type="button" onClick={flip}>Flip field</button>
       </div>
-      <div className="field-space">
-        <div className="field">
-          <FieldPicture fieldKey={field.key} flipped={flipped} />
-          <Grid field={field} flipped={flipped} selected={square} onPick={setSquare} />
-        </div>
-      </div>
+      <StartPad fieldKey={field.key} flipped={flipped} alliance={target?.alliance ?? null} value={wallPos} onChange={setWallPos} />
 
       <button type="button" className="start" disabled={!target || !square} onClick={start}>Start</button>
     </div>

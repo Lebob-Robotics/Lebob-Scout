@@ -1,5 +1,6 @@
 import { test, expect } from "vitest";
 import { buildObservation } from "./observation";
+import type { Draft } from "./observation";
 import { draft, tap } from "./testHelpers";
 
 test("observation", () => {
@@ -17,4 +18,10 @@ test("observation", () => {
 test("playoff label", () => {
   const o = buildObservation(draft({ matchType: "playoff", matchNumber: 3 }), { id: "u1", name: "x" }, 0);
   expect(o.label).toBe("P3 · 29550");
+});
+
+test("the wall position is carried, and old drafts have none", () => {
+  expect(buildObservation(draft({ startWallPos: 100 }), { id: "u", name: "x" }, 0).startWallPos).toBe(100);
+  const old = draft({}); delete (old as Partial<Draft>).startWallPos;
+  expect(buildObservation(old, { id: "u", name: "x" }, 0).startWallPos).toBeNull();
 });

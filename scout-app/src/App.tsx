@@ -29,9 +29,9 @@ const rememberUser = (u: User) => {
   try { localStorage.setItem(USER_KEY, JSON.stringify(u)); } catch { /* kept for this page load only */ }
 };
 
-const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft => ({
+const newDraft = (target: Target, startSquare: string, flipped: boolean, startWallPos: number): Draft => ({
   ...target,
-  observationId: crypto.randomUUID(), fieldKey: CURRENT_FIELD_KEY, startSquare,
+  observationId: crypto.randomUUID(), fieldKey: CURRENT_FIELD_KEY, startSquare, startWallPos,
   startedAtMs: Date.now(), taps: [], flipped, stage: "live",
   final: {
     autoLeave: false, autoPark: false, teleopPark: false, brokeDown: false,
@@ -196,7 +196,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   } else if (screen === "reports" && eventUuid) {
     body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} />;
   } else {
-    body = <SetupScreen api={api} onStart={(t, square, flipped) => { keep(newDraft(t, square, flipped)); setScreen("live"); }} />;
+    body = <SetupScreen api={api} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
   }
 
   return (

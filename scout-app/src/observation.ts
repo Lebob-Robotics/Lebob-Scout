@@ -12,12 +12,12 @@ export type FinalPage = {
   autoNotes: string | null; notes: string | null; autoPathPoints: string | null;
 };
 export type Draft = Target & {
-  observationId: string; fieldKey: string; startSquare: string; startedAtMs: number;
+  observationId: string; fieldKey: string; startSquare: string; startWallPos: number | null; startedAtMs: number;
   taps: Tap[]; flipped: boolean; stage: "live" | "final"; final: FinalPage;
 };
 export type Observation = Target & FinalPage & TapLists & {
   observationId: string; label: string; scoutUserId: string; scoutName: string;
-  createdAt: string; updatedAt: string; timerStartedAt: string; fieldKey: string; startSquare: string;
+  createdAt: string; updatedAt: string; timerStartedAt: string; fieldKey: string; startSquare: string; startWallPos: number | null;
 };
 
 export const labelFor = (t: Pick<Target, "matchType" | "matchNumber" | "teamNumber">): string =>
@@ -43,5 +43,6 @@ export function buildObservation(draft: Draft, user: { id: string; name: string 
     timerStartedAt: new Date(draft.startedAtMs).toISOString(),
     fieldKey: draft.fieldKey,
     startSquare: draft.startSquare,
+    startWallPos: draft.startWallPos ?? null, // a draft from before the wall position has none
   };
 }

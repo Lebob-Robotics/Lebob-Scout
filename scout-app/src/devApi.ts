@@ -13,7 +13,8 @@ const TEAMS = [11115, 12345, 14469, 16021, 18172, 19044, 21230, 23511];
 const fail = (why = "Schedule unavailable") => new Promise<never>((_, reject) => setTimeout(() => reject(new Error(why)), 150));
 const SAVED_KEY = "lsa:dev-observations";
 const loadSaved = (): Observation[] => {
-  try { return JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]"); } catch { return []; }
+  // Reports saved before the wall position have none.
+  try { return JSON.parse(localStorage.getItem(SAVED_KEY) ?? "[]").map((o: Observation) => ({ ...o, startWallPos: o.startWallPos ?? null })); } catch { return []; }
 };
 
 // failSchedule makes the event, match and robot lists fail, to check the offline paths. failSave makes modify fail.

@@ -117,3 +117,12 @@ button:disabled { cursor: default; }
 .top .confirm p { flex: 1; font-weight: 600; }
 .top .danger { border-color: var(--intake); background: var(--intake); color: #111; }
 .top button { justify-self: start; min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
+
+/* Start pad: the whole picture takes taps; the track and the dot sit on the grid area (the middle 75%). */
+.start-surface { --c: #e5484d; position: absolute; inset: 0; touch-action: none; cursor: pointer; }
+.start-surface.blue { --c: #3b82f6; }
+.start-track { position: absolute; top: 0; left: 12.5%; width: 75%; height: 100%; pointer-events: none; }
+.start-track polyline { fill: none; stroke: #fff; stroke-width: 4; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.start-track polyline.forbidden { stroke: #fff3; }
+.start-dot { position: absolute; width: 48px; height: 48px; translate: -50% -50%; display: grid; place-items: center; pointer-events: none; }
+.start-dot::after { content: ""; width: 24px; height: 24px; border-radius: 50%; background: var(--c); border: 3px solid #fff; }

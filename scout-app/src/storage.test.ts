@@ -1,5 +1,6 @@
 import { test, expect } from "vitest";
 import { createStore } from "./storage";
+import type { Draft } from "./observation";
 import { matchSeconds } from "./clock";
 import { draft, tap, obs, fakeStorage, throwingStorage } from "./testHelpers";
 
@@ -84,4 +85,10 @@ test("a queued report keeps its last error across a reload", () => {
   const s = createStore(backing);
   s.enqueue(obs("a")); s.setError("a", "Bad Request");
   expect(createStore(backing).pending()).toEqual([{ observation: obs("a"), attempts: 0, lastError: "Bad Request" }]);
+});
+
+test("a draft from the previous version still loads", () => {
+  const old = draft({ taps: [{ seconds: 1, square: "A1", kind: "intake", count: 3 }] }); delete (old as Partial<Draft>).startWallPos;
+  const backing = fakeStorage({ "lsa:draft": JSON.stringify(old) });
+  expect(createStore(backing).loadDraft()).not.toBeNull();
 });

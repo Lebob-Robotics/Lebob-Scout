@@ -39,6 +39,8 @@ export const toObservation = (o: Partial<MatchObservation.Props>): Observation =
   scoutUserId: o.scoutUserId ?? "", scoutName: o.scoutName ?? "",
   createdAt: o.createdAt ?? "", updatedAt: o.updatedAt ?? "", timerStartedAt: o.timerStartedAt ?? "",
   fieldKey: o.fieldKey ?? "", startSquare: o.startSquare ?? "",
+  // Read loosely: the generated SDK may not have the property yet.
+  startWallPos: (o as { startWallPos?: number }).startWallPos ?? null,
 });
 
 // 19 of the 20 fields modifyMatchObservation takes; each caller adds updated_at.
@@ -58,6 +60,7 @@ export const toCreateParams = (o: Observation) => ({
   scout_user_id: o.scoutUserId, scout_name: o.scoutName,
   created_at: o.createdAt, updated_at: o.updatedAt, timer_started_at: o.timerStartedAt,
   field_key: o.fieldKey, start_square: o.startSquare,
+  // START-WALL: add `start_wall_pos: o.startWallPos ?? null` here once the SDK has the parameter (older queued reports have none).
 });
 
 // The object reference takes the primary key (the object itself also works). Sending null clears a nullable value.

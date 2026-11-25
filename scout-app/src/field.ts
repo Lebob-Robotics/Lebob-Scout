@@ -6,6 +6,8 @@ export type Field = {
   changeover: number;
   teleop: number;
   endgame: number;
+  // Stretches of the robot's own wall (0 to 200, see startWall.ts) where a robot may start.
+  startOk: [number, number][];
 };
 
 export const CURRENT_FIELD_KEY = "ftc-2026";
@@ -19,6 +21,7 @@ export const FIELDS: Record<string, Field> = {
     changeover: 8,
     teleop: 120,
     endgame: 60,
+    startOk: [[0, 9], [23, 67], [83, 109], [123, 200]],
   },
 };
 
