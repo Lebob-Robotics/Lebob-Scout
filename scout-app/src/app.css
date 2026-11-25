@@ -189,6 +189,21 @@ label, .label, legend, .final h2 {
 .team .tiles div { background: var(--panel); }
 .team .tiles dd { font-size: 1.25rem; }
 .team .report { font-family: var(--font-mono); font-weight: 500; font-size: .9375rem; }
+/* The profile map: the whole picture across the row, a shaded overlay on the grid area, numbers outlined in the
+   background colour so they read on the faintest and the strongest fill. */
+.profile-map { display: grid; gap: .5rem; }
+.map-switch { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.profile-map .field { width: 100%; }
+.map-overlay { --c: var(--shoot); position: absolute; inset: 0 12.5%; width: 75%; height: 100%; overflow: visible; }
+.map-overlay.pickedUp { --c: var(--intake); }
+.map-overlay rect { fill: var(--c); stroke: color-mix(in srgb, var(--fg-dark) 14%, transparent); stroke-width: .3; }
+.map-overlay text {
+  fill: var(--fg-dark); stroke: var(--bg); stroke-width: 1.6; stroke-linejoin: round; paint-order: stroke;
+  font: 600 6px var(--font-mono); text-anchor: middle; dominant-baseline: central;
+}
+.map-overlay circle { stroke: var(--bg); stroke-width: 1; }
+.map-overlay circle.red { fill: var(--alliance-red); }
+.map-overlay circle.blue { fill: var(--alliance-blue); }
 
 /* Live screen: modes left, field middle, counts right, clock and End match along the bottom.
    Shoot yellow and Intake teal are the loud things; everything else recedes. */

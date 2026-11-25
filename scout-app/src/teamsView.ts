@@ -33,3 +33,6 @@ export function chips(t: TeamProfile): Chip[] {
 export const reportLine = (r: ReportSummary) =>
   [`${r.matchType === "qualification" ? "Q" : "P"}${r.matchNumber}`, `${r.autoScored} auto`, `${r.cycles} cycle${r.cycles === 1 ? "" : "s"}`, `${r.teleopScored} scored`, r.scoutName]
     .filter(Boolean).join(" · ");
+
+// How strongly a map square is filled: its value over the map's largest, from 0.15 so the smallest still shows, to 0.85.
+export const shade = (value: number, max: number) => (value > 0 && max > 0 ? 0.15 + 0.7 * value / max : 0);

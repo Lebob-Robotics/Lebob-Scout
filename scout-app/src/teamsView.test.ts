@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import type { ReportSummary, TeamProfile } from "./api";
-import { chips, reportLine, shown } from "./teamsView";
+import { chips, reportLine, shade, shown } from "./teamsView";
 
 const report = (r: Partial<ReportSummary> = {}): ReportSummary => ({
   observationId: "o1", teamNumber: 11115, matchType: "qualification", matchNumber: 3, alliance: "red",
@@ -61,4 +61,12 @@ test("reportLine gives the match, auto, cycles, teleop scored and the scout", ()
   expect(reportLine(report())).toBe("Q3 · 4 auto · 9 cycles · 21 scored · Sam Scout");
   expect(reportLine(report({ matchType: "playoff", matchNumber: 1, scoutName: "" }))).toBe("P1 · 4 auto · 9 cycles · 21 scored");
   expect(reportLine(report({ cycles: 1 }))).toBe("Q3 · 4 auto · 1 cycle · 21 scored · Sam Scout");
+});
+
+test("a square's shade runs from a visible floor to the strongest, and nothing for zero", () => {
+  expect(shade(0, 5)).toBe(0);
+  expect(shade(0, 0)).toBe(0);
+  expect(shade(5, 5)).toBeCloseTo(0.85);
+  expect(shade(0.5, 5)).toBeCloseTo(0.22);
+  expect(shade(2.5, 5)).toBeCloseTo(0.5);
 });

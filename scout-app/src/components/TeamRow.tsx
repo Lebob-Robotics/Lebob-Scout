@@ -1,6 +1,8 @@
 import type { TeamProfile } from "../api";
+import { CURRENT_FIELD_KEY } from "../field";
 import { clockTime } from "../teams";
 import { chips, reportLine } from "../teamsView";
+import { ProfileMap } from "./ProfileMap";
 
 const one = (x: number) => String(Math.round(x * 10) / 10);
 const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) + unit);
@@ -40,7 +42,7 @@ export function TeamRow({ team: t, open, onToggle, opening, failed, onReport }: 
         {t.matches ? (
           <>
             <dl className="tiles">{tiles.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-            {/* The map (Task 8) goes here, between the tiles and the report lines. */}
+            <ProfileMap fieldKey={CURRENT_FIELD_KEY} squares={t.squares} starts={t.starts} />
             <ul className="report-list">
               {t.reports.map((r) => (
                 <li key={r.observationId}>
