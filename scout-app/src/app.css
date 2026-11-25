@@ -44,3 +44,28 @@ button:disabled { cursor: default; }
   body:has(.live) { overflow: hidden; }
   .turn { display: grid; place-items: center; position: fixed; inset: 0; z-index: 1; background: #1c1d20; font-size: 1.6rem; font-weight: 700; text-align: center; }
 }
+
+/* Final page: one scrolling column, thumb-sized controls. */
+.final { display: grid; gap: 1rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
+.final button { min-height: 48px; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
+.final button[aria-pressed=true] { background: var(--count); border-color: var(--count); color: #111; }
+.final button:disabled { opacity: .3; }
+.final h2 { font-size: 1.1rem; }
+.toggles { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.toggles button { padding: .25rem .5rem; line-height: 1.2; }
+.stepper { display: grid; grid-template-columns: 1fr 48px 3ch 48px; align-items: center; gap: .5rem; font-weight: 600; }
+.stepper button { font-size: 1.4rem; }
+.stepper output { text-align: center; font-size: 1.3rem; font-variant-numeric: tabular-nums; }
+.rating { display: grid; grid-template-columns: repeat(5, 1fr); gap: .5rem; border: 0; padding: 0; min-width: 0; }
+.rating legend { padding: 0 0 .4rem; font-weight: 600; }
+.final label { margin-bottom: -.6rem; font-weight: 600; }
+.final textarea { min-height: 5rem; padding: .5rem; font: inherit; color: inherit; background: #26272b; border: 2px solid #fff4; border-radius: .4rem; resize: vertical; }
+.final .save { border-color: var(--count); background: var(--count); color: #111; font-size: 1.1rem; }
+
+/* Path pad: drawing surface is exactly the grid area. */
+.pad .field-space { height: min(60dvh, (100vw - 2rem) * 3 / 4, 30rem); margin-top: .5rem; }
+.pad-surface { position: absolute; inset: 0 12.5%; touch-action: none; cursor: crosshair; border: 1px solid #fff3; }
+.pad-lines { display: block; width: 100%; height: 100%; }
+.pad-lines.flipped { rotate: 180deg; }
+.pad-lines polyline { fill: none; stroke: #fff; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.pad-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; margin-top: .5rem; }
