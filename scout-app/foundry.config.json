@@ -1,0 +1,11 @@
+{
+  "foundryUrl": "https://lebob.euw-3.palantirfoundry.co.uk",
+  "site": {
+    "application": "ri.third-party-applications.main.application.ebbc1c91-5941-420b-bc39-d4dcdd81df44",
+    "directory": "./dist",
+    "autoVersion": {
+      "type": "git-describe",
+      "tagPrefix": ""
+    }
+  }
+}

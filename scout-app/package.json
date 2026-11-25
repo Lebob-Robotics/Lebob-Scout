@@ -11,6 +11,10 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@lebob-scout/sdk": "^0.1.0",
+    "@osdk/client": "^2.94.0",
+    "@osdk/foundry.admin": "^2.88.0",
+    "@osdk/oauth": "^1.15.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"
   },

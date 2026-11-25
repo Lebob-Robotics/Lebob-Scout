@@ -1,6 +1,5 @@
 node_modules
 dist
 .env*.local
-.npmrc
 .superpowers/
 .playwright-mcp/
