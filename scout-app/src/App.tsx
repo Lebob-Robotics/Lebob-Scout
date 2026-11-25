@@ -40,7 +40,7 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft 
   },
 });
 
-export default function App({ api }: { api: Api }) {
+export default function App({ api, signedOut = false, onSignIn }: { api: Api; signedOut?: boolean; onSignIn?: () => void }) {
   const [draft, setDraft] = useState(store.loadDraft);
   const [screen, setScreen] = useState<Screen>(() => draft?.stage ?? (rememberedEvent() ? "reports" : "setup"));
   const [user, setUser] = useState(rememberedUser);
@@ -113,6 +113,8 @@ export default function App({ api }: { api: Api }) {
 
   const top = [
     !store.ok && <p key="ok" className="banner" role="alert">This phone can't store data. Keep this page open until your report has saved.</p>,
+    signedOut && <p key="signed-out" className="banner">You're signed out. Reports will save after you sign in.</p>,
+    signedOut && <button key="sign-in" type="button" onClick={onSignIn}>Sign in</button>,
     screen === "setup" && event && <button key="back" type="button" onClick={() => setScreen("reports")}>Back to reports</button>,
     screen === "final" && draft && (
       <button key="flip" type="button" onClick={() => keep({ ...draft, flipped: !draft.flipped })}>

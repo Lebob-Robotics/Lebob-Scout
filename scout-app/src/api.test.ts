@@ -1,5 +1,6 @@
 import { test, expect } from "vitest";
-import { toCreateParams, toEventRow, toModifyParams, toObservation } from "./api";
+import { PalantirApiError } from "@osdk/client";
+import { isAlreadySaved, toCreateParams, toEventRow, toModifyParams, toObservation } from "./api";
 import { obs } from "./testHelpers";
 
 // Shaped like what the spike read back: nullable properties are missing, timestamps have no milliseconds.
@@ -48,6 +49,19 @@ test("toModifyParams merges a patch over the stored observation and sends all fi
   });
   expect(Object.keys(p)).toHaveLength(21); // 20 fields and the object reference
   expect(toModifyParams(current, { autoPathPoints: null }, 0).auto_path_points).toBe("");
+  expect(toModifyParams(current, { notes: null }, 0).notes).toBeNull(); // null clears the stored value
+});
+
+test("toCreateParams sends the stored timestamps, even an empty updatedAt, without throwing", () => {
+  expect(toCreateParams(obs("o1")).updated_at).toBe("2026-01-01T00:00:00.000Z");
+  expect(toCreateParams(obs("o1", { updatedAt: "" })).updated_at).toBe("");
+});
+
+test("isAlreadySaved is true only for Foundry's ObjectAlreadyExists error", () => {
+  expect(isAlreadySaved(new PalantirApiError("Failed to fetch 409 Conflict", "ObjectAlreadyExists", "CONFLICT", undefined, 409))).toBe(true);
+  expect(isAlreadySaved(new PalantirApiError("Failed", "ObjectNotFound", "NOT_FOUND", undefined, 404))).toBe(false);
+  expect(isAlreadySaved(new Error("ObjectAlreadyExists"))).toBe(false);
+  expect(isAlreadySaved(undefined)).toBe(false);
 });
 
 test("toEventRow keeps only the date of each event day", () => {

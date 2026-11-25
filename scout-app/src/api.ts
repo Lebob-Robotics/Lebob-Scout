@@ -41,18 +41,18 @@ export const toObservation = (o: Partial<MatchObservation.Props>): Observation =
   fieldKey: o.fieldKey ?? "", startSquare: o.startSquare ?? "",
 });
 
-// The 20 fields modifyMatchObservation takes. Foundry refuses a modify that leaves any required one out.
-const editable = (o: Observation, nowMs: number) => ({
+// 19 of the 20 fields modifyMatchObservation takes; each caller adds updated_at.
+// Foundry refuses a modify that leaves any required one out.
+const editable = (o: Observation) => ({
   label: o.label, match_uuid: o.matchUuid, presence_uuid: o.presenceUuid, team_uuid: o.teamUuid,
   match_number: o.matchNumber, match_type: o.matchType, team_number: o.teamNumber, alliance: o.alliance,
   auto_leave: o.autoLeave, auto_park: o.autoPark, teleop_park: o.teleopPark, broke_down: o.brokeDown,
   minor_fouls: o.minorFouls, major_fouls: o.majorFouls, driver_skill: o.driverSkill, robot_speed: o.robotSpeed,
   auto_notes: o.autoNotes, notes: o.notes, auto_path_points: o.autoPathPoints ?? "",
-  updated_at: new Date(nowMs).toISOString(),
 });
 
 export const toCreateParams = (o: Observation) => ({
-  ...editable(o, Date.parse(o.updatedAt)),
+  ...editable(o),
   observation_id: o.observationId, event_uuid: o.eventUuid,
   tap_seconds: o.tapSeconds, tap_kinds: o.tapKinds, tap_squares: o.tapSquares, tap_counts: o.tapCounts,
   scout_user_id: o.scoutUserId, scout_name: o.scoutName,
@@ -63,8 +63,13 @@ export const toCreateParams = (o: Observation) => ({
 // The object reference takes the primary key (the object itself also works). Sending null clears a nullable value.
 export const toModifyParams = (current: Observation, patch: Patch, nowMs: number) => ({
   "j87bj1om.match-observation": current.observationId,
-  ...editable({ ...current, ...patch }, nowMs),
+  ...editable({ ...current, ...patch }),
+  updated_at: new Date(nowMs).toISOString(),
 });
+
+// Creating an id that already exists fails with PalantirApiError errorName "ObjectAlreadyExists" (409 CONFLICT)
+// and leaves the stored object untouched, so the report is already saved.
+export const isAlreadySaved = (e: unknown): boolean => e instanceof PalantirApiError && e.errorName === "ObjectAlreadyExists";
 
 // Event days are stored as midnight timestamps; the app compares plain dates.
 export const toEventRow = (e: Pick<Event.Props, "eventUuid" | "eventCode" | "eventName" | "dateStart" | "dateEnd">): EventRow => ({
@@ -120,10 +125,7 @@ export function createApi(client: Client): Api {
       try {
         await client(createMatchObservation).applyAction(toCreateParams(o));
       } catch (e) {
-        // Creating an id that already exists fails with PalantirApiError errorName "ObjectAlreadyExists" (409 CONFLICT)
-        // and leaves the stored object untouched, so the report is already saved.
-        if (e instanceof PalantirApiError && e.errorName === "ObjectAlreadyExists") return;
-        throw e;
+        if (!isAlreadySaved(e)) throw e;
       }
     },
     async modify(observationId, patch, nowMs) {
