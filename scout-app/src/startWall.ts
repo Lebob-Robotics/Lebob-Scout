@@ -35,7 +35,9 @@ export function wallPoint(v: number, alliance: Alliance) {
   return alliance === "blue" ? { x: 1 - p.x, y: 1 - p.y } : p;
 }
 
+// The centre line (x 0.5, at 0 and 200) belongs to the robot's own half.
 export function startSquareFor(v: number, alliance: Alliance, field: Field): string {
   const { x, y } = wallPoint(v, alliance);
-  return squareName(Math.min(field.cols - 1, Math.floor(x * field.cols)), Math.min(field.rows - 1, Math.floor(y * field.rows)));
+  const col = Math.min(field.cols - 1, Math.floor(x * field.cols)), half = field.cols / 2;
+  return squareName(alliance === "red" ? Math.min(half - 1, col) : Math.max(half, col), Math.min(field.rows - 1, Math.floor(y * field.rows)));
 }

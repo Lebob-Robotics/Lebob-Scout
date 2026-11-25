@@ -100,7 +100,8 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
       <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} />
 
       <div className="square-bar">
-        <span className="label">Start: {square ?? "tap where the robot starts"}</span>
+        {/* With no robot the pad says "Pick the robot first."; one instruction at a time. */}
+        <span className="label">{target && `Start: ${square ?? "tap along your wall"}`}</span>
         <button type="button" onClick={flip}>Flip field</button>
       </div>
       <StartPad fieldKey={field.key} flipped={flipped} alliance={target?.alliance ?? null} value={wallPos} onChange={setWallPos} />

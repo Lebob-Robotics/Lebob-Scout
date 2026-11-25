@@ -84,7 +84,7 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
       </div>
 
       <div className="bar">
-        <output className="clock">{phase.toUpperCase()} {clockText(remaining)}</output>
+        <output className="clock"><span>{phase.toUpperCase()}</span> {clockText(remaining)}</output>
         {!confirming && (phase === "auto" || phase === "changeover") && (
           <button type="button" className="skip" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
         )}

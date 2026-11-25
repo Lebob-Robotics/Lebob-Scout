@@ -34,6 +34,18 @@ test("the square is in the field frame", () => {
   expect(startSquareFor(105, "blue", f)).toBe("F3");   // turned: x 1, y 0.45
   expect(startSquareFor(50, "red", f)).toBe("A1");
   expect(startSquareFor(150, "red", f)).toBe("A6");
-  expect(startSquareFor(0, "red", f)).toBe("D1");
-  expect(startSquareFor(200, "blue", f)).toBe("D1");   // turned: x 0.5, y 0
+});
+test("a robot on the centre line is in its own half", () => {
+  expect(startSquareFor(0, "red", f)).toBe("C1");
+  expect(startSquareFor(200, "red", f)).toBe("C6");
+  expect(startSquareFor(0, "blue", f)).toBe("D6");
+  expect(startSquareFor(200, "blue", f)).toBe("D1");
+});
+test("off the centre line the square is as before", () => {
+  // The rule before the centre-line fix: floor into the grid, capped at the last row and column.
+  const before = (v: number, a: "red" | "blue") => {
+    const { x, y } = wallPoint(v, a);
+    return "ABCDEF"[Math.min(5, Math.floor(x * 6))] + (Math.min(5, Math.floor(y * 6)) + 1);
+  };
+  for (let v = 1; v <= 199; v++) for (const a of ["red", "blue"] as const) expect(startSquareFor(v, a, f)).toBe(before(v, a));
 });

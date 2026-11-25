@@ -69,7 +69,6 @@ test("toEventRow keeps only the date of each event day", () => {
     .toEqual({ eventUuid: "e1", eventCode: "AUPEQ", eventName: "WA Qualifier", dateStart: "2026-11-15", dateEnd: "2026-11-16" });
 });
 
-// START-WALL: the create half waits for the regenerated SDK.
 test("create sends the wall position, and null for a report queued before it existed", () => {
   expect(toCreateParams(obs("a", { startWallPos: 100 })).start_wall_pos).toBe(100);
   const old = obs("a"); delete (old as Partial<typeof old>).startWallPos;
@@ -80,6 +79,6 @@ test("modify does not send the wall position", () => {
 });
 
 test("toObservation reads the wall position, and a missing one as null", () => {
-  expect(toObservation({ ...fromFoundry, startWallPos: 100 } as Parameters<typeof toObservation>[0]).startWallPos).toBe(100);
+  expect(toObservation({ ...fromFoundry, startWallPos: 100 }).startWallPos).toBe(100);
   expect(toObservation(fromFoundry).startWallPos).toBeNull();
 });

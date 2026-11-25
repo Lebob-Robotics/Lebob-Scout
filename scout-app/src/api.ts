@@ -39,8 +39,7 @@ export const toObservation = (o: Partial<MatchObservation.Props>): Observation =
   scoutUserId: o.scoutUserId ?? "", scoutName: o.scoutName ?? "",
   createdAt: o.createdAt ?? "", updatedAt: o.updatedAt ?? "", timerStartedAt: o.timerStartedAt ?? "",
   fieldKey: o.fieldKey ?? "", startSquare: o.startSquare ?? "",
-  // Read loosely: the generated SDK may not have the property yet.
-  startWallPos: (o as { startWallPos?: number }).startWallPos ?? null,
+  startWallPos: o.startWallPos ?? null,
 });
 
 // 19 of the 20 fields modifyMatchObservation takes; each caller adds updated_at.
