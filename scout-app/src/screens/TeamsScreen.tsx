@@ -46,6 +46,9 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCo
   const [report, setReport] = useState<Observation | null>(null);
   // Where the list was scrolled when the report opened: Correction starts at the top, and Back returns here.
   const listY = useRef(0);
+  // Numbers each report-line tap: only the latest one's answer counts, and closing or leaving drops any late one.
+  const ask = useRef(0);
+  useEffect(() => () => { ask.current++; }, []);
 
   // Tells App while a correction is open; false again on closing or leaving the screen.
   useEffect(() => {
@@ -67,14 +70,15 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCo
     return next;
   });
   const openReport = (id: string) => {
+    const n = ++ask.current;
     setPick({ id, failed: false });
     withTimeout(api.observation(id), LIMIT_MS).then(
-      (o) => { setPick(null); setReport(o); listY.current = window.scrollY; window.scrollTo(0, 0); },
-      () => setPick({ id, failed: true }),
+      (o) => { if (n !== ask.current) return; setPick(null); setReport(o); listY.current = window.scrollY; window.scrollTo(0, 0); },
+      () => { if (n === ask.current) setPick({ id, failed: true }); },
     );
   };
 
-  const closeReport = () => { setReport(null); requestAnimationFrame(() => window.scrollTo(0, listY.current)); };
+  const closeReport = () => { ask.current++; setReport(null); requestAnimationFrame(() => window.scrollTo(0, listY.current)); };
   if (report) {
     return (
       <Correction
