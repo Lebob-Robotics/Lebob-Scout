@@ -44,7 +44,7 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean, startWa
 // Secondary and away from Save; asks first, with Cancel where Discard match was.
 function DiscardMatch({ onDiscard, disabled }: { onDiscard(): void; disabled: boolean }) {
   const [asking, setAsking] = useState(false);
-  if (!asking) return <button type="button" disabled={disabled} onClick={() => setAsking(true)}>Discard match</button>;
+  if (!asking) return <button type="button" className="discard" disabled={disabled} onClick={() => setAsking(true)}>Discard match</button>;
   return (
     <div className="confirm">
       <button type="button" onClick={() => setAsking(false)}>Cancel</button>

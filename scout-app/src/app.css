@@ -3,7 +3,8 @@
   color-scheme: dark;
   --bg: #1a1b1e;
   --panel: #242529;
-  --border: #36373c;
+  --border: #36373c; /* dividers */
+  --control-border: #606158; /* the edge of every button and form control */
   --fg: #c8c9c2;
   --fg-dark: #e5e6e0;
   --muted: #8a8b83;
@@ -34,23 +35,22 @@ h1, h2 { color: var(--fg-dark); }
 
 /* Controls: panel buttons with a 1 px border; primary is yellow; selected is filled; a slight press-in. */
 button {
-  min-height: 48px; padding: 0 1rem; border: 1px solid var(--border); border-radius: var(--radius);
+  min-height: 48px; padding: 0 1rem; border: 1px solid var(--control-border); border-radius: var(--radius);
   background: var(--panel); color: var(--fg-dark); font: inherit; font-weight: 600; line-height: 1.2;
   cursor: pointer; touch-action: manipulation; user-select: none; -webkit-user-select: none;
   transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, opacity 140ms ease, transform 160ms var(--ease);
 }
 button:active:not(:disabled) { transform: scale(0.97); }
-button:disabled { cursor: default; opacity: .4; }
+button:disabled { cursor: default; opacity: .3; }
 button[aria-pressed=true], .primary, .start, .save, .new { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
 .start, .save, .new { font-size: 1.15rem; }
-:is(.primary, .start, .save, .new):disabled { background: var(--panel); border-color: var(--border); color: var(--muted); opacity: 1; }
-.danger, .end { border-color: var(--red); }
+.discard, .danger, .end { border: 2px solid var(--red); }
 /* Filled red only with large text. */
 .danger, .end.confirmed { background: var(--red); color: var(--on-red); font-size: 1.25rem; }
-.link { justify-self: start; padding: 0; border: 0; background: none; text-decoration: underline 1px var(--accent); text-underline-offset: 4px; }
+.link { justify-self: start; padding: 0; border: 0; background: none; text-decoration: underline 1px var(--muted); text-underline-offset: 4px; }
 
 select, input, textarea {
-  min-height: 48px; padding: 0 .75rem; border: 1px solid var(--border); border-radius: var(--radius);
+  min-height: 48px; padding: 0 .75rem; border: 1px solid var(--control-border); border-radius: var(--radius);
   background: var(--panel); color: var(--fg-dark); font: inherit; font-size: 1rem; /* 16 px: iOS does not zoom */
 }
 textarea { min-height: 5rem; padding: .6rem .75rem; resize: vertical; }
@@ -62,7 +62,8 @@ label, .label, legend, .final h2 {
 .caption { color: var(--muted); font-size: .875rem; }
 .save-note { color: var(--fg-dark); font-weight: 600; }
 /* Errors: light text behind a red square, as on the team's scouting page. */
-.save-note.error::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 8px; background: var(--red); vertical-align: 1px; }
+.save-note.error { display: flex; gap: 8px; }
+.save-note.error::before { content: ""; flex: none; width: 8px; height: 8px; margin-top: 8px; background: var(--red); }
 
 /* Header: the mark, the name, then the pixel rule. Not sticky. */
 .header {
@@ -76,8 +77,9 @@ label, .label, legend, .final h2 {
 .top, .setup, .final, .reports, .signin { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
 .top { padding-bottom: 0; }
 .top > button, .reports .back { justify-self: start; }
-.top .confirm { display: flex; align-items: center; gap: .75rem; }
-.top .confirm p { flex: 1; color: var(--fg-dark); font-weight: 600; }
+/* The question takes its own line under the buttons; Cancel stays where Discard match was. */
+.top .confirm { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.top .confirm p { flex-basis: 100%; color: var(--fg-dark); font-weight: 600; }
 
 /* Banners: storage warning, signed out, waiting to save. */
 .banner { padding: .6rem .75rem; border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--panel); color: var(--fg-dark); font-weight: 600; }
@@ -95,6 +97,7 @@ label, .label, legend, .final h2 {
 .picker .red, .picker .blue { border: 2px solid var(--c); background: color-mix(in srgb, var(--c) 22%, var(--panel)); color: var(--fg-dark); }
 .picker .red[aria-pressed=true], .picker .blue[aria-pressed=true] { background: var(--c); border-color: var(--on-red); color: var(--on-red); box-shadow: 0 0 0 2px var(--c); }
 .square-bar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.square-bar button { white-space: nowrap; }
 .setup .field-space { height: min(60dvh, (100vw - 2rem) * 3 / 4, 30rem); }
 
 /* Start pad: the whole picture takes taps; the track and the dot sit on the grid area (the middle 75%).
@@ -159,6 +162,8 @@ label, .label, legend, .final h2 {
 .counts button, .grid button { transition: transform 160ms var(--ease); }
 .counts button { font-family: var(--font-mono); font-weight: 500; }
 .counts button small { color: var(--muted); }
+/* Ready once a square is picked: the Shoot edge and the brightest numeral in the column. */
+.counts button:not(:disabled) { border: 2px solid var(--shoot); color: var(--fg-dark); }
 .counts p { display: grid; place-content: center; text-align: center; border: 1px solid var(--intake); border-radius: var(--radius); color: var(--intake); font: 500 clamp(2rem, 6vw, 3.5rem)/1 var(--font-mono); grid-row: 1 / -1; }
 .counts p small { color: var(--fg); font-size: max(.8125rem, .3em); }
 /* No mode picked: a quiet, intentional empty column. */
@@ -187,6 +192,7 @@ label, .label, legend, .final h2 {
 .grid button { min-height: 0; padding: 0; border: 1px solid color-mix(in srgb, var(--fg-dark) 14%, transparent); border-radius: 0; background: none; }
 .grid button:disabled { opacity: 1; }
 .grid button:focus-visible { outline-offset: -2px; }
+.grid button[aria-pressed=true]:focus-visible { outline-color: var(--fg-dark); }
 .grid button[aria-pressed=true] { background: color-mix(in srgb, var(--c) 55%, transparent); border: 2px solid var(--c); }
 
 /* Motion: under reduced motion, nothing moves. */
