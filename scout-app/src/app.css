@@ -189,6 +189,23 @@ label, .label, legend, .final h2 {
 .team .tiles div { background: var(--panel); }
 .team .tiles dd { font-size: 1.25rem; }
 .team .report { font-family: var(--font-mono); font-weight: 500; font-size: .9375rem; }
+/* Coverage grid: a label column, then one cell per robot with its alliance as a bar along the top.
+   Played: a gap has the muted outline, one report the yellow accent, more than one stays plain. Matches to come are muted. */
+.coverage { display: grid; gap: .375rem; min-width: 0; overflow-x: auto; }
+.cov-row { display: contents; }
+.cov-label { grid-column: 1; align-self: center; color: var(--fg-dark); font: 500 .9375rem var(--font-mono); }
+.cov-cell {
+  --c: var(--alliance-red); display: grid; align-content: center; min-width: 0; padding: .375rem .375rem .25rem;
+  border-color: var(--border); background: var(--bg); box-shadow: inset 0 4px 0 var(--c);
+  font: 500 .9375rem/1.2 var(--font-mono); text-align: left;
+}
+.cov-cell.blue { --c: var(--alliance-blue); }
+.cov-cell b { display: block; font-weight: 600; }
+.cov-cell small { overflow: hidden; color: var(--muted); font: 400 .6875rem/1.3 var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+.cov-cell.gap { border-color: var(--muted); }
+.cov-cell.ok { border-color: var(--accent); }
+.cov-cell.ok b { color: var(--accent); }
+.later .cov-label, .later .cov-cell { color: var(--muted); }
 /* The profile map: the whole picture across the row, a shaded overlay on the grid area, numbers outlined in the
    background colour so they read on the faintest and the strongest fill. */
 .profile-map { display: grid; gap: .5rem; }

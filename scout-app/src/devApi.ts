@@ -33,7 +33,8 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
   ];
   const presences: PresenceRow[] = matches.flatMap((m, i) =>
     ([["red", 1], ["red", 2], ["blue", 1], ["blue", 2]] as const).map(([alliance, station], j): PresenceRow => {
-      const teamNumber = TEAMS[(i * 3 + j) % TEAMS.length];
+      // Q1 to Q3 follow the Teams tab's coverage rows, so a tapped cell is on the schedule.
+      const teamNumber = DEV_TEAMS_TAB.coverage.rows.find((r) => r.matchUuid === m.matchUuid)?.cells[j].teamNumber ?? TEAMS[(i * 3 + j) % TEAMS.length];
       return { presenceUuid: `${m.matchUuid}-${alliance}${station}`, matchUuid: m.matchUuid, teamUuid: `dev-team-${teamNumber}`, teamNumber, alliance, station };
     }),
   );

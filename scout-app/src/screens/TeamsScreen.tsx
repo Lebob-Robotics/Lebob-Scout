@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Api, TeamsTab } from "../api";
+import { CoverageGrid } from "../components/CoverageGrid";
 import { TeamRow } from "../components/TeamRow";
 import type { Observation, Target } from "../observation";
 import { rememberedEvent } from "../schedule";
@@ -13,9 +14,9 @@ const LIMIT_MS = 20_000;
 const FILTERS: [Filter, string][] = [["all", "All"], ["need", "Needs scouting"], ["mine", "Scouted by me"]];
 
 // Loads on opening and whenever `refresh` changes; a reload keeps the last figures on screen.
-// The search, filter and open rows live here, so a refresh or a correction leaves them as they were.
-// onScout opens set-up for a robot from the coverage grid (Task 9).
-export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCorrecting }: {
+// The search, filter, open rows and the gaps switch live here, so a refresh or a correction leaves them as they were.
+// onScout opens set-up for a robot tapped in the coverage grid.
+export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onScout, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
@@ -41,6 +42,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCo
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
+  const [gapsOnly, setGapsOnly] = useState(false);
   // The report line being opened, or the one that couldn't be; then the report open for correction.
   const [pick, setPick] = useState<{ id: string; failed: boolean } | null>(null);
   const [report, setReport] = useState<Observation | null>(null);
@@ -139,6 +141,10 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, onCo
             ) : (
               <p>{data.teams.length ? "No teams match." : "No teams yet for this event."}</p>
             )}
+          </section>
+          <section className="card">
+            <h2>Match coverage</h2>
+            <CoverageGrid coverage={data.coverage} eventUuid={eventUuid} gapsOnly={gapsOnly} onGapsOnly={setGapsOnly} onScout={onScout} />
           </section>
           <section className="card">
             <h2>Scouts</h2>

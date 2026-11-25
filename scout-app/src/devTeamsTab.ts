@@ -1,7 +1,8 @@
 // The Teams tab for the dev stand-in: four teams, Q1 and Q2 played, Q3 to come.
 // Q1: red 11115 (1 report), 12345 (2 reports); blue 14469 (none), 16021 (1).
-// Q2: red 14469 (none), 16021 (1); blue 11115 (1), 12345 (none).
-// So 5 of 8 played robot-matches have a report, one twice; 12345 and 14469 need scouting.
+// Q2: red 14469 (1), 16021 (1); blue 11115 (1), 12345 (1).
+// So 7 of 8 played robot-matches have a report, one twice; 14469 needs scouting (no report in Q1).
+// The Q1 to Q3 line-ups are the dev stand-in's schedule too (devApi), so a coverage cell opens set-up with it picked.
 // 18172 is on no schedule and has no report, so it needs scouting too and has no next match.
 import type { ReportSummary, TeamsTab } from "./api";
 
@@ -35,29 +36,39 @@ const r6 = report({
   autoScored: 1, teleopScored: 3, cycles: 2, cycleSeconds: 40, autoPoints: P, teleopPoints: 3 * P, parkPoints: 5,
 });
 
+const r7 = report({
+  observationId: "dev-r7", teamNumber: 14469, matchNumber: 2, alliance: "red", scoutUserId: "dev-sam", scoutName: "Sam", createdAt: at(Q2 + 3),
+  autoScored: 1, teleopScored: 3, cycles: 2, cycleSeconds: 35, autoPoints: 3 + P, teleopPoints: 3 * P, parkPoints: 5,
+});
+const r8 = report({
+  observationId: "dev-r8", teamNumber: 12345, matchNumber: 2, alliance: "blue", scoutUserId: "dev", scoutName: "Dev Scout", createdAt: at(Q2 + 5),
+  autoScored: 2, teleopScored: 8, cycles: 4, cycleSeconds: 18, autoPoints: 3 + 5 + 2 * P, teleopPoints: 8 * P, parkPoints: 5,
+});
+
 const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets", 18172: "Wired Wombats" };
-const cell = (teamNumber: number, alliance: string, matchNumber: number, reports: number) => ({
-  teamNumber, name: NAMES[teamNumber], alliance, presenceUuid: `dev-q${matchNumber}-${teamNumber}`, teamUuid: `dev-team-${teamNumber}`, reports,
+// Stations go red 1, red 2, blue 1, blue 2 in each row, as in devApi.
+const cell = (teamNumber: number, alliance: string, station: number, matchNumber: number, reports: number) => ({
+  teamNumber, name: NAMES[teamNumber], alliance, presenceUuid: `dev-q${matchNumber}-${alliance}${station}`, teamUuid: `dev-team-${teamNumber}`, reports,
 });
 const next = { nextLabel: "Q3", nextTime: at(Q3) };
 const counts = { played: 2, toCome: 1, scheduled: 3 };
 
 export const DEV_TEAMS_TAB: TeamsTab = {
-  needScouting: 3,
+  needScouting: 2,
   scouts: [
     { scoutUserId: "dev-alice", scoutName: "Alice Nguyen", reports: 3, lastAt: at(Q1 + 5) },
-    { scoutUserId: "dev", scoutName: "Dev Scout", reports: 2, lastAt: at(Q2 + 4) },
-    { scoutUserId: "dev-sam", scoutName: "Sam", reports: 1, lastAt: at(Q1 + 6) },
+    { scoutUserId: "dev", scoutName: "Dev Scout", reports: 3, lastAt: at(Q2 + 5) },
+    { scoutUserId: "dev-sam", scoutName: "Sam", reports: 2, lastAt: at(Q2 + 3) },
   ],
   coverage: {
-    slots: 8, have: 5, duplicates: 1, strays: 0, unscheduled: 0, playedBy: "times",
+    slots: 8, have: 7, duplicates: 1, strays: 0, unscheduled: 0, playedBy: "times",
     rows: [
       { matchUuid: "dev-q1", matchType: "qualification", matchNumber: 1, label: "Q1", played: true, scheduledTime: at(Q1),
-        cells: [cell(11115, "red", 1, 1), cell(12345, "red", 1, 2), cell(14469, "blue", 1, 0), cell(16021, "blue", 1, 1)] },
+        cells: [cell(11115, "red", 1, 1, 1), cell(12345, "red", 2, 1, 2), cell(14469, "blue", 1, 1, 0), cell(16021, "blue", 2, 1, 1)] },
       { matchUuid: "dev-q2", matchType: "qualification", matchNumber: 2, label: "Q2", played: true, scheduledTime: at(Q2),
-        cells: [cell(14469, "red", 2, 0), cell(16021, "red", 2, 1), cell(11115, "blue", 2, 1), cell(12345, "blue", 2, 0)] },
+        cells: [cell(14469, "red", 1, 2, 1), cell(16021, "red", 2, 2, 1), cell(11115, "blue", 1, 2, 1), cell(12345, "blue", 2, 2, 1)] },
       { matchUuid: "dev-q3", matchType: "qualification", matchNumber: 3, label: "Q3", played: false, scheduledTime: at(Q3),
-        cells: [cell(11115, "red", 3, 0), cell(14469, "red", 3, 0), cell(12345, "blue", 3, 0), cell(16021, "blue", 3, 0)] },
+        cells: [cell(11115, "red", 1, 3, 0), cell(14469, "red", 2, 3, 0), cell(12345, "blue", 1, 3, 0), cell(16021, "blue", 2, 3, 0)] },
     ],
   },
   teams: [
@@ -74,19 +85,22 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       reports: [r1, r2],
     },
     {
-      // Two reports in Q1, none in Q2: each figure is the mean of Q1's two reports.
-      teamNumber: 12345, name: NAMES[12345], need: true, matches: 1, ...counts, missing: ["Q2"], twice: ["Q1"], ...next,
-      autoPoints: (r3.autoPoints + r4.autoPoints) / 2, teleopPoints: (r3.teleopPoints + r4.teleopPoints) / 2, parkPoints: 5,
-      points: (r3.autoPoints + r4.autoPoints + r3.teleopPoints + r4.teleopPoints) / 2 + 5,
-      autoScored: 2.5, cycles: 3.5, cycleSeconds: 21, driverSkill: 3, robotSpeed: 4,
-      squares: [{ square: "C4", scored: 5, pickedUp: 0 }, { square: "D3", scored: 3, pickedUp: 0 }, { square: "E2", scored: 0, pickedUp: 2.5 }],
-      starts: [{ alliance: "red", wallPos: 60, label: "Q1" }],
-      reports: [r3, r4],
+      // Two reports in Q1, one in Q2: each figure averages Q1's two reports first, then the two matches.
+      teamNumber: 12345, name: NAMES[12345], need: false, matches: 2, ...counts, missing: [], twice: ["Q1"], ...next,
+      autoPoints: ((r3.autoPoints + r4.autoPoints) / 2 + r8.autoPoints) / 2, teleopPoints: ((r3.teleopPoints + r4.teleopPoints) / 2 + r8.teleopPoints) / 2, parkPoints: 5,
+      points: ((r3.autoPoints + r4.autoPoints + r3.teleopPoints + r4.teleopPoints) / 2 + r8.autoPoints + r8.teleopPoints) / 2 + 5,
+      autoScored: 2.25, cycles: 3.75, cycleSeconds: 19.5, driverSkill: 3, robotSpeed: 4,
+      squares: [{ square: "C4", scored: 7, pickedUp: 0 }, { square: "D3", scored: 3, pickedUp: 0 }, { square: "E2", scored: 0, pickedUp: 2.5 }, { square: "E5", scored: 0, pickedUp: 2 }],
+      starts: [{ alliance: "red", wallPos: 60, label: "Q1" }, { alliance: "blue", wallPos: 140, label: "Q2" }],
+      reports: [r3, r4, r8],
     },
     {
-      teamNumber: 14469, name: NAMES[14469], need: true, matches: 0, ...counts, missing: ["Q1", "Q2"], twice: [], ...next,
-      points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-      squares: [], starts: [], reports: [],
+      teamNumber: 14469, name: NAMES[14469], need: true, matches: 1, ...counts, missing: ["Q1"], twice: [], ...next,
+      autoPoints: r7.autoPoints, teleopPoints: r7.teleopPoints, parkPoints: 5, points: r7.autoPoints + r7.teleopPoints + 5,
+      autoScored: 1, cycles: 2, cycleSeconds: 35,
+      squares: [{ square: "B3", scored: 3, pickedUp: 0 }, { square: "E4", scored: 0, pickedUp: 2 }],
+      starts: [{ alliance: "red", wallPos: 40, label: "Q2" }],
+      reports: [r7],
     },
     {
       teamNumber: 16021, name: NAMES[16021], need: false, matches: 2, ...counts, missing: [], twice: [], ...next,

@@ -64,6 +64,10 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const [correcting, setCorrecting] = useState(false);
   const [signIn, setSignIn] = useState<"idle" | "working" | "failed">("idle");
   const [savingNow, setSavingNow] = useState(false);
+  // Where set-up was opened from, and the robot picked from the coverage grid. A draft restored after a reload goes back to Reports.
+  const [from, setFrom] = useState<"reports" | "teams">("reports");
+  const [scoutTarget, setScoutTarget] = useState<Target | null>(null);
+  const teamsY = useRef(0);
   const saving = useRef(false);
   const linked = useRef(false);
   const queue = useSaveQueue(api, store);
@@ -143,7 +147,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       store.enqueue(observation);
       store.clearDraft(); // only once the report is safely queued
       setDraft(null);
-      setScreen("reports");
+      setScreen(from);
       queue.queued();
     } finally {
       saving.current = false;
@@ -160,7 +164,11 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       </button>
     ),
     signedOut && signIn === "failed" && <p key="sign-in-failed" className="save-note error" role="alert">Couldn't reach Foundry. Check your signal and try again.</p>,
-    screen === "setup" && event && <button key="back" type="button" onClick={() => setScreen("reports")}>Back to reports</button>,
+    screen === "setup" && event && (
+      <button key="back" type="button" onClick={() => { setScreen(from); if (from === "teams") requestAnimationFrame(() => window.scrollTo(0, teamsY.current)); }}>
+        {from === "teams" ? "Back to teams" : "Back to reports"}
+      </button>
+    ),
     screen === "final" && draft && (
       <button key="back-to-match" type="button" disabled={savingNow} onClick={() => { keep({ ...draft, stage: "live" }); setScreen("live"); }}>
         Back to match
@@ -175,7 +183,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       <DiscardMatch
         key="discard"
         disabled={savingNow}
-        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); setScreen(event ? "reports" : "setup"); }}
+        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); setScreen(event ? from : "setup"); }}
       />
     ),
   ].filter(Boolean);
@@ -198,12 +206,11 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       </FinalScreen>
     );
   } else if (screen === "reports" && eventUuid) {
-    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} onCorrecting={setCorrecting} />;
+    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => { setFrom("reports"); setScoutTarget(null); setScreen("setup"); }} onCorrecting={setCorrecting} />;
   } else if (screen === "teams" && eventUuid) {
-    // Task 9 fills set-up from the target.
-    body = <TeamsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} refresh={queue.saved} onScout={() => setScreen("setup")} onCorrecting={setCorrecting} />;
+    body = null; // kept below
   } else {
-    body = <SetupScreen api={api} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
+    body = <SetupScreen api={api} initial={scoutTarget ?? undefined} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
   }
 
   return (
@@ -216,6 +223,20 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         </nav>
       )}
       {top.length > 0 && <div className="top">{top}</div>}
+      {/* Kept, hidden, while set-up is open from it, so Back finds the search, filter, open rows and gaps switch as they were. */}
+      {eventUuid && (screen === "teams" || (screen === "setup" && from === "teams")) && (
+        <div hidden={screen !== "teams"}>
+          <TeamsScreen
+            api={api}
+            eventUuid={eventUuid}
+            userId={user?.id ?? ""}
+            waiting={queue.waiting}
+            refresh={queue.saved}
+            onScout={(t) => { teamsY.current = window.scrollY; setFrom("teams"); setScoutTarget(t); setScreen("setup"); }}
+            onCorrecting={setCorrecting}
+          />
+        </div>
+      )}
       {body}
     </>
   );

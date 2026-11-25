@@ -15,12 +15,20 @@ const rememberedFlip = () => {
   try { return localStorage.getItem(FLIP_KEY) === "1"; } catch { return false; }
 };
 
-export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target, startSquare: string, flipped: boolean, startWallPos: number): void }) {
+// initial: the event, match and robot already picked, as if by hand (from the Teams tab's coverage grid).
+export function SetupScreen({ api, initial, onStart }: {
+  api: Api;
+  initial?: Target;
+  onStart(target: Target, startSquare: string, flipped: boolean, startWallPos: number): void;
+}) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [failed, setFailed] = useState(false);
   const [tries, setTries] = useState(0);
   const [eventUuid, setEventUuid] = useState<string | null>(null);
-  const [target, setTarget] = useState<Target | null>(null);
+  const [target, setTarget] = useState<Target | null>(initial ?? null);
+  const initialEvent = initial?.eventUuid;
+  // The picker has its match and robots on screen: only then is the end of the page where the pad will stay.
+  const [shown, setShown] = useState(false);
   // Kept when the robot or match changes: a robot on the other alliance gets the same spot on its own wall.
   const [wallPos, setWallPos] = useState<number | null>(null);
   const [flipped, setFlipped] = useState(rememberedFlip);
@@ -32,7 +40,7 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
     withTimeout(api.ourEvents(), READ_LIMIT_MS).then(
       (es) => {
         if (!live) return;
-        const first = firstEvent(es, rememberedEvent(), localToday());
+        const first = es.find((e) => e.eventUuid === initialEvent) ?? firstEvent(es, rememberedEvent(), localToday());
         if (first) remember(first); // the remembered event follows the calendar, so a later offline start uses it
         setEvents(es);
         setEventUuid(first?.eventUuid ?? null);
@@ -42,14 +50,14 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
       () => { if (live) { setFailed(true); setRetrying(false); } },
     );
     return () => { live = false; };
-  }, [api, tries]);
+  }, [api, tries, initialEvent]);
 
-  // Once per robot picked, scroll to the end so the whole pad, its caption and the sticky Start are in view and clear
+  // Once per robot picked, and once the picker is on screen (a robot picked before set-up opens waits for it), scroll to the end so the whole pad, its caption and the sticky Start are in view and clear
   // of each other (the pad takes every touch, so a swipe on it cannot scroll). Not on dragging, flipping or typing:
   // a hand-typed robot keeps one key while it is edited, and the scroll waits until the focus leaves the number boxes.
   const robotKey = target && (target.presenceUuid ?? "typed");
   useEffect(() => {
-    if (!robotKey) return;
+    if (!robotKey || !shown) return;
     const scroll = () => {
       const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
       window.scrollTo({ top: document.documentElement.scrollHeight, behavior: reduce ? "auto" : "smooth" });
@@ -63,7 +71,7 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
     };
     document.addEventListener("focusout", leave);
     return () => document.removeEventListener("focusout", leave);
-  }, [robotKey]);
+  }, [robotKey, shown]);
 
   // Offline: the schedule failed but the phone remembers the event, so the scout types the match in.
   const offline = failed && offlineEvent !== null;
@@ -118,7 +126,7 @@ export function SetupScreen({ api, onStart }: { api: Api; onStart(target: Target
         </>
       )}
 
-      <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} />
+      <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} onShown={() => setShown(true)} />
 
       <div className="square-bar">
         {/* With no robot the pad says "Pick the robot first."; one instruction at a time. */}

@@ -13,15 +13,17 @@ const typedFrom = (v: Target): Typed => ({ matchType: v.matchType, matchNumber: 
 
 // Picks the match and the robot from the schedule, or takes them hand-typed when the match is not listed.
 // Use a new key per event: the schedule loads once per mount. startTyped opens the hand-typed path.
-// A value whose match is not listed opens hand-typed with its details rather than picking another match.
-export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped = false }: {
+// A value whose match is not listed, or a value when the schedule is down, opens hand-typed with its details.
+// onShown is called once the match and robots, or the typed boxes, are on screen.
+export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped = false, onShown }: {
   api: Api;
   eventUuid: string;
   value: Target | null;
   onChange(target: Target | null): void;
   startTyped?: boolean;
+  onShown?(): void;
 }) {
-  const [typed, setTyped] = useState<Typed | null>(() => (value && !value.matchUuid ? typedFrom(value) : startTyped ? emptyTyped : null));
+  const [typed, setTyped] = useState<Typed | null>(() => (value && (startTyped || !value.matchUuid) ? typedFrom(value) : startTyped ? emptyTyped : null));
   const [start] = useState(value);
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
   const [matchUuid, setMatchUuid] = useState(value?.matchUuid ?? null);
@@ -61,6 +63,10 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
     api.findTeamUuid(typedTeam).then((teamUuid) => live && setFound({ teamNumber: typedTeam, teamUuid }), () => {});
     return () => { live = false; };
   }, [api, typedTeam]);
+
+  const shown = useEffectEvent(() => onShown?.());
+  const ready = Boolean(typed || (matches && presences));
+  useEffect(() => { if (ready) shown(); }, [ready]);
 
   // The hand-typed Target follows the inputs and the lookup.
   const emit = useEffectEvent(onChange);
