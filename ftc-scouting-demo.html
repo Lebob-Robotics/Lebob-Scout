@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FTC Scouting Input Demo</title>
+<style>
+  :root { color-scheme: dark; --shoot: #f5c542; --intake: #f0606b; --count: #5aa9f0; --heat-lo: #facc15; --heat-hi: #16a34a; --path: #fff; }
+  * { box-sizing: border-box; margin: 0; }
+  body { height: 100dvh; display: grid; grid-template-rows: auto 1fr; background: #1c1d20; color: #e6e6e6; font: 16px/1.4 system-ui, sans-serif; }
+  main { display: flex; justify-content: center; gap: 2vw; padding: 2vh 2vw 0; }
+  button { font: inherit; color: inherit; cursor: pointer; touch-action: manipulation; }
+  button:disabled { cursor: default; }
+
+  .side { flex: 1; max-width: 12rem; display: grid; gap: 2vh; }
+  .side button { border: 3px solid var(--c); border-radius: .6rem; background: color-mix(in srgb, var(--c) 22%, transparent); font-size: clamp(1.1rem, 3vw, 2.2rem); font-weight: 700; }
+  .side button[aria-pressed=true] { background: var(--c); color: #111; }
+  .side button:disabled { opacity: .3; }
+
+  /* 4:3 = 6x6 tile field plus an alliance area each side */
+  .field { position: relative; aspect-ratio: 4 / 3; height: min(100dvh - 9rem, 45vw); }
+  .field svg { display: block; width: 100%; height: 100%; }
+  .field text { fill: #fff; font-size: 4.5px; text-anchor: middle; }
+  #grid { position: absolute; inset: 0 12.5%; display: grid; grid-template: repeat(6, 1fr) / repeat(6, 1fr); }
+  #grid[data-mode=shoot] { --c: var(--shoot); }
+  #grid[data-mode=intake] { --c: var(--intake); }
+  #grid button { padding: 0; border: 1px solid #fff2; background: none; }
+  #grid button[aria-pressed=true] { background: color-mix(in srgb, var(--c) 55%, transparent); border: 2px solid var(--c); }
+
+  footer { min-height: 0; overflow: auto; padding: 1rem 2vw; }
+  #paths { position: absolute; left: 12.5%; top: 0; width: 75%; height: 100%; pointer-events: none; fill: var(--path); }
+  #legs path { fill: none; stroke: var(--path); stroke-width: .08; opacity: .4; marker-end: url(#tip); }
+
+  .view { float: right; margin-left: 1rem; padding: .3rem .9rem; border: 2px solid var(--c); border-radius: .4rem; background: none; font-weight: 600; }
+  .view[aria-pressed=true] { background: var(--c); color: #111; }
+  #heat { --c: var(--heat-hi); }
+  #heat[aria-pressed=true] { background: linear-gradient(to right, var(--heat-lo), var(--heat-hi)); }
+  #hint { font-weight: 600; }
+  #log { padding-left: 2.5rem; color: #aaa; }
+</style>
+
+<main>
+  <div class="side" id="modes">
+    <button class="mode" value="shoot" style="--c: var(--shoot)">Shoot</button>
+    <button class="mode" value="intake" style="--c: var(--intake)">Intake</button>
+  </div>
+
+  <div class="field">
+    <svg viewBox="0 0 320 240" aria-hidden="true">
+      <rect width="40" height="240" fill="#3a2224"/>
+      <rect x="280" width="40" height="240" fill="#1d2a44"/>
+      <rect x="40" width="240" height="240" fill="#3d4046"/>
+      <rect x="16" y="109" width="19" height="23" fill="#e5484d"/>
+      <rect x="285" y="109" width="19" height="23" fill="#3b82f6"/>
+      <text x="20" y="88">RED<tspan x="20" dy="6">ALLIANCE</tspan><tspan x="20" dy="6">AREA</tspan></text>
+      <text x="300" y="88">BLUE<tspan x="300" dy="6">ALLIANCE</tspan><tspan x="300" dy="6">AREA</tspan></text>
+
+      <rect x="40" y="42" width="24" height="38" fill="#e5484d55" stroke="#e5484d"/>
+      <text x="52" y="59">LOADING<tspan x="52" dy="6">ZONE</tspan></text>
+      <rect x="256" y="162" width="24" height="38" fill="#3b82f655" stroke="#3b82f6"/>
+      <text x="268" y="179">LOADING<tspan x="268" dy="6">ZONE</tspan></text>
+
+      <rect x="234" width="44" height="7" fill="#3b82f6"/>
+      <text x="256" y="16">BLUE GARDEN</text>
+      <rect x="42" y="233" width="44" height="7" fill="#e5484d"/>
+      <text x="64" y="228">RED GARDEN</text>
+
+      <rect x="124" y="80" width="33" height="82" rx="4" fill="#e5484d88" stroke="#e5484d"/>
+      <text x="140.500" y="123">HIVE</text>
+      <rect x="163" y="80" width="33" height="82" rx="4" fill="#3b82f688" stroke="#3b82f6"/>
+      <text x="179.500" y="123">HIVE</text>
+
+      <g fill="#fbbf24">
+        <circle cx="121" cy="5" r="3.500"/><circle cx="271" cy="80" r="3.500"/>
+        <circle cx="47" cy="159" r="3.500"/><circle cx="198" cy="235" r="3.500"/>
+      </g>
+      <text x="121" y="14">FLOWER</text><text x="255" y="81.500">FLOWER</text>
+      <text x="63" y="160.500">FLOWER</text><text x="214" y="231">FLOWER</text>
+    </svg>
+    <div id="grid"></div>
+    <svg id="paths" viewBox="0 0 6 6" aria-hidden="true">
+      <marker id="tip" viewBox="0 0 3 3" refX="2" refY="1.5" markerWidth="3" markerHeight="3" orient="auto"><path d="M0 0 3 1.5 0 3z"/></marker>
+      <g id="legs"></g>
+    </svg>
+  </div>
+
+  <div class="side" id="counts" style="--c: var(--count)"></div>
+</main>
+
+<footer>
+  <button class="mode view" id="heat" value="heat">Heat map</button>
+  <button class="mode view" value="paths" style="--c: var(--path)">Paths</button>
+  <p id="hint" aria-live="polite"></p>
+  <ol id="log" reversed></ol>
+</footer>
+
+<script>
+  const $ = id => document.getElementById(id);
+  const grid = $('grid'), counts = $('counts'), modeBtns = document.querySelectorAll('.mode');
+  let mode = null;     // 'shoot' | 'intake' | 'heat' | 'paths' | null
+  let picked = [];     // selected squares, e.g. ['C4']
+  const tapped = {};   // square -> time it was last tapped
+  const visits = [];   // every recorded { sq, t, shot }, in the order the robot reached it
+
+  const button = (label, onclick) => Object.assign(document.createElement('button'), { onclick, ...label });
+
+  // Squares are named column A-F, row 1-6, from the top-left.
+  for (const row of '123456') for (const col of 'ABCDEF')
+    grid.append(button({ value: col + row, ariaLabel: col + row }, e => pick(e.currentTarget.value)));
+  for (let n = 0; n <= 4; n++) counts.append(button({ textContent: n }, () => score(n)));
+  for (const b of modeBtns) b.onclick = () => setMode(mode === b.value ? null : b.value);
+
+  // Records the picked squares, stamped with when each was tapped. The log
+  // shows time since the first recorded event.
+  function save(text) {
+    visits.push(...picked.map(sq => ({ sq, t: tapped[sq], shot: mode === 'shoot' })));
+    const s = Math.round((tapped[picked[0]] - visits[0].t) / 1000);
+    const li = Object.assign(document.createElement('li'), { textContent: `${s / 60 | 0}:${String(s % 60).padStart(2, '0')}  ${text}` });
+    $('log').prepend(li);
+  }
+
+  // Leaving intake (tapping Intake again, or any other mode) saves the highlighted squares.
+  function setMode(m) {
+    if (mode === 'intake' && picked.length) save(`Intake at ${picked.join(', ')}`);
+    mode = m;
+    picked = [];
+    render();
+  }
+
+  function pick(square) {
+    tapped[square] = Date.now();
+    if (mode === 'shoot') picked = [square];
+    else picked = picked.includes(square) ? picked.filter(s => s !== square) : [...picked, square];
+    render();
+  }
+
+  function score(n) {
+    save(`Shot ${n} from ${picked[0]}`);
+    picked = [];
+    render();
+  }
+
+  // Heat per square: 1 for each visit ("to"), THROUGH for each square crossed
+  // on the way from the previous visit.
+  // ponytail: "through" assumes a straight line between consecutive visits, so
+  // it cuts across the hives. Record real driven paths if that matters.
+  const THROUGH = 0.5;
+  function heat(visits) {
+    const h = {};
+    const add = (x, y, w) => { const sq = 'ABCDEF'[x] + (y + 1); h[sq] = (h[sq] ?? 0) + w; };
+    const xy = sq => [sq.charCodeAt(0) - 65, sq[1] - 1];
+    visits.forEach((sq, i) => {
+      const [x1, y1] = xy(sq);
+      add(x1, y1, 1);
+      if (!i) return;
+      const [x0, y0] = xy(visits[i - 1]);
+      const steps = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      for (let s = 1; s < steps; s++)
+        add(Math.round(x0 + (x1 - x0) * s / steps), Math.round(y0 + (y1 - y0) * s / steps), THROUGH);
+    });
+    return h;
+  }
+  { const t = heat(['A1', 'D1', 'D1']); console.assert(t.A1 === 1 && t.B1 === THROUGH && t.C1 === THROUGH && t.D1 === 2, 'heat() self-check'); }
+
+  // Legs: each move between two different consecutive squares, most driven
+  // first, with how often it happened and the total time between the two taps.
+  function legs(visits) {
+    const l = {};
+    visits.forEach(({ sq, t }, i) => {
+      const prev = visits[i - 1];
+      if (!prev || prev.sq === sq) return;
+      const leg = l[prev.sq + sq] ??= { from: prev.sq, to: sq, n: 0, ms: 0 };
+      leg.n++;
+      leg.ms += t - prev.t;
+    });
+    return Object.values(l).sort((a, b) => b.n - a.n);
+  }
+  {
+    const [a, b] = legs([['A1', 0], ['B1', 2000], ['B1', 3000], ['A1', 4000], ['B1', 10000]].map(([sq, t]) => ({ sq, t })));
+    console.assert(a.from === 'A1' && a.n === 2 && a.ms === 8000 && b.from === 'B1' && b.n === 1 && b.ms === 1000, 'legs() self-check');
+  }
+
+  // Runs: the squares visited from one shot to the next, e.g. shot, intake,
+  // intake, shot. Repeats of the same square are dropped.
+  function runs(visits) {
+    const out = [[]];
+    for (const { sq, shot } of visits) {
+      if (out.at(-1).at(-1) !== sq) out.at(-1).push(sq);
+      if (shot) out.push([sq]);
+    }
+    return out.filter(run => run.length > 1);
+  }
+  {
+    const r = runs([['A2'], ['B5', 1], ['B5', 1], ['A2'], ['A3'], ['E2', 1]].map(([sq, shot]) => ({ sq, shot })));
+    console.assert(r.join(' | ') === 'A2,B5 | B5,A2,A3,E2', 'runs() self-check');
+  }
+
+  // SVG path for a smooth curve through every point (Catmull-Rom spline).
+  // ponytail: a guess at the route, it knows nothing about the hives. Uniform
+  // spline can overshoot on uneven spacing; go centripetal if the loops look wrong.
+  function spline(pts) {
+    const p = i => pts[Math.max(0, Math.min(pts.length - 1, i))];
+    return pts.slice(1).reduce((d, [x, y], i) => {
+      const [ax, ay] = p(i - 1), [bx, by] = p(i), [cx, cy] = p(i + 2);
+      return `${d} C${bx + (x - ax) / 6} ${by + (y - ay) / 6} ${x - (cx - bx) / 6} ${y - (cy - by) / 6} ${x} ${y}`;
+    }, `M${pts[0]}`);
+  }
+  const centre = sq => [sq.charCodeAt(0) - 64.5, sq[1] - 0.5];   // in grid units
+
+  function render() {
+    const ready = mode === 'shoot' && picked.length === 1;
+    grid.dataset.mode = mode ?? '';
+    const h = mode === 'heat' ? heat(visits.map(v => v.sq)) : {}, max = Math.max(1, ...Object.values(h));
+    const ls = mode === 'paths' ? legs(visits) : [];
+    $('legs').innerHTML = mode === 'paths' ? runs(visits).map(run => `<path d="${spline(run.map(centre))}"/>`).join('') : '';
+    for (const b of modeBtns) b.ariaPressed = b.value === mode;
+    for (const b of grid.children) {
+      const v = h[b.value];
+      b.ariaPressed = picked.includes(b.value);
+      b.disabled = mode !== 'shoot' && mode !== 'intake';
+      b.style.background = v ? `color-mix(in oklch, var(--heat-hi) ${100 * v / max}%, var(--heat-lo))` : '';
+    }
+    for (const b of counts.children) b.disabled = !ready;
+    $('hint').textContent =
+      !mode ? 'Pick Shoot or Intake.' :
+      mode === 'heat' ? (visits.length ? 'Yellow squares saw the robot least, green the most. Each visit counts 1; squares on the straight line between two visits count 0.5.' : 'Nothing recorded yet.') :
+      mode === 'paths' ? (ls.length ? `Each line is one run from a shot to the next, curved through the squares in between. Lines are brighter where runs overlap. Most common legs: ${ls.slice(0, 3).map(l => `${l.from} to ${l.to} ×${l.n}, ${(l.ms / l.n / 1000).toFixed(1)} s avg`).join('; ')}.` : 'Record at least two different squares to see a path.') :
+      mode === 'intake' ? 'Tap every square the robot intakes from, then tap Intake again to save.' :
+      ready ? 'How many balls scored?' : 'Tap where the robot shot from.';
+  }
+  render();
+</script>
+</html>
