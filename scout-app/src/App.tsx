@@ -9,7 +9,7 @@ import { createStore } from "./storage";
 
 // TEMPORARY dev harness for the set-up, live and final screens. A later task replaces it with the real app.
 const store = createStore();
-const api = createDevApi();
+const api = createDevApi({ failSchedule: new URLSearchParams(location.search).has("fail") });
 
 const newDraft = (target: Target, startSquare: string, flipped: boolean): Draft => ({
   ...target,

@@ -5,22 +5,24 @@ import { pickMatch } from "../schedule";
 
 type Typed = { matchType: Target["matchType"]; matchNumber: string; teamNumber: string; alliance: Target["alliance"] | null };
 
+const emptyTyped: Typed = { matchType: "qualification", matchNumber: "", teamNumber: "", alliance: null };
 const matchLabel = (m: MatchRow) => `${m.matchType === "qualification" ? "Q" : "P"}${m.matchNumber}${m.actualTime ? " (played)" : ""}`;
 const robotOrder = (a: PresenceRow, b: PresenceRow) => Number(a.alliance === "blue") - Number(b.alliance === "blue") || a.station - b.station;
 const whole = (text: string) => (/^\d+$/.test(text) && Number(text) >= 1 ? Number(text) : null);
 
 // Picks the match and the robot from the schedule, or takes them hand-typed when the match is not listed.
-// Use a new key per event: the schedule loads once per mount.
-export function MatchRobotPicker({ api, eventUuid, value, onChange }: {
+// Use a new key per event: the schedule loads once per mount. startTyped opens the hand-typed path.
+export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped = false }: {
   api: Api;
   eventUuid: string;
   value: Target | null;
   onChange(target: Target | null): void;
+  startTyped?: boolean;
 }) {
   const [typed, setTyped] = useState<Typed | null>(() =>
     value && !value.matchUuid
       ? { matchType: value.matchType, matchNumber: String(value.matchNumber), teamNumber: String(value.teamNumber), alliance: value.alliance }
-      : null,
+      : startTyped ? emptyTyped : null,
   );
   const [matches, setMatches] = useState<MatchRow[] | null>(null);
   const [matchUuid, setMatchUuid] = useState(value?.matchUuid ?? null);
@@ -124,7 +126,7 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange }: {
           )}
         </>
       )}
-      <button type="button" className="link" onClick={() => leaveTyped({ matchType: "qualification", matchNumber: "", teamNumber: "", alliance: null })}>
+      <button type="button" className="link" onClick={() => leaveTyped(emptyTyped)}>
         Match not listed
       </button>
     </div>

@@ -75,7 +75,7 @@ button:disabled { cursor: default; }
 .setup label, .setup .label { font-weight: 600; }
 .setup select, .setup input { min-height: 48px; padding: 0 .5rem; font: inherit; color: inherit; background: #26272b; border: 2px solid #fff4; border-radius: .4rem; }
 /* Not .setup button: the grid's squares keep their own look. */
-.picker button, .square-bar button, .setup > button { min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
+.picker button, .square-bar button, .setup > button, .setup .retry { min-height: 48px; padding: 0 1rem; border: 2px solid #fff4; border-radius: .4rem; background: none; font-weight: 600; }
 .picker button[aria-pressed=true] { background: var(--count); border-color: var(--count); color: #111; }
 .setup button:disabled { opacity: .3; }
 .picker button.link { justify-self: start; min-height: 44px; padding: 0; border: 0; color: var(--count); text-decoration: underline; }

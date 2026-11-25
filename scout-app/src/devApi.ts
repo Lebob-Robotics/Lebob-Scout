@@ -10,7 +10,10 @@ const day = (offset: number) => {
 };
 const TEAMS = [11115, 12345, 14469, 16021, 18172, 19044, 21230, 23511];
 
-export function createDevApi(): Api {
+const fail = () => new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Schedule unavailable")), 150));
+
+// failSchedule makes the event, match and robot lists fail, to check the offline paths.
+export function createDevApi({ failSchedule = false }: { failSchedule?: boolean } = {}): Api {
   const events: EventRow[] = [
     { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
     { eventUuid: "dev-event-next", eventCode: "DEVNEXT", eventName: "Dev Championship (next month)", dateStart: day(30), dateEnd: day(31) },
@@ -30,9 +33,9 @@ export function createDevApi(): Api {
 
   return {
     currentUser: () => wait({ id: "dev", name: "Dev Scout" }),
-    ourEvents: () => wait(events),
-    matches: (eventUuid) => wait(eventUuid === events[0].eventUuid ? matches : []),
-    presences: (matchUuid) => wait(presences.filter((p) => p.matchUuid === matchUuid)),
+    ourEvents: () => (failSchedule ? fail() : wait(events)),
+    matches: (eventUuid) => (failSchedule ? fail() : wait(eventUuid === events[0].eventUuid ? matches : [])),
+    presences: (matchUuid) => (failSchedule ? fail() : wait(presences.filter((p) => p.matchUuid === matchUuid))),
     findPresence: (eventUuid, matchType, matchNumber, teamNumber) => {
       const m = eventUuid === events[0].eventUuid ? matches.find((x) => x.matchType === matchType && x.matchNumber === matchNumber) : undefined;
       return wait(presences.find((p) => p.matchUuid === m?.matchUuid && p.teamNumber === teamNumber) ?? null);
