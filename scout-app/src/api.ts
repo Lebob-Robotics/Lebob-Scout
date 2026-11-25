@@ -3,6 +3,9 @@ import type { Client } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
 import { Event, Match, MatchObservation, Presence, Team, createMatchObservation, modifyMatchObservation } from "@lebob-scout/sdk";
 import type { FinalPage, Observation, Target } from "./observation";
+import type { TeamsTab } from "./teamsTypes";
+
+export type { Coverage, CoverageCell, CoverageRow, ReportSummary, ScoutTally, SquareTotal, StartDot, TeamProfile, TeamsTab } from "./teamsTypes";
 
 export type EventRow = { eventUuid: string; eventCode: string; eventName: string; dateStart: string; dateEnd: string };
 export type MatchRow = { matchUuid: string; matchNumber: number; matchType: "qualification" | "playoff"; scheduledTime: string | null; actualTime: string | null };
@@ -19,6 +22,8 @@ export type Api = {
   create(o: Observation): Promise<void>;
   modify(observationId: string, patch: Patch, nowMs: number): Promise<void>;
   observations(eventUuid: string): Promise<Observation[]>;
+  observation(observationId: string): Promise<Observation>;
+  teamsTab(eventUuid: string): Promise<TeamsTab>;
 };
 
 // The real server. Shapes below follow what scripts/spike.mjs saw Foundry do (see the task 3/8b report).
@@ -138,6 +143,13 @@ export function createApi(client: Client): Api {
     async observations(eventUuid) {
       const rows = await all(client(MatchObservation).where({ eventUuid: { $eq: eventUuid } }).asyncIter({ $orderBy: { createdAt: "desc" } }));
       return rows.map(toObservation);
+    },
+    async observation(observationId) {
+      return toObservation(await client(MatchObservation).fetchOne(observationId));
+    },
+    // TEMP: call the function once @lebob-scout/sdk has teamsTab.
+    async teamsTab() {
+      throw new Error("teamsTab is not in the SDK yet");
     },
   };
 }

@@ -73,6 +73,10 @@ label, .label, legend, .final h2 {
 .header img { display: block; width: 36px; height: 36px; object-fit: contain; }
 .header span { color: var(--fg-dark); font-weight: 600; font-size: 1.125rem; letter-spacing: -.01em; }
 
+/* Tab bar: Reports and Teams. The current one has the yellow rule under it. */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; max-width: 40rem; margin: 0 auto; padding: 1rem 1rem 0; }
+.tabs [aria-current=page] { border-color: var(--accent); box-shadow: inset 0 -4px 0 var(--accent); }
+
 /* The column every screen but the live one uses. */
 .top, .setup, .final, .reports, .signin { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
 .top { padding-bottom: 0; }
@@ -148,6 +152,16 @@ label, .label, legend, .final h2 {
 .alliance.red { --c: var(--alliance-red); }
 .alliance.blue { --c: var(--alliance-blue); }
 .tag { padding: 2px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--fg); }
+
+/* Teams tab: a column of cards; figures in Mono. */
+.teams-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+.card { display: grid; gap: .75rem; padding: .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); }
+.card h2 { font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .5rem; }
+.tiles div { padding: .5rem .75rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); }
+.tiles dt { font: 500 .75rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.tiles dd { color: var(--fg-dark); font: 500 1.75rem/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+.scouts { display: grid; gap: .5rem; padding: 0; list-style: none; color: var(--fg-dark); }
 
 /* Live screen: modes left, field middle, counts right, clock and End match along the bottom.
    Shoot yellow and Intake teal are the loud things; everything else recedes. */

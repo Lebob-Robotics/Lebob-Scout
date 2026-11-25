@@ -9,6 +9,8 @@ const FINAL_KEYS = [
   "driverSkill", "robotSpeed", "autoNotes", "notes", "autoPathPoints",
 ] as const satisfies readonly (keyof FinalPage)[];
 
+export const taps = (o: Observation) => `${o.tapSeconds.length} tap${o.tapSeconds.length === 1 ? "" : "s"}`;
+
 // The signed-in scout's reports first, then everyone else's; newest first within each.
 export const sortReports = (list: Observation[], userId: string) =>
   [...list].sort((a, b) => Number(b.scoutUserId === userId) - Number(a.scoutUserId === userId) || b.createdAt.localeCompare(a.createdAt));

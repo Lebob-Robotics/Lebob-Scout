@@ -52,10 +52,10 @@ function signInFirst() {
 }
 
 // Development builds only: ?dev=1 uses made-up data instead of Foundry.
-// With it, ?fail makes the schedule fail, ?failsave makes corrections fail, ?failcreate makes saving a new report fail,
+// With it, ?fail makes the schedule fail, ?failsave makes corrections fail, ?failcreate makes saving a new report fail, ?failteams makes the Teams tab fail,
 // ?signedout shows the signed-out line, and ?signinfails makes its Sign in button fail.
 if (import.meta.env.DEV && params.has('dev')) {
-  showApp(createDevApi({ failSchedule: params.has('fail'), failSave: params.has('failsave'), failCreate: params.has('failcreate') }), params.has('signedout'), () => new Promise((resolve, reject) => setTimeout(params.has('signinfails') ? reject : resolve, 1500)))
+  showApp(createDevApi({ failSchedule: params.has('fail'), failSave: params.has('failsave'), failCreate: params.has('failcreate'), failTeams: params.has('failteams') }), params.has('signedout'), () => new Promise((resolve, reject) => setTimeout(params.has('signinfails') ? reject : resolve, 1500)))
 } else if (createStore().loadDraft() && location.pathname !== callbackPath) {
   // A match is in progress: show it now, and get a token in the background without redirecting.
   showReal()

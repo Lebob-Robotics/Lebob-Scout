@@ -1,5 +1,6 @@
 // Development stand-in for the real server: fixed made-up data held in memory.
 import type { Api, EventRow, MatchRow, PresenceRow } from "./api";
+import { DEV_TEAMS_TAB } from "./devTeamsTab";
 import type { Observation } from "./observation";
 
 const wait = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), 150));
@@ -18,9 +19,9 @@ const loadSaved = (): Observation[] => {
 };
 
 // failSchedule makes the event, match and robot lists fail, to check the offline paths. failSave makes modify fail.
-// failCreate makes create fail. create also refuses an observationId it already holds, so a duplicate save shows up.
+// failCreate makes create fail. failTeams makes the Teams tab fail. create also refuses an observationId it already holds, so a duplicate save shows up.
 // Saved observations are kept in localStorage so they survive a reload.
-export function createDevApi({ failSchedule = false, failSave = false, failCreate = false }: { failSchedule?: boolean; failSave?: boolean; failCreate?: boolean } = {}): Api {
+export function createDevApi({ failSchedule = false, failSave = false, failCreate = false, failTeams = false }: { failSchedule?: boolean; failSave?: boolean; failCreate?: boolean; failTeams?: boolean } = {}): Api {
   const events: EventRow[] = [
     { eventUuid: "dev-event-now", eventCode: "DEVNOW", eventName: "Dev Qualifier (running)", dateStart: day(-1), dateEnd: day(1) },
     { eventUuid: "dev-event-next", eventCode: "DEVNEXT", eventName: "Dev Championship (next month)", dateStart: day(30), dateEnd: day(31) },
@@ -65,5 +66,10 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
       return wait(undefined);
     },
     observations: (eventUuid) => wait(saved.filter((o) => o.eventUuid === eventUuid)),
+    observation: (id) => {
+      const o = saved.find((x) => x.observationId === id);
+      return o ? wait(o) : fail(`No report ${id}`);
+    },
+    teamsTab: () => new Promise((resolve, reject) => setTimeout(() => (failTeams ? reject(new Error("Teams unavailable")) : resolve(DEV_TEAMS_TAB)), 300)),
   };
 }

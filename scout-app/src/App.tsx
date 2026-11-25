@@ -9,12 +9,13 @@ import { FinalScreen } from "./screens/FinalScreen";
 import { LiveScreen } from "./screens/LiveScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
 import { SetupScreen } from "./screens/SetupScreen";
+import { TeamsScreen } from "./screens/TeamsScreen";
 import { createStore } from "./storage";
 import { READ_LIMIT_MS, linkUnlinked, withTimeout } from "./sync";
 import { useSaveQueue } from "./useSaveQueue";
 
 type User = { id: string; name: string };
-type Screen = "setup" | "reports" | "live" | "final";
+type Screen = "setup" | "reports" | "teams" | "live" | "final";
 
 const store = createStore();
 const USER_KEY = "lsa:user";
@@ -196,6 +197,9 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
     );
   } else if (screen === "reports" && eventUuid) {
     body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => setScreen("setup")} />;
+  } else if (screen === "teams" && eventUuid) {
+    // Task 9 fills set-up from the target.
+    body = <TeamsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} refresh={queue.saved} onScout={() => setScreen("setup")} />;
   } else {
     body = <SetupScreen api={api} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
   }
@@ -203,6 +207,12 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   return (
     <>
       <Header />
+      {(screen === "reports" || screen === "teams") && eventUuid && (
+        <nav className="tabs">
+          <button type="button" aria-current={screen === "reports" ? "page" : undefined} onClick={() => setScreen("reports")}>Reports</button>
+          <button type="button" aria-current={screen === "teams" ? "page" : undefined} onClick={() => setScreen("teams")}>Teams</button>
+        </nav>
+      )}
       {top.length > 0 && <div className="top">{top}</div>}
       {body}
     </>
