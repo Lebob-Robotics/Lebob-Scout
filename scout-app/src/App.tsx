@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Api } from "./api";
+import { isRefused } from "./api";
 import { Header } from "./components/Header";
 import { CURRENT_FIELD_KEY } from "./field";
 import { buildObservation } from "./observation";
@@ -144,8 +145,10 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
           who = await withTimeout(api.currentUser(), READ_LIMIT_MS);
           rememberUser(who);
           setUser(who);
-        } catch {
-          setSaveError("Couldn't confirm who you are. Check your signal and tap Save again.");
+        } catch (e) {
+          setSaveError(isRefused(e)
+            ? "Foundry wouldn't confirm who you are. Your match is still here. Tell a mentor, then tap Save again."
+            : "Couldn't confirm who you are. Check your signal and tap Save again.");
           return;
         }
       }

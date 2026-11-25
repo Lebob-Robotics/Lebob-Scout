@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import { PalantirApiError } from "@osdk/client";
-import { isAlreadySaved, toCreateParams, toEventRow, toModifyParams, toObservation } from "./api";
+import { isAlreadySaved, isRefused, toCreateParams, toEventRow, toModifyParams, toObservation } from "./api";
 import { obs } from "./testHelpers";
 
 // Shaped like what the spike read back: nullable properties are missing, timestamps have no milliseconds.
@@ -81,4 +81,12 @@ test("modify does not send the wall position", () => {
 test("toObservation reads the wall position, and a missing one as null", () => {
   expect(toObservation({ ...fromFoundry, startWallPos: 100 }).startWallPos).toBe(100);
   expect(toObservation(fromFoundry).startWallPos).toBeNull();
+});
+
+test("isRefused is true when Foundry answered with a status, whichever copy of the error class threw it", () => {
+  expect(isRefused(new PalantirApiError("Forbidden", "ApiUsageDenied", "PERMISSION_DENIED", undefined, 403))).toBe(true);
+  expect(isRefused({ statusCode: 403, errorName: "ApiUsageDenied" })).toBe(true); // the admin package's own copy
+  expect(isRefused(new Error("Timed out"))).toBe(false);
+  expect(isRefused(new TypeError("Failed to fetch"))).toBe(false);
+  expect(isRefused(undefined)).toBe(false);
 });

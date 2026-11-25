@@ -86,6 +86,10 @@ export const toModifyParams = (current: Observation, patch: Patch, nowMs: number
 // and leaves the stored object untouched, so the report is already saved.
 export const isAlreadySaved = (e: unknown): boolean => e instanceof PalantirApiError && e.errorName === "ObjectAlreadyExists";
 
+// Foundry answered and said no, as opposed to no answer at all. The admin package throws its own copy of
+// PalantirApiError, so this goes by the status code it carries, not instanceof.
+export const isRefused = (e: unknown): boolean => typeof (e as { statusCode?: unknown } | null)?.statusCode === "number";
+
 // Event days are stored as midnight timestamps; the app compares plain dates.
 export const toEventRow = (e: Pick<Event.Props, "eventUuid" | "eventCode" | "eventName" | "dateStart" | "dateEnd">): EventRow => ({
   eventUuid: e.eventUuid, eventCode: e.eventCode ?? "", eventName: e.eventName ?? "",
