@@ -1,5 +1,8 @@
 import type { Tap } from "./taps";
 import type { Draft, Observation } from "./observation";
+import type { Patch, PresenceRow } from "./api";
+import { createStore } from "./storage";
+import type { Store } from "./storage";
 
 export const tap = (seconds: number): Tap => ({ seconds, square: "C4", kind: "shoot", count: 1 });
 
@@ -46,3 +49,34 @@ export const throwingStorage = (): Storage => ({
   getItem: () => { throw new Error("blocked"); },
   setItem: () => { throw new Error("blocked"); },
 });
+
+export const storeWith = (...observations: Observation[]): Store => {
+  const s = createStore(fakeStorage());
+  observations.forEach(o => s.enqueue(o));
+  return s;
+};
+
+export const anyPresence: PresenceRow = { presenceUuid: "p", matchUuid: "m", teamUuid: "t", teamNumber: 29550, alliance: "red", station: 1 };
+
+export function fake(options: {
+  createThrows?: boolean; createThrowsFor?: string; observations?: Observation[];
+  presence?: { key: string; row: PresenceRow };
+}) {
+  const api = {
+    calls: [] as string[],
+    existing: new Set<string>(),
+    createThrows: options.createThrows ?? false,
+    modified: [] as [string, Patch][],
+    async exists(id: string) { api.calls.push(`exists ${id}`); return api.existing.has(id); },
+    async create(o: Observation) {
+      api.calls.push(`create ${o.observationId}`);
+      if (api.createThrows || options.createThrowsFor === o.observationId) throw new Error("network");
+    },
+    async observations(_eventUuid: string) { return options.observations ?? []; },
+    async findPresence(_e: string, matchType: string, matchNumber: number, teamNumber: number) {
+      return options.presence?.key === `${matchType} ${matchNumber} ${teamNumber}` ? options.presence.row : null;
+    },
+    async modify(id: string, patch: Patch, _nowMs: number) { api.modified.push([id, patch]); },
+  };
+  return api;
+}
