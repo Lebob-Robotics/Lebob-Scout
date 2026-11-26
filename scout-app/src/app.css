@@ -87,7 +87,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .hdrmeta { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .header .pill { margin-left: auto; flex: 0 0 auto; }
 
-/* Tab bar: Reports, Teams, Settings. The current one is filled yellow. */
+/* Tab bar: Reports, Teams, Pit, Breakage, Settings; scrolls sideways when they don't fit. The current one is filled yellow. */
 .tabs { display: flex; gap: 4px; padding: 8px 16px; border-bottom: 1px solid var(--line); overflow-x: auto; scrollbar-width: none; }
 .tabs button { flex: 0 0 auto; min-height: 44px; padding: 0 14px; background: transparent; font-weight: 500; font-size: .9375rem; }
 .tabs [aria-current=page] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); font-weight: 600; }
@@ -100,7 +100,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 }
 
 /* The column every screen but the live one uses. */
-.top, .setup, .final, .reports, .signin { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
+.top, .setup, .final, .reports, .signin, .form-screen { display: grid; gap: .75rem; max-width: 40rem; margin: 0 auto; padding: 1rem; }
 .top { padding-bottom: 0; }
 .top > button, .reports .back { justify-self: start; }
 /* The question takes its own line under the buttons; Cancel stays where Discard match was. */
@@ -397,3 +397,27 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 }
 :root[data-motion=off] *, :root[data-motion=off] *::before, :root[data-motion=off] *::after { animation: none !important; transition: none !important; }
 :root[data-motion=off] button:active:not(:disabled) { transform: none; }
+
+/* Pit and Breakage tabs: label over control, two or three to a row where they fit. */
+.form-screen h1 { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.form-screen h2 { margin-top: .75rem; font-size: 1.15rem; font-weight: 600; }
+.form-screen { grid-template-columns: minmax(0, 1fr); align-content: start; }
+.form-screen > * { min-width: 0; }
+.form-field { display: grid; gap: .3rem; min-width: 0; align-content: start; }
+.form-field select, .form-field input, .form-field textarea { width: 100%; min-width: 0; }
+.form-screen .pair { align-items: end; }
+.trio { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; align-items: end; }
+.num-stepper { display: grid; grid-template-columns: 48px 1fr 48px; gap: .5rem; }
+.num-stepper button { padding: 0; font-size: 1.4rem; }
+.num-stepper input { text-align: center; font-family: var(--font-mono); }
+.banner.hint { display: grid; gap: .5rem; }
+.banner.hint button { justify-self: start; }
+.report[aria-current=true] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+
+/* A team's pit reports and breakages, under its report lines. */
+.team-notes { display: grid; gap: .5rem; margin-top: .75rem; }
+.team-notes h3 { font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.team-notes ul { display: grid; gap: .4rem; padding-left: 1.1rem; }
+.note-block { padding: .5rem .75rem; border-left: 3px solid var(--border); }
+.note-block p:first-child { color: var(--fg-dark); font-weight: 600; }
+.team-body > .pair { margin-top: .75rem; }

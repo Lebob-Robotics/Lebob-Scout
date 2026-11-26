@@ -1,7 +1,15 @@
 import { FIELDS } from "./field";
 import type { Draft, Observation } from "./observation";
+import type { BreakageReport, PitReport } from "./pitBreakage";
 
-export type Pending = { observation: Observation; attempts: number; lastError?: string };
+// A match report is stored with no kind, as before pit and breakage reports joined the queue.
+export type Report = { kind?: "match"; observation: Observation } | { kind: "pit"; pit: PitReport } | { kind: "breakage"; breakage: BreakageReport };
+export type Pending = Report & { attempts: number; lastError?: string };
+export const reportId = (r: Report) =>
+  r.kind === "pit" ? r.pit.pitReportId : r.kind === "breakage" ? r.breakage.breakageId : r.observation.observationId;
+// How a waiting report reads in the Reports list: a match report by its label, the others by kind and team.
+export const pendingLabel = (r: Report) =>
+  r.kind === "pit" ? `Pit · ${r.pit.teamNumber}` : r.kind === "breakage" ? `Breakage · ${r.breakage.teamNumber}` : r.observation.label;
 
 const DRAFT_KEY = "lsa:draft";
 const OUTBOX_KEY = "lsa:outbox";
@@ -12,7 +20,10 @@ const isDraft = (d: unknown): d is Draft =>
   isObject(d) && typeof d.observationId === "string" && Array.isArray(d.taps) && typeof d.startedAtMs === "number"
   && isObject(d.final) && (d.stage === "live" || d.stage === "final") && typeof d.fieldKey === "string" && d.fieldKey in FIELDS;
 const isPending = (p: unknown): p is Pending =>
-  isObject(p) && isObject(p.observation) && typeof p.observation.observationId === "string" && typeof p.attempts === "number";
+  isObject(p) && typeof p.attempts === "number" && (
+    p.kind === "pit" ? isObject(p.pit) && typeof p.pit.pitReportId === "string"
+    : p.kind === "breakage" ? isObject(p.breakage) && typeof p.breakage.breakageId === "string"
+    : p.kind === undefined && isObject(p.observation) && typeof p.observation.observationId === "string");
 
 export function createStore(backing?: Storage) {
   let ok = true;
@@ -64,15 +75,22 @@ export function createStore(backing?: Storage) {
     },
     pending: () => outbox,
     enqueue(o: Observation) { outbox = [...outbox, { observation: o, attempts: 0 }]; saveOutbox(); },
+    // A pit or breakage report changed while still waiting replaces its waiting copy. Its attempts carry over, so a
+    // create that may have landed is still checked for.
+    enqueueReport(r: Exclude<Report, { observation: Observation }>) {
+      const id = reportId(r), old = outbox.find((p) => reportId(p) === id);
+      outbox = [...outbox.filter((p) => reportId(p) !== id), { ...r, attempts: old?.attempts ?? 0 }];
+      saveOutbox();
+    },
     bump(id: string) {
-      outbox = outbox.map(p => p.observation.observationId === id ? { ...p, attempts: p.attempts + 1 } : p);
+      outbox = outbox.map(p => reportId(p) === id ? { ...p, attempts: p.attempts + 1 } : p);
       saveOutbox();
     },
     setError(id: string, message: string) {
-      outbox = outbox.map(p => p.observation.observationId === id ? { ...p, lastError: message } : p);
+      outbox = outbox.map(p => reportId(p) === id ? { ...p, lastError: message } : p);
       saveOutbox();
     },
-    remove(id: string) { outbox = outbox.filter(p => p.observation.observationId !== id); saveOutbox(); },
+    remove(id: string) { outbox = outbox.filter(p => reportId(p) !== id); saveOutbox(); },
   };
 }
 

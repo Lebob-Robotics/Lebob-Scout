@@ -1,7 +1,7 @@
 import { test, expect } from "vitest";
 import { flush, linkUnlinked, shortError } from "./sync";
 import { createStore } from "./storage";
-import { anyPresence, fake, fakeStorage, obs, storeWith } from "./testHelpers";
+import { anyPresence, breakageReport, fake, fakeStorage, obs, pitReport, storeWith } from "./testHelpers";
 
 test("a good save leaves the queue empty", async () => {
   const s = storeWith(obs("a")); const api = fake({});
@@ -60,4 +60,23 @@ test("qualification 3 is not linked to playoff 3, and linked reports are left al
     presence: { key: "qualification 3 29550", row: anyPresence } });
   expect(await linkUnlinked(api, "e", 5)).toBe(0);
   expect(api.modified).toEqual([]);
+});
+
+test("pit and breakage reports send as create-or-replace alongside match reports", async () => {
+  const s = storeWith(obs("a"));
+  s.enqueueReport({ kind: "pit", pit: pitReport("p1") });
+  s.enqueueReport({ kind: "breakage", breakage: breakageReport("b1") });
+  const api = fake({});
+  expect(await flush(api, s)).toEqual({ saved: 3, waiting: 0 });
+  expect(api.calls).toEqual(["create a", "savePit p1", "saveBreakage b1"]);
+});
+test("a pit report that fails to send stays queued with its error, and the rest still send", async () => {
+  const s = createStore(fakeStorage());
+  s.enqueueReport({ kind: "pit", pit: pitReport("p1") });
+  s.enqueueReport({ kind: "breakage", breakage: breakageReport("b1") });
+  const api = fake({}); api.saveThrows = true;
+  expect(await flush(api, s)).toEqual({ saved: 0, waiting: 2 });
+  expect(s.pending().map((p) => p.lastError)).toEqual(["network", "network"]);
+  api.saveThrows = false;
+  expect(await flush(api, s)).toEqual({ saved: 2, waiting: 0 });
 });

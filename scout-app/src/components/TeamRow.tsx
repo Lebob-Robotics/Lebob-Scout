@@ -1,15 +1,16 @@
 import type { TeamProfile } from "../api";
 import { CURRENT_FIELD_KEY } from "../field";
 import { clockTime } from "../teams";
-import { chips, reportLine } from "../teamsView";
+import { breakageLine, chips, pitLines, reportLine } from "../teamsView";
 import { ProfileMap } from "./ProfileMap";
 
 const one = (x: number) => String(Math.round(x * 10) / 10);
 const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) + unit);
 
-// One team: a summary row with its chips, and when open its next match, profile tiles and report lines.
+// One team: a summary row with its chips, and when open its next match, profile tiles, report lines, pit reports,
+// breakages, and buttons to add a pit report or a breakage for it.
 // `opening` is the report being loaded for correction; `failed` the one that couldn't be.
-export function TeamRow({ team: t, now, open, onToggle, opening, failed, onReport }: {
+export function TeamRow({ team: t, now, open, onToggle, opening, failed, onReport, onPit, onBreakage }: {
   team: TeamProfile;
   now: number; // read times against this day
   open: boolean;
@@ -17,6 +18,8 @@ export function TeamRow({ team: t, now, open, onToggle, opening, failed, onRepor
   opening: string | null;
   failed: string | null;
   onReport(observationId: string): void;
+  onPit(): void;
+  onBreakage(): void;
 }) {
   const tiles: [string, string][] = [
     ["points / match", String(Math.round(t.points))],
@@ -59,6 +62,24 @@ export function TeamRow({ team: t, now, open, onToggle, opening, failed, onRepor
         ) : (
           <p>Nothing scouted yet.</p>
         )}
+        {t.pits.length > 0 && (
+          <section className="team-notes">
+            <h3>Pit</h3>
+            {t.pits.map((p) => (
+              <div key={p.pitReportId} className="note-block">{pitLines(p).map((line, i) => <p key={i}>{line}</p>)}</div>
+            ))}
+          </section>
+        )}
+        {t.breakages.length > 0 && (
+          <section className="team-notes">
+            <h3>Breakages</h3>
+            <ul>{t.breakages.map((b) => <li key={b.breakageId}>{breakageLine(b)}</li>)}</ul>
+          </section>
+        )}
+        <div className="pair">
+          <button type="button" onClick={onPit}>Pit report</button>
+          <button type="button" onClick={onBreakage}>Breakage</button>
+        </div>
       </div>
     </details>
   );

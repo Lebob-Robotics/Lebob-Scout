@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import type { ReportSummary, TeamProfile } from "./api";
-import { chips, reportLine, shade, shown } from "./teamsView";
+import { breakageLine, chips, pitLines, reportLine, shade, shown } from "./teamsView";
 
 const report = (r: Partial<ReportSummary> = {}): ReportSummary => ({
   observationId: "o1", teamNumber: 11115, matchType: "qualification", matchNumber: 3, alliance: "red",
@@ -10,7 +10,7 @@ const report = (r: Partial<ReportSummary> = {}): ReportSummary => ({
 const team = (t: Partial<TeamProfile> = {}): TeamProfile => ({
   teamNumber: 11115, name: "Gluten Free", need: false, matches: 2, played: 2, toCome: 0, scheduled: 2,
   missing: [], twice: [], points: 15.6, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-  squares: [], starts: [], reports: [], ...t,
+  squares: [], starts: [], reports: [], pits: [], breakages: [], ...t,
 });
 
 const teams = [
@@ -69,4 +69,34 @@ test("a square's shade runs from a visible floor to the strongest, and nothing f
   expect(shade(5, 5)).toBeCloseTo(0.85);
   expect(shade(0.5, 5)).toBeCloseTo(0.22);
   expect(shade(2.5, 5)).toBeCloseTo(0.5);
+});
+
+test("chips add pit ✓ and the breakage count when there are any", () => {
+  const pit = { pitReportId: "p", teamNumber: 11115, scout: "JK", createdAt: "" };
+  const brk = { breakageId: "b", teamNumber: 11115, reporter: "Bo", createdAt: "" };
+  expect(chips(team({ pits: [pit], breakages: [brk, { ...brk, breakageId: "c" }] })).slice(-2))
+    .toEqual([{ text: "pit ✓", tone: "ok" }, { text: "2 breakages", tone: "warn" }]);
+  expect(chips(team()).map((c) => c.text)).not.toContain("pit ✓");
+});
+
+test("pitLines says who and what, can and can't, claims and notes, leaving blanks out", () => {
+  expect(pitLines({
+    pitReportId: "p", teamNumber: 7, scout: "JK", createdAt: "", archetype: "turret-shooter", drivetrain: "tank-traction",
+    preferredStart: "near-wall", canHive: true, canFlower: true, canDefend: false, claimedCycleSeconds: 9, weightKg: 12.5, knownIssues: "Chain slips",
+  })).toEqual([
+    "JK · Turret shooter · Tank traction · starts near wall",
+    "Can: HIVE, FLOWER",
+    "Can't: defence",
+    "9s cycle · 12.5 kg",
+    "Known issues: Chain slips",
+  ]);
+  expect(pitLines({ pitReportId: "p", teamNumber: 7, scout: "", createdAt: "" })).toEqual(["?"]);
+});
+
+test("breakageLine reads when, what, how bad, why and after", () => {
+  expect(breakageLine({
+    breakageId: "b", teamNumber: 7, reporter: "Bo", createdAt: "", matchLabel: "Q4", mechanism: "drive", component: "wheel hub",
+    failureType: "loose-disconnected", severity: 3, cause: "wear", causeConfidence: "likely", recovered: false, fix: "new hub",
+  })).toBe("Q4 · drive: wheel hub · loose disconnected · severity 3 · cause wear (likely) · did not recover · fix: new hub · Bo");
+  expect(breakageLine({ breakageId: "b", teamNumber: 7, reporter: "", createdAt: "" })).toBe("pit/practice");
 });

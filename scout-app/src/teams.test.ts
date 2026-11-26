@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import { cellName, cellTarget, clockTime, coverageLine, gapRows, noteLine, scoutLine } from "./teams";
 
 const now = new Date(2026, 10, 25, 18, 0).getTime(); // a Wednesday evening, phone's own time
-const scout = { scoutUserId: "u1", scoutName: "Alice", reports: 3, lastAt: new Date(2026, 10, 25, 14, 5).toISOString() };
+const scout = { scoutUserId: "u1", scoutName: "Alice", reports: 3, pitReports: 0, breakages: 0, lastAt: new Date(2026, 10, 25, 14, 5).toISOString() };
 
 test("scoutLine gives name, reports and the latest time in the phone's own time", () => {
   expect(scoutLine(scout, "u2", now)).toBe("Alice · 3 match reports · last 2:05\u00a0pm");
@@ -77,4 +77,9 @@ test("cellName says the match, alliance, team, reports and what a tap does", () 
   expect(cellName(r, cell(1, "blue"))).toBe("Q3, blue, 12345 Bolt, 1 report, scout this robot");
   expect(cellName(r, cell(3))).toBe("Q3, red, 12345 Bolt, 3 reports, scout this robot");
   expect(cellName(r, cell(3), false)).toBe("Q3, red, 12345 Bolt, 3 reports");
+});
+
+test("scoutLine adds pit reports and breakages when there are any, and drops 0 match reports for a pit-only scout", () => {
+  expect(scoutLine({ ...scout, pitReports: 2, breakages: 1 }, "u2", now)).toBe("Alice · 3 match reports · 2 pit reports · 1 breakage · last 2:05 pm");
+  expect(scoutLine({ ...scout, scoutUserId: "", scoutName: "JK", reports: 0, pitReports: 1 }, "", now)).toBe("JK · 1 pit report · last 2:05 pm");
 });

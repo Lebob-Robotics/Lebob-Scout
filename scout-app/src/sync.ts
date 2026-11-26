@@ -1,4 +1,5 @@
 import type { Api } from "./api";
+import { reportId } from "./storage";
 import type { Store } from "./storage";
 
 // Schedule reads and the user lookup give up after this, so a weak signal never leaves a screen waiting.
@@ -14,11 +15,25 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // What the scout sees under the waiting banner: one line, no stack trace.
 export const shortError = (e: unknown) => (e instanceof Error ? e.message : String(e)).split("\n")[0].slice(0, 120);
 
-// attempts > 0 means a create may have reached the server, so check before creating a second copy.
-export async function flush(api: Pick<Api, "exists" | "create">, store: Store, timeoutMs = 20_000): Promise<{ saved: number; waiting: number }> {
+// Match reports: attempts > 0 means a create may have reached the server, so check before creating a second copy.
+// Pit and breakage reports are saved as "create or replace", which is safe to send again.
+export async function flush(
+  api: Pick<Api, "exists" | "create" | "savePit" | "saveBreakage">, store: Store, timeoutMs = 20_000,
+): Promise<{ saved: number; waiting: number }> {
   let saved = 0;
-  for (const { observation, attempts } of [...store.pending()]) {
-    const id = observation.observationId;
+  for (const p of [...store.pending()]) {
+    const id = reportId(p);
+    if (p.kind === "pit" || p.kind === "breakage") {
+      try {
+        await withTimeout(p.kind === "pit" ? api.savePit(p.pit) : api.saveBreakage(p.breakage), timeoutMs);
+        store.remove(id);
+        saved++;
+      } catch (e) {
+        store.setError(id, shortError(e));
+      }
+      continue;
+    }
+    const { observation, attempts } = p;
     let found = false;
     if (attempts > 0) {
       try {

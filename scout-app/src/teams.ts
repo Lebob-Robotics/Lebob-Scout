@@ -20,8 +20,16 @@ export const clockTime = (iso: string, now: number) => {
   return `${day}${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}\u00a0${d.getHours() < 12 ? "am" : "pm"}`;
 };
 
-export const scoutLine = (s: ScoutTally, userId: string, now: number) =>
-  `${s.scoutName || "?"}${s.scoutUserId === userId ? " (you)" : ""} · ${s.reports} match report${s.reports === 1 ? "" : "s"} · last ${clockTime(s.lastAt, now)}`;
+const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
+// Match reports always show, unless the scout has only pit or breakage reports; those show when there are any.
+export const scoutLine = (s: ScoutTally, userId: string, now: number) => {
+  const kinds = [
+    (s.reports || !(s.pitReports || s.breakages)) && count(s.reports, "match report"),
+    s.pitReports > 0 && count(s.pitReports, "pit report"),
+    s.breakages > 0 && count(s.breakages, "breakage"),
+  ].filter(Boolean);
+  return `${s.scoutName || "?"}${s.scoutUserId && s.scoutUserId === userId ? " (you)" : ""} · ${kinds.join(" · ")} · last ${clockTime(s.lastAt, now)}`;
+};
 
 // The coverage card's summary, from the counts the function gives.
 export const coverageLine = (c: Coverage) =>

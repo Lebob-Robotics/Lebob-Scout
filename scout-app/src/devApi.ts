@@ -2,6 +2,8 @@
 import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "./api";
 import { DEV_TEAMS_TAB } from "./devTeamsTab";
 import type { Observation } from "./observation";
+import { buildBreakage, buildPit, emptyBreakageForm, emptyPitForm } from "./pitBreakage";
+import type { BreakageReport, PitReport } from "./pitBreakage";
 
 const wait = <T>(value: T) => new Promise<T>((resolve) => setTimeout(() => resolve(value), 150));
 const day = (offset: number) => {
@@ -22,6 +24,17 @@ const loadSaved = (): Observation[] => {
 // failCreate makes create fail. failTeams makes the Teams tab fail. create also refuses an observationId it already holds, so a duplicate save shows up.
 // Saved observations are kept in localStorage so they survive a reload.
 // Any other event: no schedule and no reports yet.
+// Pit and breakage reports, kept like the observations. The first load holds one of each from another scout.
+const PITS_KEY = "lsa:dev-pits";
+const BREAKAGES_KEY = "lsa:dev-breakages";
+const hourAgo = () => new Date(Date.now() - 3600000).toISOString();
+const SEED_PITS = (): PitReport[] => [buildPit({ ...emptyPitForm("12345"), drivetrain: "mecanum", archetype: "turret-shooter", canHive: "yes", canDefend: "no", claimedCycleSeconds: "9", knownIssues: "Intake belt slips when hot" }, { pitReportId: "dev-pit-1", eventCode: "DEVNOW", scout: "Alice Nguyen", createdAt: hourAgo() })];
+const SEED_BREAKAGES = (): BreakageReport[] => [buildBreakage({ ...emptyBreakageForm("16021"), matchNumber: "2", phase: "teleop", mechanism: "drive", component: "wheel hub", failureType: "loose-disconnected", severity: "3", recovered: "no" }, { breakageId: "dev-breakage-1", eventCode: "DEVNOW", reporter: "Sam", createdAt: hourAgo() }, "dev-team-16021")];
+function loadKept<T>(key: string, seed: () => T[]): T[] {
+  try { const t = localStorage.getItem(key); return t ? JSON.parse(t) : seed(); } catch { return seed(); }
+}
+const newestFirst = <T extends { createdAt: string }>(xs: T[]) => [...xs].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
 const NO_SCHEDULE: TeamsTab = { teams: [], scouts: [], needScouting: 0, coverage: { rows: [], slots: 0, have: 0, duplicates: 0, strays: 0, unscheduled: 0, playedBy: "none" } };
 
 export function createDevApi({ failSchedule = false, failSave = false, failCreate = false, failTeams = false }: { failSchedule?: boolean; failSave?: boolean; failCreate?: boolean; failTeams?: boolean } = {}): Api {
@@ -42,6 +55,9 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
     }),
   );
   let saved = loadSaved();
+  let pits = loadKept(PITS_KEY, SEED_PITS);
+  let breakages = loadKept(BREAKAGES_KEY, SEED_BREAKAGES);
+  const store = (key: string, value: unknown) => { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* kept in memory only */ } };
   const keep = (next: Observation[]) => {
     saved = next;
     try { localStorage.setItem(SAVED_KEY, JSON.stringify(next)); } catch { /* kept in memory only */ }
@@ -73,6 +89,20 @@ export function createDevApi({ failSchedule = false, failSave = false, failCreat
     observation: (id) => {
       const o = saved.find((x) => x.observationId === id);
       return o ? wait(o) : fail(`No report ${id}`);
+    },
+    pits: (eventCode) => (failSchedule ? fail() : wait(newestFirst(pits.filter((p) => p.eventCode === eventCode)))),
+    breakages: (eventCode) => (failSchedule ? fail() : wait(newestFirst(breakages.filter((b) => b.eventCode === eventCode)))),
+    savePit: (p) => {
+      if (failSave) return fail("Save failed");
+      pits = [...pits.filter((x) => x.pitReportId !== p.pitReportId), p];
+      store(PITS_KEY, pits);
+      return wait(undefined);
+    },
+    saveBreakage: (b) => {
+      if (failSave) return fail("Save failed");
+      breakages = [...breakages.filter((x) => x.breakageId !== b.breakageId), b];
+      store(BREAKAGES_KEY, breakages);
+      return wait(undefined);
     },
     teamsTab: (eventUuid) => new Promise((resolve, reject) => setTimeout(() => (failTeams ? reject(new Error("Teams unavailable")) : resolve(eventUuid === events[0].eventUuid ? DEV_TEAMS_TAB : NO_SCHEDULE)), 300)),
   };

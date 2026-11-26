@@ -17,7 +17,8 @@ const FILTERS: [Filter, string][] = [["all", "All"], ["need", "Needs scouting"],
 // The search, filter, open rows and the gaps switch live here, so a refresh or a correction leaves them as they were.
 // onScout opens set-up for a robot tapped in the coverage grid.
 // hidden: kept by App, out of sight, while a match started from the grid runs; it renders nothing but keeps its state.
-export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidden = false, onScout, onCorrecting }: {
+// onPit and onBreakage open those forms for a team.
+export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidden = false, onScout, onPit, onBreakage, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
@@ -25,6 +26,8 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
   refresh?: number;
   hidden?: boolean;
   onScout(target: Target): void;
+  onPit(teamNumber: number): void;
+  onBreakage(teamNumber: number): void;
   onCorrecting(open: boolean): void;
 }) {
   const [tries, setTries] = useState(0);
@@ -142,6 +145,8 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
                     opening={pick && !pick.failed ? pick.id : null}
                     failed={pick?.failed ? pick.id : null}
                     onReport={openReport}
+                    onPit={() => onPit(t.teamNumber)}
+                    onBreakage={() => onBreakage(t.teamNumber)}
                   />
                 ))}
               </div>

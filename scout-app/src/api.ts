@@ -1,8 +1,12 @@
 import { PalantirApiError } from "@osdk/client";
 import type { Client } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
-import { Event, Match, MatchObservation, Presence, Team, createMatchObservation, modifyMatchObservation, teamsTab } from "@lebob-scout/sdk";
+import {
+  BreakageReport, Event, Match, MatchObservation, PitSurvey, Presence, Team, createBreakageReport, createMatchObservation, createPitSurvey,
+  modifyBreakageReport, modifyMatchObservation, modifyPitSurvey, teamsTab,
+} from "@lebob-scout/sdk";
 import type { FinalPage, Observation, Target } from "./observation";
+import type { BreakageReport as BreakageReportRow, PitReport } from "./pitBreakage";
 import { numbered } from "./schedule";
 
 // The Teams tab's result types come from the SDK, so they cannot drift from the function.
@@ -11,6 +15,8 @@ export type TeamProfile = TeamsTab["teams"][number];
 export type ReportSummary = TeamProfile["reports"][number];
 export type SquareTotal = TeamProfile["squares"][number];
 export type StartDot = TeamProfile["starts"][number];
+export type PitSummary = TeamProfile["pits"][number];
+export type BreakageSummary = TeamProfile["breakages"][number];
 export type Coverage = TeamsTab["coverage"];
 export type CoverageRow = Coverage["rows"][number];
 export type CoverageCell = CoverageRow["cells"][number];
@@ -33,6 +39,12 @@ export type Api = {
   observations(eventUuid: string): Promise<Observation[]>;
   observation(observationId: string): Promise<Observation>;
   teamsTab(eventUuid: string): Promise<TeamsTab>;
+  // Pit surveys and breakages carry the event code, not the event id. Newest first.
+  pits(eventCode: string): Promise<PitReport[]>;
+  breakages(eventCode: string): Promise<BreakageReportRow[]>;
+  // Create, or replace every field of the one with the same id.
+  savePit(p: PitReport): Promise<void>;
+  saveBreakage(b: BreakageReportRow): Promise<void>;
 };
 
 // The real server. Shapes below follow what scripts/spike.mjs saw Foundry do (see the task 3/8b report).
@@ -165,5 +177,56 @@ export function createApi(client: Client): Api {
     teamsTab(eventUuid) {
       return client(teamsTab).executeFunction({ eventUuid });
     },
+    async pits(eventCode) {
+      const rows = await all(client(PitSurvey).where({ eventCode: { $eq: eventCode } }).asyncIter({ $orderBy: { createdAt: "desc" } }));
+      return rows.map(toPitReport);
+    },
+    async breakages(eventCode) {
+      const rows = await all(client(BreakageReport).where({ eventCode: { $eq: eventCode } }).asyncIter({ $orderBy: { createdAt: "desc" } }));
+      return rows.map(toBreakageReport);
+    },
+    // Create, or on a second send (or an edit) replace every field of the stored one.
+    async savePit(p) {
+      const found = (await client(PitSurvey).where({ pitReportId: { $eq: p.pitReportId } }).fetchPage({ $pageSize: 1 })).data.length > 0;
+      const { pit_report_id, ...fields } = toParams(p);
+      if (found) await apply(client(modifyPitSurvey), { "j87bj1om.pit-survey": pit_report_id, ...fields });
+      else await apply(client(createPitSurvey), { pit_report_id, ...fields });
+    },
+    async saveBreakage(b) {
+      const found = (await client(BreakageReport).where({ breakageId: { $eq: b.breakageId } }).fetchPage({ $pageSize: 1 })).data.length > 0;
+      const { breakage_id, ...fields } = toParams(b);
+      if (found) await apply(client(modifyBreakageReport), { "j87bj1om.breakage-report": breakage_id, ...fields });
+      else await apply(client(createBreakageReport), { breakage_id, ...fields });
+    },
   };
 }
+
+type Params = Record<string, string | number | boolean | null>;
+// The pit and breakage actions take each field as snake_case: teamNumber is team_number. null clears a field.
+export const toParams = (r: PitReport | BreakageReportRow): Params =>
+  Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`), v]));
+// toParams builds the parameters from the field names, so TypeScript can't check them against the action; the
+// toParams test and the live check against the dummy event do.
+const apply = (action: { applyAction: unknown }, params: Params) =>
+  (action.applyAction as (p: Params) => Promise<unknown>).call(action, params);
+
+const orNull = <T>(v: T | null | undefined): T | null => v ?? null;
+export const toPitReport = (o: Partial<PitSurvey.Props>): PitReport => ({
+  pitReportId: o.pitReportId ?? "", eventCode: o.eventCode ?? "", teamNumber: o.teamNumber ?? 0, scout: o.scout ?? "", createdAt: o.createdAt ?? "",
+  drivetrain: orNull(o.drivetrain), archetype: orNull(o.archetype), preferredStart: orNull(o.preferredStart),
+  canHive: orNull(o.canHive), canFlower: orNull(o.canFlower), canNectar: orNull(o.canNectar),
+  canFloorIntake: orNull(o.canFloorIntake), canFlowerIntake: orNull(o.canFlowerIntake), canDefend: orNull(o.canDefend),
+  autoLeave: orNull(o.autoLeave), autoPark: orNull(o.autoPark),
+  autoTipsClaimed: orNull(o.autoTipsClaimed), claimedTipsPerMatch: orNull(o.claimedTipsPerMatch), claimedCycleSeconds: orNull(o.claimedCycleSeconds),
+  heightInches: orNull(o.heightInches), weightKg: orNull(o.weightKg),
+  autoRoutines: orNull(o.autoRoutines), knownIssues: orNull(o.knownIssues), notes: orNull(o.notes),
+});
+export const toBreakageReport = (o: Partial<BreakageReport.Props>): BreakageReportRow => ({
+  breakageId: o.breakageId ?? "", eventCode: o.eventCode ?? "", teamNumber: o.teamNumber ?? 0, teamUuid: orNull(o.teamUuid),
+  reporter: o.reporter ?? "", createdAt: o.createdAt ?? "", matchKey: orNull(o.matchKey),
+  phase: orNull(o.phase), fieldLocation: orNull(o.fieldLocation), mechanism: orNull(o.mechanism), component: orNull(o.component),
+  failureType: orNull(o.failureType), severity: orNull(o.severity), symptoms: orNull(o.symptoms), actionBefore: orNull(o.actionBefore),
+  cause: orNull(o.cause), causeConfidence: orNull(o.causeConfidence), lostSeconds: orNull(o.lostSeconds), repairMinutes: orNull(o.repairMinutes),
+  recovered: orNull(o.recovered), happenedBefore: orNull(o.happenedBefore), recurrence: orNull(o.recurrence),
+  fix: orNull(o.fix), spareUsed: orNull(o.spareUsed), evidence: orNull(o.evidence),
+});

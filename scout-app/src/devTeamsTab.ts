@@ -63,12 +63,22 @@ const laterRow = (n: number) => {
     cells: [cell(a, "red", 1, n, 0), cell(b, "red", 2, n, 0), cell(c, "blue", 1, n, 0), cell(d, "blue", 2, n, 0)] };
 };
 
+// As the functions give them: blank fields left out. They match the dev stand-in's seeded pit report and breakage.
+const DEV_PIT = {
+  pitReportId: "dev-pit-1", teamNumber: 12345, scout: "Alice Nguyen", createdAt: at(-60),
+  drivetrain: "mecanum", archetype: "turret-shooter", canHive: true, canDefend: false, claimedCycleSeconds: 9, knownIssues: "Intake belt slips when hot",
+};
+const DEV_BREAKAGE = {
+  breakageId: "dev-breakage-1", teamNumber: 16021, reporter: "Sam", createdAt: at(-60), matchKey: "DEVNOW-q2", matchLabel: "Q2",
+  phase: "teleop", mechanism: "drive", component: "wheel hub", failureType: "loose-disconnected", severity: 3, recovered: false,
+};
+
 export const DEV_TEAMS_TAB: TeamsTab = {
   needScouting: 5,
   scouts: [
-    { scoutUserId: "dev-alice", scoutName: "Alice Nguyen", reports: 3, lastAt: at(Q1 + 5) },
-    { scoutUserId: "dev", scoutName: "Dev Scout", reports: 3, lastAt: at(Q2 + 5) },
-    { scoutUserId: "dev-sam", scoutName: "Sam", reports: 2, lastAt: at(Q2 + 3) },
+    { scoutUserId: "dev-alice", scoutName: "Alice Nguyen", reports: 3, pitReports: 1, breakages: 0, lastAt: at(Q1 + 5) },
+    { scoutUserId: "dev", scoutName: "Dev Scout", reports: 3, pitReports: 0, breakages: 0, lastAt: at(Q2 + 5) },
+    { scoutUserId: "dev-sam", scoutName: "Sam", reports: 2, pitReports: 0, breakages: 1, lastAt: at(Q2 + 3) },
   ],
   coverage: {
     slots: 40, have: 7, duplicates: 1, strays: 0, unscheduled: 0, playedBy: "times",
@@ -93,7 +103,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
         { square: "D4", scored: 4, pickedUp: 0 }, { square: "F6", scored: 0, pickedUp: 3 },
       ],
       starts: [{ alliance: "red", wallPos: 30, label: "Q1" }, { alliance: "blue", wallPos: 120, label: "Q2" }],
-      reports: [r1, r2],
+      reports: [r1, r2], pits: [], breakages: [],
     },
     {
       // Two reports in Q1, one in Q2: each figure averages Q1's two reports first, then the two matches.
@@ -103,7 +113,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoScored: 2.25, cycles: 3.75, cycleSeconds: 19.5, driverSkill: 3, robotSpeed: 4,
       squares: [{ square: "C4", scored: 7, pickedUp: 0 }, { square: "D3", scored: 3, pickedUp: 0 }, { square: "E2", scored: 0, pickedUp: 2.5 }, { square: "E5", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 60, label: "Q1" }, { alliance: "blue", wallPos: 140, label: "Q2" }],
-      reports: [r3, r4, r8],
+      reports: [r3, r4, r8], pits: [DEV_PIT], breakages: [],
     },
     {
       teamNumber: 14469, name: NAMES[14469], need: true, matches: 1, ...counts, missing: ["Q1"], twice: [], ...next,
@@ -111,7 +121,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoScored: 1, cycles: 2, cycleSeconds: 35,
       squares: [{ square: "B3", scored: 3, pickedUp: 0 }, { square: "E4", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 40, label: "Q2" }],
-      reports: [r7],
+      reports: [r7], pits: [], breakages: [],
     },
     {
       teamNumber: 16021, name: NAMES[16021], need: false, matches: 2, ...counts, missing: [], twice: [], ...next,
@@ -120,12 +130,12 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoScored: 0.5, cycles: 1.5, cycleSeconds: 40, driverSkill: 2, robotSpeed: 2.5,
       squares: [{ square: "B5", scored: 3, pickedUp: 0 }, { square: "E5", scored: 2, pickedUp: 1 }],
       starts: [{ alliance: "blue", wallPos: 170, label: "Q1" }, { alliance: "red", wallPos: 100, label: "Q2" }],
-      reports: [r5, r6],
+      reports: [r5, r6], pits: [], breakages: [DEV_BREAKAGE],
     },
     ...UNSCOUTED.map((teamNumber) => ({
       teamNumber, name: NAMES[teamNumber], need: true, matches: 0, played: 8, toCome: 0, scheduled: 8, missing: LATER.map((n) => `Q${n}`), twice: [],
       points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-      squares: [], starts: [], reports: [],
+      squares: [], starts: [], reports: [], pits: [], breakages: [],
     })),
   ],
 };

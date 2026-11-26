@@ -2,7 +2,7 @@ import { test, expect } from "vitest";
 import { createStore } from "./storage";
 import type { Draft } from "./observation";
 import { matchSeconds } from "./clock";
-import { draft, tap, obs, fakeStorage, throwingStorage } from "./testHelpers";
+import { draft, tap, obs, fakeStorage, throwingStorage, pitReport, breakageReport } from "./testHelpers";
 
 test("a draft survives a reload with its start time", () => {
   const backing = fakeStorage();
@@ -91,4 +91,32 @@ test("a draft from the previous version still loads", () => {
   const old = draft({ taps: [{ seconds: 1, square: "A1", kind: "intake", count: 3 }] }); delete (old as Partial<Draft>).startWallPos;
   const backing = fakeStorage({ "lsa:draft": JSON.stringify(old) });
   expect(createStore(backing).loadDraft()).not.toBeNull();
+});
+
+test("pit and breakage reports survive a reload; a match report queued by an older build still loads", () => {
+  const backing = fakeStorage({ "lsa:outbox": JSON.stringify([{ observation: obs("old"), attempts: 2 }]) });
+  const s = createStore(backing);
+  s.enqueueReport({ kind: "pit", pit: pitReport("p1") });
+  s.enqueueReport({ kind: "breakage", breakage: breakageReport("b1") });
+  expect(createStore(backing).pending().map((p) => [p.kind ?? "match", p.attempts])).toEqual([["match", 2], ["pit", 0], ["breakage", 0]]);
+});
+test("a pit report changed while waiting replaces its waiting copy and keeps its attempts", () => {
+  const s = createStore(fakeStorage());
+  s.enqueueReport({ kind: "pit", pit: pitReport("p1", 7) });
+  s.bump("p1");
+  s.enqueueReport({ kind: "pit", pit: pitReport("p1", 8) });
+  expect(s.pending()).toEqual([{ kind: "pit", pit: pitReport("p1", 8), attempts: 1 }]);
+  s.remove("p1");
+  expect(s.pending()).toEqual([]);
+});
+test("stored items of an unknown kind or shape are dropped", () => {
+  const backing = fakeStorage({ "lsa:outbox": JSON.stringify([{ kind: "pit", attempts: 0 }, { kind: "other", attempts: 0 }, { kind: "breakage", breakage: { breakageId: "b" }, attempts: 0 }]) });
+  expect(createStore(backing).pending().map((p) => p.kind)).toEqual(["breakage"]);
+});
+
+test("pendingLabel names a waiting match report by its label and the others by kind and team", async () => {
+  const { pendingLabel } = await import("./storage");
+  expect(pendingLabel({ observation: obs("a") })).toBe(obs("a").label);
+  expect(pendingLabel({ kind: "pit", pit: pitReport("p1", 12345) })).toBe("Pit · 12345");
+  expect(pendingLabel({ kind: "breakage", breakage: breakageReport("b1", 7) })).toBe("Breakage · 7");
 });

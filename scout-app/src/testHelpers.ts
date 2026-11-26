@@ -1,6 +1,8 @@
 import type { Tap } from "./taps";
 import type { Draft, Observation } from "./observation";
 import type { Patch, PresenceRow } from "./api";
+import { buildBreakage, buildPit, emptyBreakageForm, emptyPitForm } from "./pitBreakage";
+import type { BreakageReport, PitReport } from "./pitBreakage";
 import { createStore } from "./storage";
 import type { Store } from "./storage";
 
@@ -83,6 +85,20 @@ export function fake(options: {
       return options.presence?.key === `${matchType} ${matchNumber} ${teamNumber}` ? options.presence.row : null;
     },
     async modify(id: string, patch: Patch, _nowMs: number) { api.modified.push([id, patch]); },
+    saveThrows: false,
+    async savePit(p: PitReport) {
+      api.calls.push(`savePit ${p.pitReportId}`);
+      if (api.saveThrows) throw new Error("network");
+    },
+    async saveBreakage(b: BreakageReport) {
+      api.calls.push(`saveBreakage ${b.breakageId}`);
+      if (api.saveThrows) throw new Error("network");
+    },
   };
   return api;
 }
+
+export const pitReport = (id: string, teamNumber = 7): PitReport =>
+  buildPit(emptyPitForm(String(teamNumber)), { pitReportId: id, eventCode: "AUCMP", scout: "Ann", createdAt: "2026-12-05T01:00:00.000Z" });
+export const breakageReport = (id: string, teamNumber = 7): BreakageReport =>
+  buildBreakage(emptyBreakageForm(String(teamNumber)), { breakageId: id, eventCode: "AUCMP", reporter: "Bo", createdAt: "2026-12-05T02:00:00.000Z" }, null);
