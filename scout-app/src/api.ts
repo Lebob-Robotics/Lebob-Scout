@@ -3,6 +3,7 @@ import type { Client } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
 import { Event, Match, MatchObservation, Presence, Team, createMatchObservation, modifyMatchObservation, teamsTab } from "@lebob-scout/sdk";
 import type { FinalPage, Observation, Target } from "./observation";
+import { numbered } from "./schedule";
 
 // The Teams tab's result types come from the SDK, so they cannot drift from the function.
 export type TeamsTab = teamsTab.ReturnType;
@@ -112,8 +113,10 @@ async function all<T>(rows: AsyncIterable<T>): Promise<T[]> {
 }
 
 export function createApi(client: Client): Api {
+  // By the numbers the picker shows (see numbered), so a typed P4 finds the fourth playoff even when all are stored as 1.
   const findMatch = async (eventUuid: string, matchType: string, matchNumber: number) =>
-    (await client(Match).where({ eventUuid: { $eq: eventUuid }, matchType: { $eq: matchType }, matchNumber: { $eq: matchNumber } }).fetchPage({ $pageSize: 1 })).data[0];
+    numbered((await all(client(Match).where({ eventUuid: { $eq: eventUuid }, matchType: { $eq: matchType } }).asyncIter())).map(toMatchRow))
+      .find((m) => m.matchNumber === matchNumber);
   return {
     async currentUser() {
       const u = await Users.getCurrent(client);
@@ -123,7 +126,7 @@ export function createApi(client: Client): Api {
       return (await all(client(Event).where({ ourEvent: { $eq: true } }).asyncIter())).map(toEventRow);
     },
     async matches(eventUuid) {
-      return (await all(client(Match).where({ eventUuid: { $eq: eventUuid } }).asyncIter())).map(toMatchRow);
+      return numbered((await all(client(Match).where({ eventUuid: { $eq: eventUuid } }).asyncIter())).map(toMatchRow));
     },
     async presences(matchUuid) {
       return (await all(client(Presence).where({ matchUuid: { $eq: matchUuid } }).asyncIter())).map(toPresenceRow);
