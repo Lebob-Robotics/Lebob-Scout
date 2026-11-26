@@ -18,7 +18,7 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 - **Live version: 0.5.0** (deployed 26 Nov: everything below, including the strategy app at `/strategy`) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
 - **App repo:** public on GitHub at `Lebob-Robotics/Lebob-Scout`, branch `main`, tag `0.3.3`, 99 tests. Every commit hash changed on 26 Nov: before the first push the commit address was swapped for Harry's GitHub no-reply address, so the hashes in the ledgers are the old ones. New commits use the committer's own GitHub no-reply address.
 - **Functions repo** (`scout-functions/`): pushed, head `e1c00b0`, published as version 0.4.2 (0.4.0's release failed, see the job 2 spec, R9). Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 72 tests. Set-up on Windows (no `rune` there) is in `scout-app/README.md`.
-- **SDK:** `@lebob-scout/sdk` 0.5.0 (0.4.0 added PitSurvey, BreakageReport and their create and modify actions; 0.5.0 picks up the Teams tab's `timeZone`). Both generated 26 Nov through the palantir-mcp tools, with no sign-in scope change.
+- **SDK:** `@lebob-scout/sdk` 0.7.0 (0.4.0 added PitSurvey, BreakageReport and their actions; 0.5.0 the Teams tab's `timeZone`; 0.6.0 the match model objects; 0.7.0 the `fieldMaps`, `matchMaps` and `pointSplits` functions). Both generated 26 Nov through the palantir-mcp tools, with no sign-in scope change.
 
 ## Job 2: where it is
 
