@@ -71,19 +71,26 @@ npm test
 npm run compile
 ```
 
-For a first set-up, run `.palantir-scripts/install-rune` then `./rune env prepare` from `scout-functions/`. `rune env prepare` writes the token in plain text into `typescript-functions/.npmrc`; change that line back to `_authToken=${FOUNDRY_TOKEN}` each time. The clone's `origin` URL also holds the token, so never print `git remote -v`.
+For a first set-up, run `.palantir-scripts/install-rune` then `./rune env prepare` from `scout-functions/`. `rune env prepare` writes the token in plain text into `typescript-functions/.npmrc`; change that line back to `_authToken=${FOUNDRY_TOKEN}` each time.
+
+The clone holds no token. Clone, fetch and push hand it over through a one-off credential helper, with the token loaded:
+
+```sh
+git -c credential.helper= -c credential.helper='!f(){ echo username=token; echo "password=$FOUNDRY_TOKEN"; }; f' <clone|push|fetch> ...
+```
+
+The clone address is `https://lebob.euw-3.palantirfoundry.co.uk/stemma/git/ri.stemma.main.repository.8254d75d-4849-4e74-ae91-650908735cd8/scout-functions`. Commit with your Foundry user id as the email (Foundry warns on push otherwise).
+
+`rune` does not run on Windows. There, the local stand-ins are: `typescript-functions/.sdk/@ontology/sdk` as a junction to `scout-app/node_modules/@lebob-scout/sdk` (same ontology, same objects), only the public packages installed (`@palantir/functions-sources`, `@palantir/orchestrator` and `@foundry/functions-typescript-runtime` live in Foundry's registry, and our code does not import them), and a git-excluded `vitest.local.config.ts` holding `test: { include: ["src/**/__tests__/**/*.test.ts"] }`. Run the tests with `npx vitest run --config vitest.local.config.ts` and type check with `npx tsc -p src/tsconfig.json --noEmit`. Foundry's own checks build with the real SDK.
 
 ## Publishing a function change
 
 1. Edit the function or the sums in `src/teams/`, with a test for the change.
 2. Run `npm test` and `npm run compile` in `typescript-functions/`. Both must pass.
 3. Commit from `scout-functions/` (Foundry warns on push if the author email is a real address and suggests your Foundry user id instead).
-4. Push. The credential is in the remote URL, so no token needs loading:
-   ```sh
-   git push origin master
-   ```
+4. Push with the token loaded, through the credential helper above (`... push origin master`).
 5. Wait for the "Checks" job on that commit to pass in the repository in Foundry (about a minute).
-6. Tag the commit with the next version (Branches > Tag version in Foundry; 0.2.0 is the latest). A tag publishes every function in the repository.
+6. Tag the commit with the next version, either in Foundry (Branches > Tag version) or with `git tag <version>` and a push of the tag through the credential helper. 0.3.0 is the latest. A tag publishes every function in the repository.
 7. Wait for the release check to pass (about a minute). Its output lists "Published Functions" with the new version.
 
 Whether a failing test stops the checks has not been tried.
