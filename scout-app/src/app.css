@@ -146,7 +146,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
   background: var(--bg); border-bottom: 1px solid var(--line);
 }
 .brand { display: flex; align-items: center; gap: 8px; color: var(--fg-dark); font-weight: 700; font-size: 17px; letter-spacing: -.01em; white-space: nowrap; }
-.brand img { display: block; width: 30px; height: 30px; object-fit: contain; }
+.brand img { display: block; width: 30px; height: 30px; object-fit: contain; border-radius: 6px; box-shadow: 0 0 0 1px var(--line); } /* the mark sits on its own dark tile, as on the old app */
 .hdrmeta, .header .pill { font: 500 12px/1.2 var(--font-mono); color: var(--muted); letter-spacing: .03em; white-space: nowrap; }
 .hdrmeta { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .header .pill { margin-left: auto; flex: 0 0 auto; }
