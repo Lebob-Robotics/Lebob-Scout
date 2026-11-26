@@ -10,15 +10,20 @@ import { FinalScreen } from "./screens/FinalScreen";
 import { LiveScreen } from "./screens/LiveScreen";
 import { ReportsScreen } from "./screens/ReportsScreen";
 import { SetupScreen } from "./screens/SetupScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
+import { applyMotion } from "./prefs";
 import { TeamsScreen } from "./screens/TeamsScreen";
 import { createStore } from "./storage";
 import { READ_LIMIT_MS, linkUnlinked, withTimeout } from "./sync";
+import { queuePill } from "./summary";
+import { useOnline } from "./useOnline";
 import { useSaveQueue } from "./useSaveQueue";
 
 type User = { id: string; name: string };
-type Screen = "setup" | "reports" | "teams" | "live" | "final";
+type Screen = "setup" | "reports" | "teams" | "settings" | "live" | "final";
 
 const store = createStore();
+applyMotion();
 const USER_KEY = "lsa:user";
 const rememberedUser = (): User | null => {
   try {
@@ -43,7 +48,7 @@ const newDraft = (target: Target, startSquare: string, flipped: boolean, startWa
   },
 });
 
-// Secondary and away from Save; asks first, with Cancel where Discard match was.
+// Left of Save, as on the old site; asks first, with Cancel where Discard match was.
 function DiscardMatch({ onDiscard, disabled }: { onDiscard(): void; disabled: boolean }) {
   const [asking, setAsking] = useState(false);
   if (!asking) return <button type="button" className="discard" disabled={disabled} onClick={() => setAsking(true)}>Discard match</button>;
@@ -73,6 +78,9 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const linked = useRef(false);
   const queue = useSaveQueue(api, store);
   const wasSignedOut = useRef(signedOut);
+  const online = useOnline();
+  // Settings changes the remembered event: a tick re-reads it.
+  const [, setEventTick] = useState(0);
   const event = rememberedEvent();
   const eventUuid = event?.eventUuid;
 
@@ -173,6 +181,11 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   };
 
   const top = [
+    !online && (
+      <p key="offline" className="banner offline" role="status">
+        No internet. Keep scouting: reports save on this phone and send by themselves when the signal is back.
+      </p>
+    ),
     !store.ok && <p key="ok" className="banner" role="alert">This phone can't store data. Keep this page open until your report has saved.</p>,
     signedOut && <p key="signed-out" className="banner">You're signed out. Reports will save after you sign in.</p>,
     signedOut && (
@@ -191,18 +204,6 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         Back to match
       </button>
     ),
-    screen === "final" && draft && (
-      <button key="flip" type="button" onClick={() => keep({ ...draft, flipped: !draft.flipped })}>
-        Flip field ({draft.flipped ? "flipped" : "not flipped"})
-      </button>
-    ),
-    screen === "final" && draft && (
-      <DiscardMatch
-        key="discard"
-        disabled={savingNow}
-        onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); backTo(event ? from : "setup"); }}
-      />
-    ),
   ].filter(Boolean);
 
   // The live screen stands alone: no header, tab bar or top buttons.
@@ -220,25 +221,49 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         saveDisabled={savingNow}
         fieldKey={draft.fieldKey}
         flipped={draft.flipped}
+        onFlip={() => keep({ ...draft, flipped: !draft.flipped })}
+        alliance={draft.alliance}
+        startWallPos={draft.startWallPos ?? null}
+        taps={draft.taps}
+        discard={
+          <DiscardMatch
+            disabled={savingNow}
+            onDiscard={() => { store.clearDraft(); setDraft(null); setSaveError(null); backTo(event ? from : "setup"); }}
+          />
+        }
       >
         {saveError && <p className="save-note error" role="alert">{saveError}</p>}
       </FinalScreen>
     );
   } else if (screen === "reports" && eventUuid) {
-    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} lastError={queue.lastError} refresh={queue.saved} onNew={() => { setFrom("reports"); setScoutTarget(null); setScreen("setup"); }} onCorrecting={setCorrecting} />;
+    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} waitingLabels={store.pending().map((p) => p.observation.label)} lastError={queue.lastError} refresh={queue.saved} onNew={() => { setFrom("reports"); setScoutTarget(null); setScreen("setup"); }} onCorrecting={setCorrecting} />;
   } else if (screen === "teams" && eventUuid) {
     body = null; // kept below
+  } else if (screen === "settings") {
+    body = (
+      <SettingsScreen
+        api={api}
+        userName={user?.name ?? null}
+        online={online}
+        waiting={queue.waiting}
+        lastError={queue.lastError}
+        storeOk={store.ok}
+        onEventChange={() => setEventTick((n) => n + 1)}
+        onSendNow={queue.queued}
+      />
+    );
   } else {
     body = <SetupScreen api={api} initial={scoutTarget ?? undefined} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
   }
 
   return (
     <>
-      {!live && <Header />}
-      {!live && (screen === "reports" || screen === "teams") && eventUuid && !correcting && (
+      {!live && <Header event={event?.eventCode} pill={queuePill(online, queue.waiting)} />}
+      {!live && (screen === "reports" || screen === "teams" || screen === "settings") && eventUuid && !correcting && (
         <nav className="tabs" aria-label="Screens">
           <button type="button" aria-current={screen === "reports" ? "page" : undefined} onClick={() => setScreen("reports")}>Reports</button>
           <button type="button" aria-current={screen === "teams" ? "page" : undefined} onClick={() => setScreen("teams")}>Teams</button>
+          <button type="button" aria-current={screen === "settings" ? "page" : undefined} onClick={() => setScreen("settings")}>Settings</button>
         </nav>
       )}
       {!live && top.length > 0 && <div className="top">{top}</div>}
@@ -259,6 +284,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         />
       )}
       {body}
+      {!live && <footer className="foot-brand">Lebob Scout · FTC team 29550</footer>}
     </>
   );
 }

@@ -5,11 +5,12 @@ import { sortReports, taps } from "../reports";
 import { Correction } from "./Correction";
 
 // Changing `refresh` reloads the list without closing an open correction.
-export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = null, refresh = 0, onNew, onCorrecting }: {
+export function ReportsScreen({ api, eventUuid, userId, waiting, waitingLabels = [], lastError = null, refresh = 0, onNew, onCorrecting }: {
   api: Api;
   eventUuid: string;
   userId: string;
   waiting: number;
+  waitingLabels?: string[];
   lastError?: string | null;
   refresh?: number;
   onNew(): void;
@@ -54,7 +55,9 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, lastError = nul
       <h1>Reports</h1>
       {waiting > 0 && (
         <div className="banner">
-          <p>{waiting === 1 ? "1 report waiting to save" : `${waiting} reports waiting to save`}</p>
+          <p>Saved on this phone: {waiting === 1 ? "1 report waits to send" : `${waiting} reports wait to send`}</p>
+          {waitingLabels.length > 0 && <p className="last-error">{waitingLabels.join(", ")}</p>}
+          <p className="last-error">They send by themselves when there is signal.</p>
           {lastError && <p className="last-error">Last try: {lastError}</p>}
         </div>
       )}
