@@ -12,7 +12,7 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | Second pass (intake as an area, team's look, start dot, portrait live view) | Done, deployed |
 | 3. Teams tab (profiles, map, coverage grid, scout from a gap) | Done, deployed |
 | 2. Pit survey and breakage forms, ported as they are | Done, deployed as 0.4.1, signed-in check passed 26 Nov; phone check to do |
-| 4. Strategist page | Core built and deployed at `/strategy` (26 Nov); after-AUCMP heatmap insights to do |
+| 4. Strategist page | Core built and pushed (26 Nov), not yet deployed; it will live at `/strategy`. After-AUCMP heatmap insights to do |
 | 5. Retire the old site | Not started |
 
 - **Live version: 0.4.2** (deployed 26 Nov: the restyle tagged 0.4.0, job 2, and Teams tab times on each event's own clock) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
@@ -48,7 +48,7 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 
 Design: `docs/superpowers/specs/2026-11-26-strategy-app-design.md`.
 
-- **Live at `/strategy`** on the scout app's site (link in the scout app's Settings). Five screens: Event (status, sortable ratings table), Team (rating and history, single-team heatmaps, scouting, pit, breakages, matches, best partners), Match planner (forecast, red against blue, alliance heatmaps and where they will meet, point split), Matches, Alliance (rank projection, partners).
+- **Built for `/strategy`** on the scout app's site, **not yet deployed** (link in the scout app's Settings). Five screens: Event (status, sortable ratings table), Team (rating and history, single-team heatmaps, scouting, pit, breakages, matches, best partners), Match planner (forecast, red against blue, alliance heatmaps and where they will meet, point split), Matches, Alliance (rank projection, partners).
 - **Data:** the old project's match model (EventRating, RatingHistory, MatchForecast, RankProjection, AlliancePick, Participation), imported into our project read-only, plus our functions `fieldMaps`, `matchMaps`, `pointSplits` (functions 0.5.0, SDK 0.7.0). All checked live against AUPEQ on 26 Nov.
 - **Still to do:** a signed-in check of `/strategy` (including that sign-in returns to `/strategy`), the strategy team trying it before AUCMP, then after AUCMP: cold spots, free alleys, predicted pathing, automated insights. Match video (ruling S3) is left open on purpose.
 
