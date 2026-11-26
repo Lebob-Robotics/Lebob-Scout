@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { Api, EventRow } from "../api";
+import { Dropdown } from "../components/Dropdown";
 import { StartPad } from "../components/StartPad";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
@@ -119,9 +120,8 @@ export function SetupScreen({ api, initial, onStart }: {
         ) : (
           <>
             <label htmlFor="event">Event</label>
-            <select id="event" value={event.eventUuid} onChange={(e) => chooseEvent(e.target.value)}>
-              {events!.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
-            </select>
+            <Dropdown id="event" label="Event" value={event.eventUuid} onChange={chooseEvent}
+              items={events!.map((e) => ({ value: e.eventUuid, label: e.eventName }))} />
           </>
         )}
 

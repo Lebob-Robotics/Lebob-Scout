@@ -28,6 +28,71 @@
   --radius: 4px;
   --ease: cubic-bezier(0.23, 1, 0.32, 1);
   --pixel-rule: repeating-linear-gradient(90deg, var(--accent) 0 8px, transparent 8px 16px);
+  /* Yellow as text or as a thin line (links, ticks, the sorted column, focus rings); light mode needs a dark ink. */
+  --accent-text: var(--accent);
+  --intake-text: var(--intake);
+  /* Range bars and the rating chart. */
+  --bar-track: var(--panel2);
+  --bar-band: color-mix(in srgb, var(--accent) 35%, transparent);
+  --bar-mark: var(--accent);
+  --bar-grey-band: color-mix(in srgb, #c9c9c0 35%, transparent);
+  --bar-grey-mark: var(--fg);
+  --chart-line: var(--accent);
+  --chart-band: .14;
+  --shadow: rgb(0 0 0 / .35);
+  /* An alliance block's tint: strong on the dark panels, light on white. */
+  --ally-mix: 30%;
+}
+
+/* Light: the same team colours on a warm white. Yellow stays for fills (buttons, the current tab, the pixel rule,
+   heatmaps); yellow text becomes a dark olive ink. Every text colour is at least 4.5:1 on its background. */
+:root[data-theme=light] {
+  color-scheme: light;
+  --bg: #f3f3ee;
+  --panel: #ffffff;
+  --panel2: #f7f7f2;
+  --hover: #ebebe4;
+  --border: #d9d9d1;
+  --line: #d9d9d1;
+  --control-border: #b3b3aa;
+  --label: #5c5300;
+  --fg: #3a3b36;
+  --fg-dark: #1a1b1e;
+  --muted: #5f6058;
+  --accent-ink: #1a1b1e;
+  --warn: #9a5b00;
+  --accent-text: #5c5300;
+  --intake-text: #0f766e;
+  --pixel-rule: repeating-linear-gradient(90deg, var(--accent) 0 8px, #1a1b1e 8px 16px);
+  --bar-track: #e3e3db;
+  --bar-band: var(--accent);
+  --bar-mark: #1a1b1e;
+  --bar-grey-band: #b9b9b0;
+  --bar-grey-mark: #5f6058;
+  --chart-line: #5c5300;
+  --chart-band: .3;
+  --shadow: rgb(0 0 0 / .18);
+  --ally-mix: 14%;
+}
+/* The field is a picture of the field and stays dark in both looks, so everything drawn on it (heatmaps, start dots,
+   paths, the live grid, a square's pop-up) keeps the dark colours. */
+:root[data-theme=light] .field {
+  color-scheme: dark;
+  --bg: #1a1b1e;
+  --panel: #242529;
+  --panel2: #1f2024;
+  --hover: #28292e;
+  --border: #36373c;
+  --line: #36373c;
+  --control-border: #36373c;
+  --label: #FFF200;
+  --fg: #c8c9c2;
+  --fg-dark: #e5e6e0;
+  --muted: #8a8b83;
+  --warn: #F5A524;
+  --accent-text: var(--accent);
+  --intake-text: var(--intake);
+  --shadow: rgb(0 0 0 / .45);
 }
 
 /* Base */
@@ -39,7 +104,7 @@ body {
 }
 #root { min-height: 100dvh; }
 h1, h2 { color: var(--fg-dark); }
-:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 
 /* Controls: panel buttons with a 1 px border; primary is yellow; selected is filled; a slight press-in. */
 button {
@@ -108,7 +173,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .confirm p { flex-basis: 100%; color: var(--fg-dark); font-weight: 600; }
 
 /* Banners: storage warning, signed out, waiting to save. */
-.banner { padding: .6rem .75rem; border-left: 4px solid var(--accent); border-radius: var(--radius); background: var(--panel); color: var(--fg-dark); font-weight: 600; }
+.banner { padding: .6rem .75rem; border-left: 4px solid var(--accent-text); border-radius: var(--radius); background: var(--panel); color: var(--fg-dark); font-weight: 600; }
 .banner .last-error { color: var(--fg); font-size: .875rem; font-weight: 400; overflow-wrap: anywhere; }
 .banner.offline { border-left-color: var(--warn); }
 
@@ -208,11 +273,13 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .report { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; width: 100%; padding: .6rem .75rem; text-align: left; }
 .report strong { color: var(--fg-dark); font: 500 1.1rem var(--font-mono); }
 .report .meta { flex-basis: 100%; color: var(--fg); font-size: .9rem; font-weight: 400; }
-.alliance, .tag { font: 500 .75rem/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
-.alliance { color: var(--fg-dark); }
-.alliance::before { content: ""; display: inline-block; width: 10px; height: 10px; margin-right: 6px; vertical-align: -1px; background: var(--c); }
-.alliance.red { --c: var(--alliance-red); }
-.alliance.blue { --c: var(--alliance-blue); }
+.ally, .tag { font: 500 .75rem/1.2 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; }
+/* An alliance, one look everywhere (as the set-up Alliance buttons): a tint of its colour with a 1 px border in the
+   full colour, the text in the normal ink. Labels, table headings and legend items use .ally; rows and team blocks
+   use the same tint and border. */
+.ally { display: inline-flex; align-items: center; padding: 2px 6px; border: 1px solid var(--c); border-radius: var(--radius); background: var(--ally-bg); color: var(--fg-dark); }
+.ally.red, .row-red, .ablock.red { --c: var(--alliance-red); --ally-bg: color-mix(in srgb, var(--alliance-red) var(--ally-mix), var(--panel)); }
+.ally.blue, .row-blue, .ablock.blue { --c: var(--alliance-blue); --ally-bg: color-mix(in srgb, var(--alliance-blue) var(--ally-mix), var(--panel)); }
 .tag { padding: 2px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--fg); }
 
 /* Teams tab: a column of cards; figures in Mono. */
@@ -252,7 +319,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .team .name { flex: 1 1 8rem; min-width: 0; color: var(--fg-dark); overflow-wrap: anywhere; }
 .chips { display: flex; flex-wrap: wrap; gap: .25rem; }
 .chip { padding: 1px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--muted); font: 500 .75rem/1.4 var(--font-mono); overflow-wrap: anywhere; }
-.chip.ok { border-color: var(--accent); color: var(--accent); }
+.chip.ok { border-color: var(--accent-text); color: var(--accent-text); }
 .chip.warn { color: var(--fg-dark); }
 .chip.plain { border-color: var(--border); }
 .team-body { display: grid; gap: .75rem; padding: 0 .75rem .75rem; }
@@ -273,8 +340,8 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .cov-cell b { display: block; font-weight: 600; }
 .cov-cell small { overflow: hidden; color: var(--muted); font: 400 .6875rem/1.3 var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
 .cov-cell.gap { border-color: var(--muted); }
-.cov-cell.ok { border-color: var(--accent); }
-.cov-cell.ok b { color: var(--accent); }
+.cov-cell.ok { border-color: var(--accent-text); }
+.cov-cell.ok b { color: var(--accent-text); }
 .later .cov-label, .later .cov-cell { color: var(--muted); }
 /* The profile map: the whole picture across the row, a shaded overlay on the grid area, numbers outlined in the
    background colour so they read on the faintest and the strongest fill. */
@@ -318,7 +385,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .counts button small { color: var(--muted); }
 /* Ready once a square is picked: the Shoot edge and the brightest numeral in the column. */
 .counts button:not(:disabled) { border: 2px solid var(--shoot); color: var(--fg-dark); }
-.counts p { display: grid; place-content: center; text-align: center; border: 1px solid var(--intake); border-radius: var(--radius); color: var(--intake); font: 500 clamp(2rem, 6vw, 3.5rem)/1 var(--font-mono); grid-row: 1 / -1; }
+.counts p { display: grid; place-content: center; text-align: center; border: 1px solid var(--intake-text); border-radius: var(--radius); color: var(--intake-text); font: 500 clamp(2rem, 6vw, 3.5rem)/1 var(--font-mono); grid-row: 1 / -1; }
 .counts p small { color: var(--fg); font-size: max(.8125rem, .3em); }
 /* No mode picked: a quiet, intentional empty column. */
 .counts:empty { border: 1px dashed var(--border); border-radius: var(--radius); place-content: center; padding: .5rem; grid-template-rows: none; }
@@ -412,7 +479,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .num-stepper input { text-align: center; font-family: var(--font-mono); }
 .banner.hint { display: grid; gap: .5rem; }
 .banner.hint button { justify-self: start; }
-.report[aria-current=true] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.report[aria-current=true] { border-color: var(--accent-text); box-shadow: inset 4px 0 0 var(--accent-text); }
 
 /* A team's pit reports and breakages, under its report lines. */
 .team-notes { display: grid; gap: .5rem; margin-top: .75rem; }
@@ -424,9 +491,8 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 
 /* Strategy app: laptop-first, the scout app's look. One column on a phone, two or three from 900 px.
    Every card has the same padding, gaps and title row; tables share one spacing. */
-.plain-link, .strategy a, .header .hdrlink { color: var(--accent); text-decoration: underline 1px; text-underline-offset: 4px; }
+.plain-link, .strategy a { color: var(--accent-text); text-decoration: underline 1px; text-underline-offset: 4px; }
 .plain-link { justify-self: start; font-weight: 600; }
-.header .hdrlink { margin-left: auto; flex: 0 0 auto; font: 500 12px/1.2 var(--font-mono); letter-spacing: .03em; white-space: nowrap; }
 .strategy { display: grid; gap: .75rem; max-width: 90rem; margin: 0 auto; padding: 1rem; min-width: 0; }
 .strategy > * { min-width: 0; }
 .strategy .tabs { padding: 0 0 8px; }
@@ -445,13 +511,13 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 /* The top area on every tab: the event picker, with our status beside it from 900 px and under it below. */
 .topbar { display: grid; gap: .75rem; align-items: end; }
 .event-pick { display: grid; gap: .3rem; min-width: 0; max-width: 30rem; }
-.event-pick select { width: 100%; min-width: 0; font-family: var(--font-mono); font-weight: 500; }
+.event-pick .dd-btn { width: 100%; }
 .status-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; min-width: 0; }
 .status-tiles div { min-width: 0; padding: .35rem .6rem; border: 1px solid var(--border); border-radius: var(--radius); background: var(--panel); }
 .status-tiles dt { font: 500 .6875rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .status-tiles dd { color: var(--fg-dark); font: 500 1.125rem/1.3 var(--font-mono); font-variant-numeric: tabular-nums; }
 .next-link { min-height: 0; padding: 0; border: 0; background: none; color: var(--fg-dark); font: inherit; text-decoration: underline 1px var(--muted); text-underline-offset: 3px; }
-.next-link:hover, .next-link:focus-visible { color: var(--accent); }
+.next-link:hover, .next-link:focus-visible { color: var(--accent-text); }
 @media (min-width: 900px) {
   .topbar { grid-template-columns: minmax(16rem, 24rem) minmax(0, 1fr); }
   .status-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
@@ -460,7 +526,6 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 /* Cards: the title row folds the card; a control (a picker or switch) sits at its right. Titles are larger here. */
 .scard { align-content: start; }
 .card-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem .75rem; min-height: 36px; }
-.strategy .card h2 { font-size: 1rem; line-height: 1.3; }
 .card-toggle {
   display: inline-flex; align-items: center; gap: .6rem; min-height: 2rem; padding: 0; border: 0; background: none;
   color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; text-align: left;
@@ -468,7 +533,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .chev { flex: none; width: 7px; height: 7px; border: solid var(--muted); border-width: 0 2px 2px 0; rotate: 45deg; translate: 0 -2px; transition: rotate 160ms var(--ease); }
 .scard.shut .chev { rotate: -45deg; translate: 0 0; }
 .card-control { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; min-width: 0; max-width: 100%; }
-.card-control select { width: 16rem; min-height: 36px; max-width: 100%; min-width: 0; padding: 0 .5rem; font: 500 .875rem var(--font-mono); }
+.card-control .dd-btn { width: 16rem; max-width: 100%; min-width: 0; min-height: 36px; font-size: .875rem; }
 /* From 600 px a title row stays on one line: the control shrinks rather than drop below the title. */
 @media (min-width: 600px) {
   .card-head { flex-wrap: nowrap; }
@@ -480,7 +545,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .mini-seg button[aria-pressed=true] { font-weight: 600; }
 .strategy .tiles dd { font-size: 1.375rem; }
 .tile-link { min-height: 0; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-decoration: underline 1px var(--muted); text-underline-offset: 4px; }
-.tile-link:hover, .tile-link:focus-visible { color: var(--accent); }
+.tile-link:hover, .tile-link:focus-visible { color: var(--accent-text); }
 
 /* Tables: Mono figures right-aligned; headers sort; a wide table scrolls inside its card, never the page. */
 .table-wrap { overflow-x: auto; min-width: 0; }
@@ -488,7 +553,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .stable th, .stable td { padding: .4rem .5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; white-space: nowrap; }
 .stable th { font: 500 .75rem/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
 .stable th button { display: inline-flex; align-items: center; gap: .25rem; min-height: 32px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; }
-.stable th[aria-sort] button { color: var(--accent); }
+.stable th[aria-sort] button { color: var(--accent-text); }
 .stable .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .stable td { color: var(--fg-dark); }
 .stable tr.pick { cursor: pointer; }
@@ -498,25 +563,28 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .stable.versus { max-width: 36rem; }
 .versus td:first-child { color: var(--muted); }
 /* A team's alliance as the whole row's colour, as on the scout app's coverage cells. */
-.stable tr.row-red td { background: color-mix(in srgb, var(--alliance-red) 16%, var(--panel)); }
-.stable tr.row-blue td { background: color-mix(in srgb, var(--alliance-blue) 16%, var(--panel)); }
+.stable tr.row-red td, .stable tr.row-blue td { background: var(--ally-bg); border-top: 1px solid var(--c); border-bottom: 1px solid var(--c); }
+.stable tr.row-red td:first-child, .stable tr.row-blue td:first-child { border-left: 1px solid var(--c); }
+.stable tr.row-red td:last-child, .stable tr.row-blue td:last-child { border-right: 1px solid var(--c); }
 
 /* Clickable team numbers: the number turns yellow on hover and focus, and never changes weight. */
 .team-link { display: inline-flex; vertical-align: middle; align-items: center; gap: .4rem; min-height: 32px; padding: 0 .25rem 0 0; border: 0; background: none; color: var(--fg-dark); font-weight: 400; text-align: left; }
 .team-link b { font: 600 .9375rem var(--font-mono); transition: color 140ms ease; }
-button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent); }
+button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent-text); }
+/* Light: the number stays dark and gets a yellow highlighter mark instead. */
+:root[data-theme=light] button.team-link:hover b, :root[data-theme=light] button.team-link:focus-visible b { color: var(--fg-dark); box-shadow: inset 0 -.45em 0 var(--accent); }
 @media (hover: hover) { button.team-link:hover:not(:disabled) { filter: none; } }
 .team-link span { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
 
 /* Range bars: a track from 0 to the column's largest figure, the likely band, and a marker at the value. */
 .rcell { display: inline-flex; align-items: center; gap: .6rem; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .rval { min-width: 2.6em; text-align: right; }
-.rbar { position: relative; flex: none; width: 140px; height: 8px; border-radius: 4px; background: var(--panel2); }
-.rbar-band { position: absolute; top: 0; height: 100%; border-radius: 4px; background: color-mix(in srgb, var(--accent) 35%, transparent); }
-.rbar-mark { position: absolute; top: -3px; width: 3px; height: 14px; margin-left: -1.5px; border-radius: 1px; background: var(--accent); }
+.rbar { position: relative; flex: none; width: 140px; height: 8px; border-radius: 4px; background: var(--bar-track); }
+.rbar-band { position: absolute; top: 0; height: 100%; border-radius: 4px; background: var(--bar-band); }
+.rbar-mark { position: absolute; top: -3px; width: 3px; height: 14px; margin-left: -1.5px; border-radius: 1px; background: var(--bar-mark); }
 .rcell.grey { color: var(--fg); }
-.rcell.grey .rbar-band { background: color-mix(in srgb, #c9c9c0 35%, transparent); }
-.rcell.grey .rbar-mark { background: var(--fg); }
+.rcell.grey .rbar-band { background: var(--bar-grey-band); }
+.rcell.grey .rbar-mark { background: var(--bar-grey-mark); }
 .tiles .rcell { display: grid; gap: 6px; width: 100%; padding-bottom: 4px; }
 .tiles .rcell .rval { min-width: 0; text-align: left; }
 .tiles .rbar { width: 100%; max-width: 140px; }
@@ -525,9 +593,7 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 
 /* Schedule: each alliance's teams in a block of its colour. */
 .ablocks { display: inline-flex; gap: .4rem; }
-.ablock { display: inline-flex; align-items: center; padding: 0 .4rem; border-radius: var(--radius); }
-.ablock.red { background: color-mix(in srgb, var(--alliance-red) 22%, var(--panel)); box-shadow: inset 0 3px 0 var(--alliance-red); }
-.ablock.blue { background: color-mix(in srgb, var(--alliance-blue) 22%, var(--panel)); box-shadow: inset 0 3px 0 var(--alliance-blue); }
+.ablock { display: inline-flex; align-items: center; padding: 0 .4rem; border: 1px solid var(--c); border-radius: var(--radius); background: var(--ally-bg); }
 .robot-cell { display: inline-flex; align-items: baseline; gap: .2rem; margin-right: .5rem; }
 .robot-cell:last-child { margin-right: 0; }
 .robot-cell small { color: var(--fg); font: 500 .75rem var(--font-mono); }
@@ -552,7 +618,7 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .heat-pop.lean-right { translate: -15% var(--y); }
 .heat-pop.lean-left { translate: -85% var(--y); }
 .map-cell { display: grid; gap: .4rem; align-content: start; min-width: 0; }
-.map-cell h3 { font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dark); }
+.map-cell h3 { display: flex; align-items: center; min-height: 1.6rem; font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dark); }
 
 /* Auto paths: each match a light colour; drive paths as lines, shooting spots as dots, the start ringed. */
 .path-overlay { position: absolute; inset: 0 12.5%; width: 75%; height: 100%; overflow: visible; }
@@ -562,11 +628,9 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .path-legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; padding: 0; list-style: none; font: 500 .8125rem var(--font-mono); color: var(--fg-dark); }
 .path-legend li { display: inline-flex; align-items: center; gap: .4rem; }
 .swatch { width: 14px; height: 4px; border-radius: 2px; }
-.path-legend .alliance { font-size: .6875rem; color: var(--muted); }
+.path-legend .ally { font-size: .6875rem; }
 
 /* Match planner: a robot per block in each alliance's card. */
-.alliance-card.red { box-shadow: inset 0 4px 0 var(--alliance-red); }
-.alliance-card.blue { box-shadow: inset 0 4px 0 var(--alliance-blue); }
 .robot { display: grid; gap: .4rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 .robot-name { display: flex; align-items: center; gap: .5rem; }
 .robot-facts { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
@@ -580,9 +644,9 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 
 /* Rating history: the line yellow over a faint band. */
 .rating-chart { display: block; width: 100%; max-width: 40rem; height: auto; }
-.rating-chart .band { fill: var(--accent); fill-opacity: .14; }
-.rating-chart .line { fill: none; stroke: var(--accent); stroke-width: 2; }
-.rating-chart circle { fill: var(--accent); }
+.rating-chart .band { fill: var(--accent); fill-opacity: var(--chart-band); }
+.rating-chart .line { fill: none; stroke: var(--chart-line); stroke-width: 2; }
+.rating-chart circle { fill: var(--chart-line); }
 .rating-chart .axis { fill: var(--muted); font: 500 9px var(--font-mono); }
 .rating-chart .axis.to-right { text-anchor: end; }
 
@@ -593,3 +657,66 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
   .ablocks { display: grid; gap: .25rem; }
   .ablock { justify-self: start; }
 }
+
+/* The theme button at the right of the strategy app's header. */
+.header .theme-btn {
+  margin-left: auto; flex: none; display: inline-flex; align-items: center; gap: .4rem; min-height: 36px; padding: 0 .6rem;
+  font: 500 12px/1 var(--font-mono); letter-spacing: .03em;
+}
+
+/* Dropdowns, as on the old site: a button showing the choice (muted when empty), its chevron turning when open; the
+   list in a panel under the button, or a sheet from the bottom on a phone or tablet. The chosen item has the accent
+   edge, bold and a tick. */
+.dd-btn {
+  position: relative; display: flex; align-items: center; width: 100%; min-width: 0; min-height: 48px; padding: 0 2.25rem 0 .75rem;
+  border-color: var(--control-border); background: var(--panel2); color: var(--fg-dark); font-size: 1rem; font-weight: 400; line-height: 1.3; text-align: left;
+}
+.dd-btn > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dd-btn b.dd-l { font-weight: inherit; }
+.dd-btn b.dd-l:has(+ .dd-s) { font-weight: 600; }
+.dd-btn::after {
+  content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px;
+  border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: translateY(-70%) rotate(45deg);
+}
+.dd-btn[aria-expanded=true] { border-color: var(--accent-text); }
+.dd-btn[aria-expanded=true]::after { transform: translateY(-25%) rotate(225deg); }
+.dd-btn:active:not(:disabled), .dd-opt:active:not(:disabled) { transform: none; }
+@media (hover: hover) {
+  .dd-btn:hover:not(:disabled), .dd-opt:hover:not(:disabled) { filter: none; background: var(--hover); }
+}
+.dd-btn.mono, .dd-opt.mono { font-family: var(--font-mono); font-weight: 500; }
+.dd-ph, .dd-s { color: var(--muted); font-weight: 400; }
+.dd-back { position: fixed; inset: 0; z-index: 200; }
+.dd-back.sheet { background: rgb(0 0 0 / .5); animation: dd-fade .2s; }
+.dd-panel {
+  position: fixed; z-index: 201; display: flex; flex-direction: column; overflow: hidden; background: var(--panel);
+  border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 12px 32px var(--shadow); animation: dd-in .14s ease-out;
+}
+.dd-panel:focus { outline: none; }
+.dd-panel.up { animation-name: dd-up; }
+.dd-panel.sheet {
+  left: 0; right: 0; bottom: 0; max-height: min(72dvh, 560px); border-bottom: 0; border-radius: 8px 8px 0 0;
+  padding-bottom: env(safe-area-inset-bottom); animation: dd-sheet .22s cubic-bezier(.2, .7, .2, 1);
+}
+.dd-head {
+  display: flex; flex: none; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line);
+  font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--label);
+}
+.dd-head .dd-x { min-height: 40px; padding: 0 .75rem; font: 600 .875rem var(--font-sans); letter-spacing: 0; text-transform: none; }
+.dd-q { flex: none; width: calc(100% - 16px); min-height: 44px; margin: 8px; }
+.dd-list { overflow-y: auto; overscroll-behavior: contain; padding: 4px 0; }
+.dd-opt {
+  display: flex; align-items: baseline; gap: 10px; width: 100%; min-height: 44px; padding: 10px 16px 10px 14px;
+  border: 0; border-left: 4px solid transparent; border-radius: 0; background: none; color: var(--fg-dark); font-weight: 400; line-height: 1.3; text-align: left;
+}
+.dd-opt:focus-visible { outline-offset: -2px; background: var(--hover); }
+.dd-opt[aria-selected=true] { border-left-color: var(--accent); background: var(--panel2); font-weight: 600; }
+.dd-opt[aria-selected=true]::after { content: "\2713"; margin-left: auto; color: var(--fg-dark); }
+.dd-opt .dd-l { font-variant-numeric: tabular-nums; }
+.dd-opt .dd-s { font-size: .875rem; }
+.dd-none { padding: 12px 16px; }
+@keyframes dd-in { from { opacity: 0; transform: translateY(-4px); } }
+@keyframes dd-up { from { opacity: 0; transform: translateY(4px); } }
+@keyframes dd-sheet { from { transform: translateY(100%); } }
+@keyframes dd-fade { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .dd-panel, .dd-back { animation: none; } }

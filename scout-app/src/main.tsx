@@ -1,3 +1,4 @@
+import './themeStart'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import '@fontsource/ibm-plex-sans/latin-400.css'

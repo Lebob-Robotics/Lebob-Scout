@@ -1,5 +1,6 @@
 import { useId } from "react";
 import { optionLabel } from "../pitBreakage";
+import { Dropdown } from "./Dropdown";
 
 // The pit and breakage forms' controls. Each takes the field's text and hands back new text; "" is blank.
 
@@ -11,10 +12,8 @@ export function Choice({ label, value, options, onChange, labels }: {
   return (
     <div className="form-field">
       <label htmlFor={id}>{label}</label>
-      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
-        <option value="">–</option>
-        {options.map((o) => <option key={o} value={o}>{labels?.[o] ?? optionLabel(o)}</option>)}
-      </select>
+      <Dropdown id={id} label={label} value={value} onChange={onChange}
+        items={[{ value: "", label: "–" }, ...options.map((o) => ({ value: o, label: labels?.[o] ?? optionLabel(o) }))]} />
     </div>
   );
 }

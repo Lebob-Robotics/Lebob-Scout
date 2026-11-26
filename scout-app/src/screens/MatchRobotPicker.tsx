@@ -1,5 +1,6 @@
 import { useEffect, useEffectEvent, useState } from "react";
 import type { Api, MatchRow, PresenceRow } from "../api";
+import { Dropdown } from "../components/Dropdown";
 import type { Target } from "../observation";
 import { MATCH_MAX, TEAM_MAX, pickMatch, whole } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
@@ -127,13 +128,14 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
       ) : (
         <>
           <label htmlFor="match">Match</label>
-          <select
+          <Dropdown
             id="match"
+            label="Match"
+            mono
             value={match.matchUuid}
-            onChange={(e) => { setMatchUuid(e.target.value); setPresences(null); onChange(null); }}
-          >
-            {matches.map((m) => <option key={m.matchUuid} value={m.matchUuid}>{matchLabel(m)}</option>)}
-          </select>
+            items={matches.map((m) => ({ value: m.matchUuid, label: matchLabel(m) }))}
+            onChange={(v) => { setMatchUuid(v); setPresences(null); onChange(null); }}
+          />
           <span className="label">Robot</span>
           {!presences ? (
             <p>Loading…</p>

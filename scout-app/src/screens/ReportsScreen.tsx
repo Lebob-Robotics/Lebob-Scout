@@ -73,7 +73,7 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, waitingLabels =
           {sortReports(reports, userId).map((o) => (
             <li key={o.observationId}>
               <button type="button" className="report" onClick={() => setOpen(o)}>
-                <span className={`alliance ${o.alliance}`}>{o.alliance === "red" ? "Red" : "Blue"}</span>
+                <span className={`ally ${o.alliance}`}>{o.alliance === "red" ? "Red" : "Blue"}</span>
                 <strong>{o.label}</strong>
                 {!o.matchUuid && <span className="tag">unlinked</span>}
                 <span className="meta">{o.scoutName} · {taps(o)}</span>

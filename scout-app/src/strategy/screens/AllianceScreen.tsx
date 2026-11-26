@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Dropdown } from "../../components/Dropdown";
 import type { Ctx } from "../StrategyApp";
 import { one, partnersFor, pct, rsNeeded, whole } from "../logic";
 import { Card, SortTable, TeamName, Tiles, type Col } from "../parts";
@@ -38,9 +39,8 @@ export function AllianceScreen({ ctx }: { ctx: Ctx }) {
           <PartnersTable ctx={ctx} picks={partnersFor(model.picks, ourTeam)} />
         </Card>
         <Card title="Partners for another team" control={shown != null && (
-          <select aria-label="Team" value={shown} onChange={(e) => setOther(Number(e.target.value))}>
-            {teams.map((t) => <option key={t} value={t}>{t} {model.ratings.find((r) => r.teamNumber === t)?.teamName ?? ""}</option>)}
-          </select>
+          <Dropdown label="Team" value={String(shown)} onChange={(v) => setOther(Number(v))}
+            items={teams.map((t) => ({ value: String(t), label: String(t), sub: model.ratings.find((r) => r.teamNumber === t)?.teamName }))} />
         )}>
           {shown == null ? <p>No alliance picks yet for this event.</p> : <PartnersTable ctx={ctx} picks={partnersFor(model.picks, shown)} />}
         </Card>

@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { EventRow, MatchRow, TeamProfile, TeamsTab } from "../api";
 import mark from "../assets/strategy-mark.png";
+import { Dropdown } from "../components/Dropdown";
 import { firstEvent } from "../schedule";
+import { nextChoice, useTheme, type ThemeChoice } from "../theme";
 import type { StrategyApi } from "./api";
 import { keepShut, likely, matchLabels, nextOurs, one, orderForecasts, pct, playedCount, pointsFigure, scaleMax, sharesByTeam, sideOf, whole, winChance } from "./logic";
 import type { Figure } from "./logic";
@@ -52,8 +54,26 @@ function Header({ event }: { event?: string }) {
     <header className="header">
       <span className="brand"><img src={mark} alt="" width={30} height={30} />Strategy</span>
       {event && <span className="hdrmeta">{event}</span>}
-      <a className="hdrlink" href="/">Scout app</a>
+      <ThemeButton />
     </header>
+  );
+}
+
+// One button for the look: Auto (the device's setting), Light, Dark, and round again.
+const THEME_NAMES: Record<ThemeChoice, string> = { auto: "Auto", light: "Light", dark: "Dark" };
+function ThemeButton() {
+  const [theme, setTheme] = useTheme();
+  const next = nextChoice(theme);
+  return (
+    <button type="button" className="theme-btn" aria-label={`Theme: ${THEME_NAMES[theme]}. Change to ${THEME_NAMES[next]}`}
+      title={`Theme: ${THEME_NAMES[theme]}`} onClick={() => setTheme(next)}>
+      <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+        {theme === "auto" && <><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" strokeWidth="1.5" /><path d="M8 2a6 6 0 0 1 0 12Z" fill="currentColor" /></>}
+        {theme === "light" && <><circle cx="8" cy="8" r="3" fill="currentColor" /><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.4 1.4M11.6 11.6 13 13M3 13l1.4-1.4M11.6 4.4 13 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" /></>}
+        {theme === "dark" && <path d="M10.5 2.2A6 6 0 1 0 13.8 10 4.8 4.8 0 0 1 10.5 2.2Z" fill="currentColor" />}
+      </svg>
+      <span>{THEME_NAMES[theme]}</span>
+    </button>
   );
 }
 
@@ -97,15 +117,13 @@ export default function StrategyApp({ api, ourTeam, signedOut = false, onSignIn 
           : !event ? <p>No events yet.</p>
           : (
             <EventView key={event.eventUuid} api={api} eventUuid={event.eventUuid} ourTeam={ourTeam} picker={(
-              <label className="event-pick">
+              <div className="event-pick">
                 <span className="label">Event</span>
-                <select value={event.eventUuid} onChange={(e) => {
-                  const next = list.find((x) => x.eventUuid === e.target.value);
+                <Dropdown label="Event" mono value={event.eventUuid} items={list.map((e) => ({ value: e.eventUuid, label: e.eventName }))} onChange={(v) => {
+                  const next = list.find((x) => x.eventUuid === v);
                   if (next) { remember(next); setPicked(next); }
-                }}>
-                  {list.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
-                </select>
-              </label>
+                }} />
+              </div>
             )} />
           )}
       </div>

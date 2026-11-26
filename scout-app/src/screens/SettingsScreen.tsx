@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
 import type { Api, EventRow } from "../api";
+import { Dropdown } from "../components/Dropdown";
 import { remember, rememberedEvent } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
 import { rememberFlip, rememberedFlip, setMotion as storeMotion } from "../prefs";
+import { useTheme, type ThemeChoice } from "../theme";
+
+const THEMES: [ThemeChoice, string][] = [["auto", "Auto"], ["light", "Light"], ["dark", "Dark"]];
 
 
 // The old site's Settings tab, for what still lives on the phone. The schedule, team names and the scout's name come from Foundry.
@@ -22,6 +26,7 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
   const [current, setCurrent] = useState(rememberedEvent);
   const [flipped, setFlipped] = useState(rememberedFlip);
   const [motion, setMotion] = useState(() => document.documentElement.dataset.motion !== "off");
+  const [theme, setTheme] = useTheme();
 
   useEffect(() => {
     let live = true;
@@ -62,10 +67,8 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
         ) : (
           <>
             <label htmlFor="settings-event">Event this phone scouts</label>
-            <select id="settings-event" value={current?.eventUuid ?? ""} onChange={(e) => chooseEvent(e.target.value)}>
-              {!current && <option value="">Pick an event</option>}
-              {events.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
-            </select>
+            <Dropdown id="settings-event" label="Event this phone scouts" value={current?.eventUuid ?? ""} placeholder="Pick an event"
+              onChange={chooseEvent} items={events.map((e) => ({ value: e.eventUuid, label: e.eventName }))} />
             <p className="caption">Reports and Teams show this event. On a day an event is running, set-up picks that one.</p>
           </>
         )}
@@ -96,6 +99,14 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
           <button type="button" aria-pressed={motion} onClick={() => chooseMotion(true)}>On</button>
           <button type="button" aria-pressed={!motion} onClick={() => chooseMotion(false)}>Off</button>
         </div>
+      </div>
+
+      <div className="card">
+        <h2>Theme</h2>
+        <div className="seg" role="group" aria-label="Theme">
+          {THEMES.map(([t, name]) => <button key={t} type="button" aria-pressed={theme === t} onClick={() => setTheme(t)}>{name}</button>)}
+        </div>
+        <p className="caption">Auto follows this device's light or dark setting. The strategy app uses the same choice.</p>
       </div>
 
       <div className="card">

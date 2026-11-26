@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from "react";
+import { Dropdown } from "../../components/Dropdown";
 import type { Ctx } from "../StrategyApp";
 import { defaultMatch, favouriteWon, one, overlapCells, pct, robotsOf, splitsByMatch, teamCells, type Side } from "../logic";
 import { Card, HeatField, Switch, TeamName, Waiting } from "../parts";
@@ -16,13 +17,8 @@ export function MatchScreen({ ctx, matchUuid, onMatch }: { ctx: Ctx; matchUuid: 
   const f = model.forecasts.find((x) => x.matchUuid === matchUuid) ?? defaultMatch(model.forecasts, ctx.ourTeam);
   if (!f) return <div className="strategy-screen"><p>No forecasts yet for this event.</p></div>;
   const picker = (
-    <select aria-label="Match" value={f.matchUuid} onChange={(e) => onMatch(e.target.value)}>
-      {model.forecasts.map((x) => (
-        <option key={x.matchUuid} value={x.matchUuid}>
-          {labels.get(x.matchUuid)}: {x.red.join(" ")} v {x.blue.join(" ")}{x.played ? " (played)" : ""}
-        </option>
-      ))}
-    </select>
+    <Dropdown label="Match" mono value={f.matchUuid} onChange={onMatch}
+      items={model.forecasts.map((x) => ({ value: x.matchUuid, label: labels.get(x.matchUuid) ?? "", sub: `${x.red.join(" ")} v ${x.blue.join(" ")}${x.played ? " (played)" : ""}` }))} />
   );
   return <div className="strategy-screen"><Plan key={f.matchUuid} ctx={ctx} f={f} picker={picker} /></div>;
 }
@@ -47,7 +43,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
       <Card title="Forecast" control={picker}>
         <div className="table-wrap">
           <table className="stable versus">
-            <thead><tr><th /><th className="num"><span className="alliance red">Red</span></th><th className="num"><span className="alliance blue">Blue</span></th></tr></thead>
+            <thead><tr><th /><th className="num"><span className="ally red">Red</span></th><th className="num"><span className="ally blue">Blue</span></th></tr></thead>
             <tbody>{rows.map(([what, r, b]) => <tr key={what}><td>{what}</td><td className="num">{r}</td><td className="num">{b}</td></tr>)}</tbody>
           </table>
         </div>
@@ -67,7 +63,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
           <div className="cols three">
             {(["red", "blue"] as const).map((side) => (
               <div key={side} className="map-cell">
-                <h3><span className={`alliance ${side}`}>{side === "red" ? "Red alliance" : "Blue alliance"}</span></h3>
+                <h3><span className={`ally ${side}`}>{side === "red" ? "Red alliance" : "Blue alliance"}</span></h3>
                 <HeatField cells={teamCells(maps.data[side].squares, scope)} tone={scope}
                   label={`${side} alliance's robots added together: ${scope === "scored" ? "scoring" : "pick-ups"} per match`} />
               </div>
@@ -106,7 +102,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
   const teams = side === "red" ? f.red : f.blue;
   const names = side === "red" ? f.redNames : f.blueNames;
   return (
-    <Card title={side === "red" ? "Red" : "Blue"} className={`alliance-card ${side}`}>
+    <Card title={side === "red" ? "Red" : "Blue"} tone={side}>
       {teams.map((team, i) => {
         const rating = ctx.model.ratings.find((r) => r.teamNumber === team);
         const p = ctx.profile(team);

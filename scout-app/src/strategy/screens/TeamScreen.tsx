@@ -6,6 +6,7 @@ import {
   likely, one, partnersFor, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, sideOf, splitsByMatch, teamCells, tipsPerMatch, whole, winChance,
   type Measure,
 } from "../logic";
+import { Dropdown } from "../../components/Dropdown";
 import { AutoPaths, Card, HeatField, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { PartnersTable } from "./AllianceScreen";
 
@@ -41,9 +42,8 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
       <div className="cols">
         <div className="col">
           <Card title="Team" control={(
-            <select aria-label="Team" value={team} onChange={(e) => onTeam(Number(e.target.value))}>
-              {teams.map((r) => <option key={r.teamNumber} value={r.teamNumber}>{r.teamNumber} {r.teamName}</option>)}
-            </select>
+            <Dropdown label="Team" value={String(team)} onChange={(v) => onTeam(Number(v))}
+              items={teams.map((r) => ({ value: String(r.teamNumber), label: String(r.teamNumber), sub: r.teamName }))} />
           )}>
             <Tiles tiles={[
               ["rating", rating ? <RangeBar value={rating.opr} low={range?.low ?? rating.opr} high={range?.high ?? rating.opr} max={scale.rating}

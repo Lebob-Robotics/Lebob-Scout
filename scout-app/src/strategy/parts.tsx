@@ -15,8 +15,8 @@ import type { Load } from "./useLoad";
 
 // A card that folds shut from its title row. Open unless this device shut it last time. A change of `openKey`
 // opens it (the Event table's breakage button uses this). `control` sits at the right of the title row.
-export function Card({ title, id, control, openKey, className, children }: {
-  title: string; id?: string; control?: ReactNode; openKey?: number; className?: string; children: ReactNode;
+export function Card({ title, id, control, openKey, className, tone, children }: {
+  title: string; id?: string; control?: ReactNode; openKey?: number; className?: string; tone?: "red" | "blue"; children: ReactNode;
 }) {
   const [shut, setShut] = useState(() => readShut(title));
   const [seen, setSeen] = useState(openKey);
@@ -28,7 +28,7 @@ export function Card({ title, id, control, openKey, className, children }: {
   return (
     <section className={["card", "scard", shut && "shut", className].filter(Boolean).join(" ")} id={id}>
       <div className="card-head">
-        <h2><button type="button" className="card-toggle" aria-expanded={!shut} onClick={toggle}><span className="chev" aria-hidden="true" />{title}</button></h2>
+        <h2><button type="button" className="card-toggle" aria-expanded={!shut} onClick={toggle}><span className="chev" aria-hidden="true" />{tone ? <span className={`ally ${tone}`}>{title}</span> : title}</button></h2>
         {control && <div className="card-control">{control}</div>}
       </div>
       {!shut && children}
@@ -200,7 +200,7 @@ export function AutoPaths({ paths }: { paths: { label: string; alliance: string;
         </div>
       </div>
       <ul className="path-legend">
-        {drawn.map((p, i) => <li key={i}><span className="swatch" style={{ background: p.colour }} />{p.label} <span className={`alliance ${p.alliance}`}>{p.alliance}</span></li>)}
+        {drawn.map((p, i) => <li key={i}><span className="swatch" style={{ background: p.colour }} />{p.label} <span className={`ally ${p.alliance}`}>{p.alliance}</span></li>)}
       </ul>
     </>
   );
