@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { MATCH_MAX, TEAM_MAX, firstEvent, onEvent, pickEvent, pickMatch, whole, withEvent } from "./schedule";
+import { MATCH_MAX, TEAM_MAX, firstEvent, numbered, onEvent, pickEvent, pickMatch, whole, withEvent } from "./schedule";
 import type { EventRow, MatchRow } from "./api";
 
 const ev = (code: string, a: string, b: string): EventRow => ({ eventUuid: code, eventCode: code, eventName: code, dateStart: a, dateEnd: b });
@@ -46,4 +46,18 @@ test("onEvent keeps a robot only under the event it was picked in", () => {
   expect(onEvent(pickedInA, "B")).toBeNull();
   expect(onEvent(pickedInA, undefined)).toBeNull();
   expect(onEvent(null, "A")).toBeNull();
+});
+
+const p = (id: string, hhmm: string | null): MatchRow =>
+  ({ matchUuid: id, matchNumber: 1, matchType: "playoff", scheduledTime: hhmm && `2026-11-15T${hhmm}:00Z`, actualTime: null });
+
+test("numbered gives repeated playoff numbers 1 to n by scheduled time", () => {
+  const ms = [p("c", "16:09"), p("e", "15:16"), p("a", "15:10"), p("z", null), m(2, "qualification", false), m(1, "qualification", true)];
+  expect(numbered(ms).map((x) => [x.matchUuid, x.matchNumber])).toEqual(
+    [["c", 3], ["e", 2], ["a", 1], ["z", 4], ["qualification2", 2], ["qualification1", 1]]);
+});
+
+test("numbered leaves numbers that do not repeat alone", () => {
+  const ms = [m(1, "qualification", true), m(2, "qualification", false), m(1, "playoff", false)];
+  expect(numbered(ms)).toEqual(ms);
 });
