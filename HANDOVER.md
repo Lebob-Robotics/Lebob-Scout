@@ -12,10 +12,10 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | Second pass (intake as an area, team's look, start dot, portrait live view) | Done, deployed |
 | 3. Teams tab (profiles, map, coverage grid, scout from a gap) | Done, deployed |
 | 2. Pit survey and breakage forms, ported as they are | Done, deployed as 0.4.1, signed-in check passed 26 Nov; phone check to do |
-| 4. Strategist page | Core built and pushed (26 Nov), not yet deployed; it will live at `/strategy`. After-AUCMP heatmap insights to do |
+| 4. Strategist page | Core deployed as 0.5.0 at `/strategy` (26 Nov). After-AUCMP heatmap insights to do |
 | 5. Retire the old site | Not started |
 
-- **Live version: 0.4.2** (deployed 26 Nov: the restyle tagged 0.4.0, job 2, and Teams tab times on each event's own clock) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
+- **Live version: 0.5.0** (deployed 26 Nov: everything below, including the strategy app at `/strategy`) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
 - **App repo:** public on GitHub at `Lebob-Robotics/Lebob-Scout`, branch `main`, tag `0.3.3`, 99 tests. Every commit hash changed on 26 Nov: before the first push the commit address was swapped for Harry's GitHub no-reply address, so the hashes in the ledgers are the old ones. New commits use the committer's own GitHub no-reply address.
 - **Functions repo** (`scout-functions/`): pushed, head `e1c00b0`, published as version 0.4.2 (0.4.0's release failed, see the job 2 spec, R9). Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 72 tests. Set-up on Windows (no `rune` there) is in `scout-app/README.md`.
 - **SDK:** `@lebob-scout/sdk` 0.5.0 (0.4.0 added PitSurvey, BreakageReport and their create and modify actions; 0.5.0 picks up the Teams tab's `timeZone`). Both generated 26 Nov through the palantir-mcp tools, with no sign-in scope change.
@@ -48,7 +48,7 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 
 Design: `docs/superpowers/specs/2026-11-26-strategy-app-design.md`.
 
-- **Built for `/strategy`** on the scout app's site, **not yet deployed** (link in the scout app's Settings). Five screens: Event (status, sortable ratings table), Team (rating and history, single-team heatmaps, scouting, pit, breakages, matches, best partners), Match planner (forecast, red against blue, alliance heatmaps and where they will meet, point split), Matches, Alliance (rank projection, partners).
+- **Live at `/strategy`** on the scout app's site (0.5.0, deployed 26 Nov) (link in the scout app's Settings). Five screens: Event (status, sortable ratings table), Team (rating and history, single-team heatmaps, scouting, pit, breakages, matches, best partners), Match planner (forecast, red against blue, alliance heatmaps and where they will meet, point split), Matches, Alliance (rank projection, partners).
 - **Data:** the old project's match model (EventRating, RatingHistory, MatchForecast, RankProjection, AlliancePick, Participation), imported into our project read-only, plus our functions `fieldMaps`, `matchMaps`, `pointSplits` (functions 0.5.0, SDK 0.7.0). All checked live against AUPEQ on 26 Nov.
 - **Still to do:** a signed-in check of `/strategy` (including that sign-in returns to `/strategy`), the strategy team trying it before AUCMP, then after AUCMP: cold spots, free alleys, predicted pathing, automated insights. Match video (ruling S3) is left open on purpose.
 
