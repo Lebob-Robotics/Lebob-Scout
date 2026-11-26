@@ -56,12 +56,16 @@ The first call after a quiet spell can take several seconds, so the app makes on
 
 The functions live in the Foundry repository `lebob-scout-functions`, in the "Lebob Scout App" project (`/Lebob-7db4f1/Lebob Scout App/lebob-scout-functions`). Our local clone sits at `scout-functions/` beside this folder. It is its own git repository, its default branch is `master`, and the app repo ignores it. To get a fresh clone, use Work locally on the repository in Foundry.
 
-The four functions each take an `eventUuid`:
+The functions each take an `eventUuid` (`matchMaps` also a `matchUuid`):
 
 - `teamsTab`: everything the Teams tab shows (status figures, team profiles, coverage grid, scouts).
 - `teamProfiles`: one flat row per team, for Workshop.
 - `reportSummaries`: one row of figures per report.
 - `scoutTally`: reports per scout, most reports first.
+- `fieldMaps`: each team's heatmap (auto and teleop pieces scored and pick-ups per square, per match), for the strategy app.
+- `matchMaps`: one match's alliance heatmaps and where the alliances will meet.
+- `pointSplits`: each robot's share of its alliance's official score, split by rating.
+- `teamCycles`: each team's teleop cycles (shot, collect, travel, shot): cycles per match, mean time in three parts, a map of where they go, the routes used most and every cycle. The rule is at the top of `src/teams/cycles.ts`.
 
 Each function is a short file in `typescript-functions/src/functions/`. The sums are in `typescript-functions/src/teams/` (points values per season in `season.ts`, the Foundry reads in `load.ts`), with their tests in `src/teams/__tests__/`. To test and type check:
 
