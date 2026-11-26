@@ -4,8 +4,10 @@ import type { MatchRow, PresenceRow } from "../api";
 import { createDevApi } from "../devApi";
 import { DEV_TEAMS_TAB } from "../devTeamsTab";
 import { MAPS_NOT_READY, type StrategyApi } from "./api";
+import { resample } from "./autos";
+import { centre, crossedSquares } from "./cycles";
 import { buildMatchMaps, matchLabels } from "./logic";
-import type { Forecast, HistoryPoint, Pick, PointSplit, Projection, Rating, TeamMap } from "./types";
+import type { CycleRoute, CycleRow, CycleSquare, Forecast, HistoryPoint, Pick, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 
 export const DEV_OUR_TEAM = 12345;
 const EVENT = "dev-event-now";
@@ -181,6 +183,63 @@ function pointSplits(fs: Forecast[]): PointSplit[] {
 
 // failModel makes the model figures fail; failMaps makes the maps and splits fail as the real app does until they are
 // switched on; failTeams makes the Teams tab fail. Any other event has no figures.
+// Cycles for the scouted teams, summed the way teamCycles does: per match, routes grouped by where they start, collect
+// and shoot. Each trip: match, the square it shot from before (none for teleop's first), where it collected, where it
+// shot, and its collect, travel and shoot seconds. Squares are in red's view.
+type Trip = { label: string; from?: string; via: string[]; to: string; collect: number; travel: number; shoot: number; pieces: number };
+const trip = (label: string, from: string | undefined, via: string[], to: string, collect: number, travel: number, shoot: number, pieces = 2): Trip =>
+  ({ label, from, via, to, collect, travel, shoot, pieces });
+const repeat = (n: number, t: Trip) => Array.from({ length: n }, (_, i): Trip => ({ ...t, collect: t.collect + (i % 3) * 0.8, travel: t.travel + ((i + 1) % 2) * 0.6 }));
+function devCycles(teamNumber: number, trips: Trip[]): TeamCycles {
+  const labels = [...new Set(trips.map((t) => t.label))];
+  const matches = labels.length;
+  const counts = labels.map((l) => trips.filter((t) => t.label === l).length);
+  const rows: CycleRow[] = trips.map((t) => ({
+    label: t.label, ...(t.from ? { from: t.from } : {}), via: t.via, to: t.to, pieces: t.pieces,
+    points: [...(t.from ? [centre(t.from)] : []), ...t.via.map(centre), centre(t.to)],
+    ...(t.from ? { seconds: r1(t.collect + t.travel + t.shoot), collectSeconds: r1(t.collect) } : {}),
+    travelSeconds: r1(t.travel), shootSeconds: r1(t.shoot), weight: 1,
+  }));
+  const timed = rows.filter((r) => r.seconds != null);
+  const mean = (f: (r: CycleRow) => number | undefined, of = timed) => (of.length ? r1(of.reduce((a, r) => a + (f(r) ?? 0), 0) / of.length) : undefined);
+  const squares = new Map<string, CycleSquare>();
+  const at = (sq: string) => squares.get(sq) ?? squares.set(sq, { square: sq, passes: 0, intakes: 0, shots: 0 }).get(sq)!;
+  rows.forEach((r) => {
+    crossedSquares(r.points).forEach((sq) => { at(sq).passes++; });
+    r.via.forEach((sq) => { at(sq).intakes++; });
+    at(r.to).shots++;
+  });
+  const groups = new Map<string, CycleRow[]>();
+  timed.forEach((r) => { const k = `${r.from}|${r.via[0]}|${r.to}`; groups.set(k, [...(groups.get(k) ?? []), r]); });
+  const routes: CycleRoute[] = [...groups.values()].sort((a, b) => b.length - a.length).slice(0, 6).map((g) => ({
+    points: resample(g[0].points.map((q): [number, number] => [q.x, q.y]), 12).map(([x, y]) => ({ x: r2(x), y: r2(y) })),
+    cycles: g.length, share: r2(g.length / timed.length), seconds: mean((r) => r.seconds, g), from: g[0].from ?? "", via: g[0].via[0], to: g[0].to,
+  }));
+  return {
+    teamNumber, matches, cyclesPerMatch: r2(rows.length / matches), cyclesLow: Math.min(...counts), cyclesHigh: Math.max(...counts),
+    seconds: mean((r) => r.seconds), collectSeconds: mean((r) => r.collectSeconds), travelSeconds: mean((r) => r.travelSeconds),
+    shootSeconds: mean((r) => r.shootSeconds), piecesPerCycle: r2(rows.reduce((a, r) => a + r.pieces, 0) / rows.length),
+    squares: [...squares.values()].map((q) => ({ square: q.square, passes: r2(q.passes / matches), intakes: r2(q.intakes / matches), shots: r2(q.shots / matches) }))
+      .sort((a, b) => a.square.localeCompare(b.square)),
+    routes, cycles: rows,
+  };
+}
+const DEV_CYCLES: TeamCycles[] = [
+  devCycles(11115, [
+    trip("Q1", undefined, ["A1"], "B2", 0, 7, 1), ...repeat(2, trip("Q1", "B2", ["A1"], "B2", 9, 6, 2)), trip("Q1", "B2", ["F6"], "D4", 11, 8, 2, 3),
+    trip("Q2", undefined, ["A1"], "B2", 0, 6, 1), ...repeat(2, trip("Q2", "B2", ["A1", "A2"], "C3", 10, 6, 2)),
+  ]),
+  devCycles(12345, [
+    trip("Q1", undefined, ["E2"], "C4", 0, 4, 1), ...repeat(4, trip("Q1", "C4", ["E2"], "C4", 6, 4, 1.5)), ...repeat(2, trip("Q1", "C4", ["E5"], "D3", 7, 5, 2, 3)),
+    trip("Q2", undefined, ["E2"], "C4", 0, 4, 1), ...repeat(3, trip("Q2", "C4", ["E2"], "C4", 6.5, 4, 1.5)), trip("Q2", "C4", ["E5", "E4"], "D3", 8, 5, 2, 3),
+  ]),
+  devCycles(14469, [trip("Q2", undefined, ["E4"], "B3", 0, 8, 2), ...repeat(2, trip("Q2", "B3", ["E4"], "B3", 11, 8, 3))]),
+  devCycles(16021, [
+    trip("Q1", undefined, ["E5"], "B5", 0, 9, 3, 1),
+    trip("Q2", undefined, ["E5"], "B5", 0, 9, 3, 1), trip("Q2", "B5", ["E5"], "E5", 14, 3, 3, 1),
+  ]),
+];
+
 export function createDevStrategyApi({ failModel = false, failMaps = false, failTeams = false } = {}): StrategyApi {
   const base = createDevApi({ failTeams });
   const ours = (e: string) => e === EVENT;
@@ -207,5 +266,6 @@ export function createDevStrategyApi({ failModel = false, failMaps = false, fail
       return wait(buildMatchMaps(m, matchLabels(fs).get(m) ?? "", f.red, f.blue, FIELD_MAPS));
     },
     pointSplits: (e) => (failMaps ? fail(MAPS_NOT_READY) : model(e, pointSplits, [])),
+    teamCycles: (e) => (failMaps ? fail(MAPS_NOT_READY) : wait(ours(e) ? DEV_CYCLES : [])),
   };
 }

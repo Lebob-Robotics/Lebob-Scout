@@ -735,3 +735,29 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 
 /* Strategy settings: the team number box stays short. */
 .team-entry input { width: 10rem; max-width: 100%; font-family: var(--font-mono); font-weight: 500; }
+
+/* Cycles: the average cycle time split end to end into collect (teal), travel (grey) and shoot (yellow). */
+.time-bar { display: grid; gap: .4rem; }
+.time-track { display: flex; height: 14px; overflow: hidden; border-radius: 4px; background: var(--bar-track); }
+.time-part.collect, .time-swatch.collect { background: var(--intake); }
+.time-part.travel, .time-swatch.travel { background: var(--muted); }
+.time-part.shoot, .time-swatch.shoot { background: var(--accent); }
+.time-legend { display: flex; flex-wrap: wrap; gap: .25rem 1rem; padding: 0; list-style: none; font: 500 .8125rem var(--font-mono); color: var(--fg); }
+.time-legend li { display: inline-flex; align-items: center; gap: .4rem; }
+.time-legend b { color: var(--fg-dark); font-weight: 600; }
+.time-swatch { width: 12px; height: 12px; border-radius: 2px; }
+/* The cycle map: squares crossed shade in the field's light ink; routes in their own colours over a dark halo,
+   thicker for more of the team's cycles; with "As drawn", every cycle a thin line. Drawn on the field, so the
+   colours are the same in both looks. */
+.map-overlay.cross { --c: var(--fg-dark); }
+.routes .route { cursor: pointer; }
+/* The hit line is in the drawing's own units (5 is about a third of a square): Chrome misses taps on a
+   non-scaling stroke at some sizes. */
+.route-hit { fill: none; stroke: transparent; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; pointer-events: stroke; }
+.route-halo, .route-line { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; pointer-events: none; }
+.route-halo { stroke: #1a1b1e; stroke-opacity: .6; }
+.route.on .route-halo { stroke: #ffffff; stroke-opacity: .9; }
+.route-line { stroke: currentColor; }
+.map-overlay .route-end { fill: currentColor; stroke: #1a1b1e; stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
+.map-overlay .route-label { fill: currentColor; stroke: #1a1b1e; stroke-width: .8; font: 600 3.2px var(--font-mono); pointer-events: none; }
+.cycle-lines polyline { fill: none; stroke: #e5e6e0; stroke-opacity: .5; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }

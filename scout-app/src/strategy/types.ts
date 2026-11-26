@@ -34,3 +34,19 @@ export type AllianceMap = { robots: TeamMap[]; squares: SquareMap[] };
 export type SquareOverlap = { square: string; red: number; blue: number; both: number };
 export type MatchMaps = { matchUuid: string; label: string; red: AllianceMap; blue: AllianceMap; overlap: SquareOverlap[] };
 export type PointSplit = { matchUuid: string; label: string; alliance: string; teamNumber: number; allianceScore: number; rating?: number; points: number };
+
+// Cycles (scout-functions/src/teams/cycles.ts): teleop trips from a shot, through collecting pieces, to the next shot.
+// Points are in squares (x 0 to 6 from column A, y 0 to 6 from row 1), in the red alliance's view: a blue match's
+// squares turned half a turn. Figures per match; times are means over cycles that had a shot before them.
+export type CyclePoint = { x: number; y: number };
+export type CycleSquare = { square: string; passes: number; intakes: number; shots: number };
+export type CycleRoute = { points: CyclePoint[]; cycles: number; share: number; seconds?: number; from: string; via: string; to: string };
+export type CycleRow = {
+  label: string; from?: string; via: string[]; to: string; pieces: number; points: CyclePoint[];
+  seconds?: number; collectSeconds?: number; travelSeconds?: number; shootSeconds?: number; weight: number;
+};
+export type TeamCycles = {
+  teamNumber: number; matches: number; cyclesPerMatch: number; cyclesLow?: number; cyclesHigh?: number;
+  seconds?: number; collectSeconds?: number; travelSeconds?: number; shootSeconds?: number; piecesPerCycle?: number;
+  squares: CycleSquare[]; routes: CycleRoute[]; cycles: CycleRow[];
+};

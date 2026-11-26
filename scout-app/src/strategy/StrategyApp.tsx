@@ -13,7 +13,7 @@ import { MatchScreen } from "./screens/MatchScreen";
 import { MatchesScreen } from "./screens/MatchesScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 import { TeamScreen } from "./screens/TeamScreen";
-import type { Forecast, HistoryPoint, Pick, PointSplit, Projection, Rating, TeamMap } from "./types";
+import type { Forecast, HistoryPoint, Pick, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 
 export type Tab = "event" | "team" | "match" | "schedule" | "alliance" | "settings";
 const TABS: [Tab, string][] = [["event", "Event"], ["team", "Team"], ["match", "Match"], ["schedule", "Schedule"], ["alliance", "Alliance"], ["settings", "Settings"]];
@@ -40,8 +40,10 @@ export type Ctx = {
   api: StrategyApi; eventUuid: string; ourTeam: number; settings: Settings; model: Model; labels: Map<string, string>;
   scouting: Load<TeamsTab>; retryScouting(): void; profile(team: number): TeamProfile | undefined;
   maps: Load<TeamMap[]>; retryMaps(): void; splits: Load<PointSplit[]>; retrySplits(): void;
+  // Cycles from our scouting (teamCycles), one entry per scouted team.
+  cycles: Load<TeamCycles[]>; retryCycles(): void; teamCycles(team: number): TeamCycles | undefined;
   // Points per match (scouted, else the official share) and each bar column's track length.
-  points(team: number): Figure | null; scale: { rating: number; points: number };
+  points(team: number): Figure | null; scale: { rating: number; points: number; cycles: number };
   // Times on the event's clock when the settings say so and the Teams tab knows its zone; else this device's.
   timeZone?: string;
   // Goes up on every refresh, so reads made by a screen (a match's maps) refresh too.
@@ -146,6 +148,7 @@ function EventView({ api, eventUuid, tab, go, tick, settings }: {
   const [scouting, retryScouting] = useLoad(eventUuid, () => api.teamsTab(eventUuid), tick);
   const [maps, retryMaps] = useLoad(eventUuid, () => api.fieldMaps(eventUuid), tick);
   const [splits, retrySplits] = useLoad(eventUuid, () => api.pointSplits(eventUuid), tick);
+  const [cycles, retryCycles] = useLoad(eventUuid, () => api.teamCycles(eventUuid), tick);
 
   if (tab === "settings") return null;
   if (model.state !== "ok") {
@@ -158,13 +161,16 @@ function EventView({ api, eventUuid, tab, go, tick, settings }: {
   const profiles = new Map(scouting.state === "ok" ? scouting.data.teams.map((t) => [t.teamNumber, t]) : []);
   const shares = splits.state === "ok" ? sharesByTeam(splits.data) : new Map<number, number[]>();
   const points = (n: number) => pointsFigure(profiles.get(n), shares.get(n) ?? []);
+  const byTeam = new Map(cycles.state === "ok" ? cycles.data.map((c) => [c.teamNumber, c]) : []);
   const ctx: Ctx = {
     api, eventUuid, ourTeam, settings, model: m, labels: matchLabels(m.forecasts),
     scouting, retryScouting, profile: (n) => profiles.get(n), maps, retryMaps, splits, retrySplits,
+    cycles, retryCycles, teamCycles: (n) => byTeam.get(n),
     points,
     scale: {
       rating: scaleMax(m.ratings.map((r) => likely(r.opr, r.oprSe)?.high ?? r.opr)),
       points: scaleMax(m.ratings.map((r) => points(r.teamNumber)?.high ?? 0)),
+      cycles: scaleMax([...byTeam.values()].map((c) => c.cyclesHigh ?? c.cyclesPerMatch)),
     },
     timeZone: settings.clock === "event" && scouting.state === "ok" ? scouting.data.timeZone : undefined,
     tick,

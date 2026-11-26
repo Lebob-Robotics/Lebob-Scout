@@ -173,8 +173,9 @@ test("scoutTiles shows the Teams tab figures, dashes for missing ones", () => {
     teamNumber: 1, name: "", need: false, matches: 2, played: 2, toCome: 0, scheduled: 2, missing: [], twice: [], points: 41.6, autoPoints: 8.25,
     teleopPoints: 30, parkPoints: 2.5, autoScored: 1, cycles: 3, cycleSeconds: 22.25, squares: [], starts: [], reports: [], pits: [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [],
   }));
-  expect([tiles.get("points / match"), tiles.get("auto pts"), tiles.get("cycle time"), tiles.get("driver 1-5"), tiles.get("matches")])
-    .toEqual(["42", "8.3", "22.3s", "–", "2"]);
+  expect([tiles.get("points / match"), tiles.get("auto pts"), tiles.get("driver 1-5"), tiles.get("matches")]).toEqual(["42", "8.3", "–", "2"]);
+  // Cycles live on the Cycles card now.
+  expect(tiles.has("cycles") || tiles.has("cycle time")).toBe(false);
 });
 
 test("scoutMoreTiles shows the rates as whole percentages, fouls to one decimal, and breakdowns of matches", () => {

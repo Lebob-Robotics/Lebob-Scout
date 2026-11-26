@@ -35,3 +35,15 @@ test("failMaps rejects the maps and splits as the real app does until they are s
   await expect(api.fieldMaps(E)).rejects.toThrow(MAPS_NOT_READY);
   await expect(api.pointSplits(E)).rejects.toThrow(MAPS_NOT_READY);
 });
+
+test("the dev cycles: times add up, routes share the timed cycles, and they fail like the maps when switched off", async () => {
+  const cycles = await createDevStrategyApi().teamCycles(E);
+  expect(cycles.map((c) => c.teamNumber)).toEqual([11115, 12345, 14469, 16021]);
+  cycles.forEach((c) => {
+    if (c.seconds != null) expect(c.collectSeconds! + c.travelSeconds! + c.shootSeconds!).toBeCloseTo(c.seconds, 0);
+    expect(c.routes.reduce((a, r) => a + r.share, 0)).toBeLessThanOrEqual(1.01);
+    c.routes.forEach((r) => expect(r.points).toHaveLength(12));
+    expect(c.cyclesLow! <= c.cyclesPerMatch && c.cyclesPerMatch <= c.cyclesHigh!).toBe(true);
+  });
+  await expect(createDevStrategyApi({ failMaps: true }).teamCycles(E)).rejects.toThrow(MAPS_NOT_READY);
+});

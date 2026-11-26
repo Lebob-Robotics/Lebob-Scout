@@ -1,10 +1,10 @@
 import type { Client } from "@osdk/client";
 import {
   AlliancePick, EventRating, MatchForecast, RankProjection, RatingHistory,
-  fieldMaps as fieldMapsQuery, matchMaps as matchMapsQuery, pointSplits as pointSplitsQuery,
+  fieldMaps as fieldMapsQuery, matchMaps as matchMapsQuery, pointSplits as pointSplitsQuery, teamCycles as teamCyclesQuery,
 } from "@lebob-scout/sdk";
 import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "../api";
-import type { Forecast, HistoryPoint, MatchMaps, Pick, PointSplit, Projection, Rating, TeamMap } from "./types";
+import type { Forecast, HistoryPoint, MatchMaps, Pick, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 
 export type StrategyApi = Pick2<Api, "ourEvents" | "matches" | "presences" | "teamsTab"> & {
   ratings(eventUuid: string): Promise<Rating[]>;
@@ -15,6 +15,7 @@ export type StrategyApi = Pick2<Api, "ourEvents" | "matches" | "presences" | "te
   fieldMaps(eventUuid: string): Promise<TeamMap[]>;
   matchMaps(eventUuid: string, matchUuid: string): Promise<MatchMaps>;
   pointSplits(eventUuid: string): Promise<PointSplit[]>;
+  teamCycles(eventUuid: string): Promise<TeamCycles[]>;
 };
 type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
 export type { EventRow, MatchRow, PresenceRow, TeamsTab };
@@ -58,7 +59,7 @@ export const toPick = (p: Partial<AlliancePick.Props>): Pick => ({
 
 // The three map and split functions join the SDK once they are added to the app in Developer Console; until then
 // `functions` is left out and the strategy app says those parts are not ready.
-export type MapFunctions = Pick2<StrategyApi, "fieldMaps" | "matchMaps" | "pointSplits">;
+export type MapFunctions = Pick2<StrategyApi, "fieldMaps" | "matchMaps" | "pointSplits" | "teamCycles">;
 export const MAPS_NOT_READY = "Heatmaps and point splits are not switched on for this app yet.";
 const notReady = () => Promise.reject(new Error(MAPS_NOT_READY));
 
@@ -77,13 +78,15 @@ export function createStrategyApi(client: Client, base: Api, functions?: MapFunc
     fieldMaps: (e) => functions?.fieldMaps(e) ?? notReady(),
     matchMaps: (e, m) => functions?.matchMaps(e, m) ?? notReady(),
     pointSplits: (e) => functions?.pointSplits(e) ?? notReady(),
+    teamCycles: (e) => functions?.teamCycles(e) ?? notReady(),
   };
 }
 
-// The three functions as published in Foundry (SDK 0.7.0 on). Their result types match ./types, which mirror the
+// The map, split and cycle functions as published in Foundry (SDK 0.7.0 on; teamCycles from 0.10.0). Their result types match ./types, which mirror the
 // functions' own types; the casts only drop the SDK's readonly and branded wrappers.
 export const sdkMapFunctions = (client: Client): MapFunctions => ({
   fieldMaps: async (eventUuid) => (await client(fieldMapsQuery).executeFunction({ eventUuid })) as unknown as TeamMap[],
   matchMaps: async (eventUuid, matchUuid) => (await client(matchMapsQuery).executeFunction({ eventUuid, matchUuid })) as unknown as MatchMaps,
   pointSplits: async (eventUuid) => (await client(pointSplitsQuery).executeFunction({ eventUuid })) as unknown as PointSplit[],
+  teamCycles: async (eventUuid) => (await client(teamCyclesQuery).executeFunction({ eventUuid })) as unknown as TeamCycles[],
 });

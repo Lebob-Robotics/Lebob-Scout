@@ -253,14 +253,13 @@ export function playedCount(fs: Forecast[], matches: { actualTime: string | null
 
 const oneFig = (x: number) => String(Math.round(x * 10) / 10);
 const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : oneFig(x) + unit);
-// The Teams tab's figures for a team, as its profile tiles show them.
+// The Teams tab's figures for a team, as its profile tiles show them. Cycles and cycle time are on the Cycles card,
+// from teamCycles.
 export const scoutTiles = (t: TeamProfile): [string, string][] => [
   ["points / match", String(Math.round(t.points))],
   ["auto pts", oneFig(t.autoPoints)],
   ["teleop pts", oneFig(t.teleopPoints)],
   ["park pts", oneFig(t.parkPoints)],
-  ["cycles", oneFig(t.cycles)],
-  ["cycle time", maybe(t.cycleSeconds, "s")],
   ["driver 1-5", maybe(t.driverSkill)],
   ["speed 1-5", maybe(t.robotSpeed)],
   ["matches", String(t.matches)],

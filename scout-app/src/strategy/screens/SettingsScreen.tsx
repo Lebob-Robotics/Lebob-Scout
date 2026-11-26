@@ -74,7 +74,7 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
         <div className="col">
           <Card title="Display">
             <Seg label="Heatmaps" value={settings.heatStyle} onChange={(v) => onChange({ heatStyle: v })} options={[["squares", "Squares"], ["smooth", "Smooth"]]} />
-            <Seg label="Autos" value={settings.autoStyle} onChange={(v) => onChange({ autoStyle: v })} options={[["averaged", "Averaged"], ["drawn", "As drawn"]]} />
+            <Seg label="Autos and cycles" value={settings.autoStyle} onChange={(v) => onChange({ autoStyle: v })} options={[["averaged", "Averaged"], ["drawn", "As drawn"]]} />
             <Seg label="Team heatmap opens on" value={settings.measure} onChange={(v) => onChange({ measure: v })}
               options={[["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]]} />
             <Seg label="Times" value={settings.clock} onChange={(v) => onChange({ clock: v })} options={[["event", "Event's clock"], ["device", "This device"]]} />

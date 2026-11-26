@@ -9,6 +9,7 @@ import {
 } from "../logic";
 import { Dropdown } from "../../components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
+import { CyclesCard } from "../CyclesCard";
 import { PartnersTable } from "./AllianceScreen";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];
@@ -108,6 +109,8 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             {scouted(() => (!profile?.autoPaths.length && !profile?.starts.length ? <p>No auto paths drawn yet.</p>
               : <AutoPaths paths={profile.autoPaths} starts={profile.starts} averaged={ctx.settings.autoStyle === "averaged"} />))}
           </Card>
+
+          <CyclesCard ctx={ctx} team={team} />
 
           <Card title="Matches">
             {ctx.splits.state === "failed" && <Waiting load={ctx.splits} what="the point splits" retry={ctx.retrySplits} />}

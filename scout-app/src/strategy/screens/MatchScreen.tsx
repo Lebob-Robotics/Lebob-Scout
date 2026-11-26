@@ -2,6 +2,8 @@ import { useState, type ReactNode } from "react";
 import { Dropdown } from "../../components/Dropdown";
 import type { Ctx } from "../StrategyApp";
 import { defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, scoutedTotal, splitsByMatch, teamCells, type Side } from "../logic";
+import { CycleTimeFig } from "../CyclesCard";
+import { cycleTime, cyclesFigure } from "../cycles";
 import { Card, HeatField, PtsFig, Switch, TeamName, Waiting } from "../parts";
 import { useLoad } from "../useLoad";
 import type { Forecast, MatchMaps } from "../types";
@@ -116,6 +118,9 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
         const rating = ctx.model.ratings.find((r) => r.teamNumber === team);
         const p = ctx.profile(team);
         const pts = ctx.points(team);
+        // Cycles from our scouting only; a team nobody scouted shows its pit report's claimed cycle time.
+        const cyc = cyclesFigure(ctx.teamCycles(team));
+        const time = cycleTime(cyc ? ctx.teamCycles(team) : undefined, p?.pits ?? []);
         const map = maps?.[side].robots.find((r) => r.teamNumber === team);
         return (
           <div key={team} className="robot">
@@ -126,7 +131,8 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
                 <dd className={pts?.official ? "model" : undefined}>{pts ? <>{one(pts.value)}{pts.low !== pts.high && <small> {rangeText(pts.low, pts.high)}</small>}</> : "–"}</dd>
               </div>
               <div><dt>rating</dt><dd>{one(rating?.opr)}</dd></div>
-              <div><dt>cycle time</dt><dd>{p?.cycleSeconds != null ? `${one(p.cycleSeconds)}s` : "–"}</dd></div>
+              <div><dt>cycles / match</dt><dd>{cyc ? one(cyc.value) : "–"}</dd></div>
+              <div><dt>cycle time</dt><dd><CycleTimeFig time={time} /></dd></div>
             </dl>
             {map?.matches || p?.starts.length ? (
               <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={p?.starts ?? []} smooth={ctx.settings.heatStyle === "smooth"}

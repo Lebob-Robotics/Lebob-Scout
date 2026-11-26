@@ -13,6 +13,8 @@ export type Auto = { labels: string[]; alliance: "red" | "blue"; lines: Pt[][]; 
 // units; a grid square is 16.7). Tuned on the dev data: the same route run twice sits about 2 apart, a different
 // start or route 20 or more.
 export const SAME_AUTO = 8;
+// Light colours that read on the dark field picture: one per auto, cycle route or line.
+export const PATH_COLOURS = ["#fde68a", "#a5f3fc", "#f9a8d4", "#bbf7d0", "#c4b5fd", "#fed7aa", "#e5e7eb"];
 export const RESAMPLE = 24;
 
 const FIELD = FIELDS[CURRENT_FIELD_KEY];

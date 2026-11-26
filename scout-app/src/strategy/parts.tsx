@@ -9,7 +9,7 @@ import { shade } from "../teamsView";
 import { MAPS_NOT_READY } from "./api";
 import { bar, historyChart, keepShut, nextSort, one, popPlace, readShut, sortRows } from "./logic";
 import type { Cell, Pts, Sort, SortValue } from "./logic";
-import { asDrawn, averagedAutos, shotMarks, type Auto, type AutoPath } from "./autos";
+import { PATH_COLOURS, asDrawn, averagedAutos, shotMarks, type Auto, type AutoPath } from "./autos";
 import type { HistoryPoint } from "./types";
 import type { Load } from "./useLoad";
 
@@ -123,8 +123,11 @@ const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 // A heatmap on the field picture: red's wall on the left, a shade per square (or, smooth, soft spots that blend into
 // each other), start spots as dots. No numbers: hovering a square with a mouse, or tapping it, shows its figures in a
 // pop-up; tapping anywhere else closes it. `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
-export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false }: {
-  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
+// `overlay` is drawn over the shading in the same 0 to 100 frame (the cycle routes); `children` sit on the field (a
+// route's pop-up); `hidePop` hides the square's pop-up while another one shows.
+export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false }: {
+  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both" | "cross"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
+  overlay?: ReactNode; children?: ReactNode; hidePop?: boolean;
 }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const gid = `heat${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -175,17 +178,19 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
             </>
           )}
           {squares}
+          {overlay}
           {starts.map((s, i) => {
             const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
             return <circle key={i} className={s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
           })}
         </svg>
-        {pop && (
+        {pop && !hidePop && (
           <div className={`heat-pop ${pop.below ? "below" : "above"} lean-${pop.lean}`} style={{ left: `${pop.left}%`, top: `${pop.top}%` }} role="status">
             <b>{name}</b>
             {cell ? <dl>{cell.lines.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl> : <span>Nothing here</span>}
           </div>
         )}
+        {children}
       </div>
     </div>
   );
@@ -195,7 +200,6 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
 // Points are stored as the scout app draws them (0 to 100 across the grid area, red's wall on the left), so they are
 // drawn as stored. Each auto has its own colour: its drive path, the spots a scout marked, and a filled marker on
 // each square it shot from, sized and labelled by the count. Start spots from set-up show as alliance dots.
-const PATH_COLOURS = ["#fde68a", "#a5f3fc", "#f9a8d4", "#bbf7d0", "#c4b5fd", "#fed7aa", "#e5e7eb"];
 const count = (n: number) => String(Math.round(n * 10) / 10);
 export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[]; starts?: StartDot[]; averaged: boolean }) {
   const autos = (averaged ? averagedAutos(paths) : asDrawn(paths)).map((a, i) => ({ ...a, colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
