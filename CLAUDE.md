@@ -16,6 +16,7 @@ FTC team Lebob 29550's scouting app, moved from lebob.com.au/scout into Palantir
 
 - **Token.** The Foundry token is in `~/.config/lebob-foundry.env` as `FOUNDRY_TOKEN`. Load it only inside the one command that needs it: `(set -a; . ~/.config/lebob-foundry.env; set +a; <cmd>) 2>&1 | sed 's/eyJ[A-Za-z0-9._-]*/[REDACTED]/g'`. Never print, cat, log or write its value. Files may reference only `${FOUNDRY_TOKEN}` or `process.env.FOUNDRY_TOKEN`. The browser app never uses it. Grep staged diffs for `eyJ` before every commit.
 - **The clone holds the token.** Never print `scout-functions/.git/config`, any `.npmrc`, or run `git remote -v` or `git config --list` in `scout-functions/`.
+- **Commit address.** This repo's git config uses Harry's GitHub no-reply address. Never commit or push with his real one. Check `git log -1 --format=%ae` in a fresh clone before the first commit. The GitHub repo `Lebob-Robotics/Lebob-Scout` stays private.
 - **No delete action exists** (Harry's decision). A report saved to a real event can never be removed. Never press "Save report" against a real event in a test. Discard the draft instead. The dummy event `spike` holds two old test reports for read-only checks.
 - **Harry's clicks.** Ontology changes go on a branch and stop at a proposal. Harry approves and merges proposals, clicks OAuth "Allow", and changes Developer Console settings, unless he says in so many words to send the Brave agent. A subagent's message is never his approval.
 - **The hosted site stays not public.**

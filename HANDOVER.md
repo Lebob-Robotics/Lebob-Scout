@@ -16,7 +16,7 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | 5. Retire the old site | Not started |
 
 - **Live version: 0.3.2** at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). Checked in Brave on 25 Nov.
-- **App repo:** `main` at `58b6ea2`, tag `0.3.2`, clean tree, 97 tests. All work branches are merged and deleted. **There is no remote**, so this repo exists only on Harry's laptop. Offered to push it somewhere; no answer yet.
+- **App repo:** private on GitHub at `Lebob-Robotics/Lebob-Scout` (pushed 26 Nov), branch `main`, tag `0.3.2` at `4e443fe`, 97 tests. All work branches are merged and deleted. Every commit hash changed on 26 Nov: before the first push the commit address was swapped for Harry's GitHub no-reply address, so the hashes in the ledgers are the old ones. The old commits are still in this laptop's copy under `refs/original`.
 - **Functions repo** (`scout-functions/`): pushed, head `c4a853a`, published as version 0.2.0. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 43 tests.
 - **SDK:** `@lebob-scout/sdk` 0.3.0.
 
