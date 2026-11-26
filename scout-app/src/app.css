@@ -421,3 +421,76 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .note-block { padding: .5rem .75rem; border-left: 3px solid var(--border); }
 .note-block p:first-child { color: var(--fg-dark); font-weight: 600; }
 .team-body > .pair { margin-top: .75rem; }
+
+/* Strategy app: laptop-first, the scout app's look. One column on a phone, two or three from 900 px. */
+.plain-link, .strategy a, .header .hdrlink { color: var(--accent); text-decoration: underline 1px; text-underline-offset: 4px; }
+.plain-link { justify-self: start; font-weight: 600; }
+.header .hdrlink { margin-left: auto; flex: 0 0 auto; font: 500 12px/1.2 var(--font-mono); letter-spacing: .03em; white-space: nowrap; }
+.strategy { display: grid; gap: .75rem; max-width: 90rem; margin: 0 auto; padding: 1rem; min-width: 0; }
+.strategy > * { min-width: 0; }
+.strategy .tabs { padding: 0 0 8px; }
+.strategy-screen { display: grid; gap: .75rem; min-width: 0; }
+.event-pick { display: grid; gap: .3rem; max-width: 30rem; }
+.event-pick select { width: 100%; min-width: 0; font-family: var(--font-mono); font-weight: 500; }
+.banner.signed-out { display: grid; gap: .5rem; justify-items: start; }
+.cols { display: grid; gap: .75rem; grid-template-columns: minmax(0, 1fr); }
+.col { display: grid; gap: .75rem; align-content: start; min-width: 0; }
+@media (min-width: 900px) {
+  .cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols.three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .strategy .tiles { grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); }
+}
+.team-title { font-size: 1.5rem; font-weight: 600; line-height: 1.2; }
+.team-title b { font-family: var(--font-mono); font-weight: 600; }
+
+/* Tables: Mono figures right-aligned; headers sort; a wide table scrolls inside its card, never the page. */
+.table-wrap { overflow-x: auto; min-width: 0; }
+.stable { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.stable th, .stable td { padding: .35rem .5rem; border-bottom: 1px solid var(--border); text-align: left; vertical-align: middle; white-space: nowrap; }
+.stable th { font: 500 .75rem/1.2 var(--font-mono); letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.stable th button { min-height: 32px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-transform: inherit; letter-spacing: inherit; }
+.stable th[aria-sort] button { color: var(--accent); }
+.stable .num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.stable th.num button { text-align: right; }
+.stable td { color: var(--fg-dark); }
+.stable tr.pick { cursor: pointer; }
+@media (hover: hover) { .stable tr.pick:hover td { background: var(--hover); } }
+.stable td:first-child { position: sticky; left: 0; background: var(--panel); }
+.stable .expected { color: var(--muted); }
+.versus td:first-child { color: var(--muted); }
+.team-link { display: inline-flex; vertical-align: middle; align-items: baseline; gap: .4rem; min-height: 32px; padding: 0 .25rem 0 0; border: 0; background: none; color: var(--fg-dark); font-weight: 400; text-align: left; }
+.team-link b { font: 600 .9375rem var(--font-mono); }
+.team-link span { max-width: 14rem; overflow: hidden; text-overflow: ellipsis; color: var(--fg); }
+.robot-cell { display: inline-flex; align-items: baseline; gap: .2rem; margin-right: .6rem; }
+.robot-cell small { color: var(--muted); font: 500 .75rem var(--font-mono); }
+
+/* Heatmaps: the profile map's drawing at any width; the overlap in orange. */
+.heat .field { width: 100%; }
+.heat.small { max-width: 16rem; }
+.map-overlay.both { --c: var(--warn); }
+.map-cell { display: grid; gap: .4rem; align-content: start; min-width: 0; }
+.map-cell h3 { font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--fg-dark); }
+.alliance-card.red { box-shadow: inset 0 4px 0 var(--alliance-red); }
+.alliance-card.blue { box-shadow: inset 0 4px 0 var(--alliance-blue); }
+.robot { display: grid; gap: .4rem; padding-top: .5rem; border-top: 1px solid var(--border); }
+.robot.ours .team-link b { color: var(--accent); }
+.robot-facts { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+.robot-facts div { display: flex; gap: .4rem; align-items: baseline; }
+.robot-facts dt { font: 500 .75rem var(--font-mono); text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.robot-facts dd { font: 500 1rem var(--font-mono); color: var(--fg-dark); }
+
+/* Rating history: the line yellow over a faint band. */
+.rating-chart { display: block; width: 100%; max-width: 40rem; height: auto; }
+.rating-chart .band { fill: var(--accent); fill-opacity: .14; }
+.rating-chart .line { fill: none; stroke: var(--accent); stroke-width: 2; }
+.rating-chart circle { fill: var(--accent); }
+.rating-chart .axis { fill: var(--muted); font: 500 9px var(--font-mono); }
+.rating-chart .axis.end { text-anchor: end; }
+.alliance-card { align-content: start; }
+.strategy .card > select { width: 100%; min-width: 0; }
+/* On a phone the team column stays narrow, so the figures beside it still show. */
+@media (max-width: 599px) {
+  .team-link span { max-width: 7rem; }
+  .robot-cell { display: flex; }
+}
+.stable.versus { max-width: 36rem; }

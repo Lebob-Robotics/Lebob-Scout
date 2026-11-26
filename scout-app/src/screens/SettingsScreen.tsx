@@ -97,6 +97,12 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
           <button type="button" aria-pressed={!motion} onClick={() => chooseMotion(false)}>Off</button>
         </div>
       </div>
+
+      <div className="card">
+        <h2>Strategy</h2>
+        <a className="plain-link" href="/strategy">Strategy</a>
+        <p className="caption">The strategy team's app: ratings, forecasts, heatmaps and alliance picks.</p>
+      </div>
     </div>
   );
 }

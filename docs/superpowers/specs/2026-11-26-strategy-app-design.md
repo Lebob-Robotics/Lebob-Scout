@@ -26,9 +26,9 @@ The strategy app reads these as they are. It never changes them and changes noth
 
 ### Where it lives
 
-A second page of the scout app's hosted site, at `/strategy.html`, built from the same code base. It has its own address, its own screens and its own tab bar, laptop-first but working on a phone, and it shares the scout app's sign-in, SDK, design and Foundry functions.
+A second app on the scout app's hosted site, at the path `/strategy` (same build, loaded only when opened), built from the same code base. It has its own address, its own screens and its own tab bar, laptop-first but working on a phone, and it shares the scout app's sign-in, SDK, design and Foundry functions.
 
-Ruling S1: one hosted site with two pages rather than a second Developer Console application. A second application would need its own sign-in client, its own SDK and its own deploy, and would drift. The strategy team gets its own app at its own address either way; a link from the scout app's Settings tab and back.
+Ruling S1: one hosted site with two pages rather than a second Developer Console application. A second application would need its own sign-in client, its own SDK and its own deploy, and would drift. The strategy team gets its own app at its own address either way; a link from the scout app's Settings tab and back. (Built as the path `/strategy` rather than `strategy.html`, because the sign-in always returns through the scout app's start-up, which now sends the strategist back to `/strategy`.)
 
 ### Design
 
@@ -86,6 +86,16 @@ After AUCMP (each defined now, tuned on AUCMP data):
 - **Functions** (our repository): the per-team square maps with auto and teleop apart (extending the Teams tab sums), alliance and overlap maps for a match, the robot point split; after AUCMP the cold spots, free alleys, predicted paths and insights. All the sums live here so the scout app, the strategy app and any Workshop page agree.
 - **Model objects**: EventRating, RatingHistory, MatchForecast, RankProjection, AlliancePick and Participation are imported into the "Lebob Scout App" project (as Match and Event already are) and added to the app's SDK, read-only. No action on them.
 - No ontology change, so no proposal.
+
+## Rulings made while building (26 Nov)
+
+- In dev mode (`/strategy?dev=1`) team 12345 plays the part of us; for real it is 29550.
+- The strategy app remembers its event apart from the scout app (`lsa:strategy-event`), so a laptop never changes what a scout's phone shows.
+- Bonus rows are labelled SWARM, POLLINATOR 1 and POLLINATOR 2, as the model describes them.
+- Playoff labels are P and the number; where playoff numbers repeat, the series is used.
+- The model's figures load as one block with one Retry; the Teams tab figures, field maps and point splits each load on their own, so one failing leaves the rest of the screen working.
+- "As forecast" uses the model's own record of whether the favourite won.
+- Wide tables scroll sideways inside their card on a phone, team column pinned; the page never scrolls sideways.
 
 ## Not in this job
 
