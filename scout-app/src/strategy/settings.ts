@@ -5,10 +5,12 @@ import { TEAM_MAX } from "../schedule";
 export type HeatStyle = "squares" | "smooth";
 export type AutoStyle = "averaged" | "drawn";
 export type HeatMeasure = "auto" | "teleop" | "pickedUp";
+export type HeatField = "full" | "half";
 export type Clock = "event" | "device";
 export type Settings = {
   ourTeam: number; // "us": our next match, our partners, the "us" tag
   heatStyle: HeatStyle; // heatmaps as squares, or smooth shading that blends between them
+  heatField: HeatField; // the Team heatmap on the full field, or the lower half folded onto the upper half
   autoStyle: AutoStyle; // similar autos averaged into one rounded path, or every path as drawn
   measure: HeatMeasure; // the Team tab heatmap's first measure
   refreshMinutes: number; // reload the figures every this many minutes; 0 is never
@@ -19,7 +21,7 @@ export const REFRESH_CHOICES = [0, 2, 5, 10];
 export const ALLIANCE_CHOICES = [4, 6, 8];
 export const SETTINGS_KEY = "lsa:strategy-settings";
 export const defaultSettings = (ourTeam: number): Settings => ({
-  ourTeam, heatStyle: "squares", autoStyle: "averaged", measure: "teleop", refreshMinutes: 0, clock: "event", alliances: 4,
+  ourTeam, heatStyle: "squares", heatField: "full", autoStyle: "averaged", measure: "teleop", refreshMinutes: 0, clock: "event", alliances: 4,
 });
 
 type Store = { getItem(k: string): string | null; setItem(k: string, v: string): void };
@@ -37,6 +39,7 @@ export function readSettings(defaults: Settings, store: () => Store = local): Se
   return {
     ourTeam: validTeam(kept.ourTeam) ? kept.ourTeam : defaults.ourTeam,
     heatStyle: oneOf(kept.heatStyle, ["squares", "smooth"] as const, defaults.heatStyle),
+    heatField: oneOf(kept.heatField, ["full", "half"] as const, defaults.heatField),
     autoStyle: oneOf(kept.autoStyle, ["averaged", "drawn"] as const, defaults.autoStyle),
     measure: oneOf(kept.measure, ["auto", "teleop", "pickedUp"] as const, defaults.measure),
     refreshMinutes: oneOf(kept.refreshMinutes, REFRESH_CHOICES, defaults.refreshMinutes),

@@ -161,6 +161,20 @@ export function popPlace(col: number, row: number, cols: number, rows: number) {
   } as const;
 }
 
+// A square swapped across the field's middle line (row r becomes 7 − r on a 6-row field), and a heatmap folded onto
+// the upper half: each lower-half square added onto its mirror, as the functions' `half` maps are.
+export const mirrorSquare = (sq: string, rows = 6) => `${sq[0]}${rows + 1 - Number(sq.slice(1))}`;
+export const isLower = (sq: string, rows = 6) => Number(sq.slice(1)) > rows / 2;
+export function foldHalf(squares: SquareMap[], rows = 6): SquareMap[] {
+  const out = new Map<string, SquareMap>();
+  squares.forEach((s) => {
+    const sq = isLower(s.square, rows) ? mirrorSquare(s.square, rows) : s.square;
+    const t = out.get(sq) ?? { square: sq, autoScored: 0, teleopScored: 0, pickedUp: 0 };
+    out.set(sq, { square: sq, autoScored: round2(t.autoScored + s.autoScored), teleopScored: round2(t.teleopScored + s.teleopScored), pickedUp: round2(t.pickedUp + s.pickedUp) });
+  });
+  return [...out.values()].sort((a, b) => a.square.localeCompare(b.square));
+}
+
 // The same sums as the matchMaps function (scout-functions/src/teams/maps.ts), for the dev stand-in: each alliance's
 // robots added square by square, and the overlap scored by the smaller of the two alliances' use of a square.
 const round2 = (x: number) => Math.round(x * 100) / 100;
@@ -179,7 +193,7 @@ const use = (s: SquareMap) => s.autoScored + s.teleopScored + s.pickedUp;
 export function buildMatchMaps(matchUuid: string, label: string, red: number[], blue: number[], maps: TeamMap[]): MatchMaps {
   const byTeam = new Map(maps.map((m) => [m.teamNumber, m]));
   const side = (teams: number[]): AllianceMap => {
-    const robots = teams.map((t) => byTeam.get(t) ?? { teamNumber: t, matches: 0, squares: [] });
+    const robots = teams.map((t) => byTeam.get(t) ?? { teamNumber: t, matches: 0, squares: [], half: [] });
     return { robots, squares: addMaps(robots) };
   };
   const r = side(red), b = side(blue);

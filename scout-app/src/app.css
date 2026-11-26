@@ -772,3 +772,16 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 /* Alliance tab: our row and our alliance stand out. */
 .stable tr.ours td { background: var(--hover); }
 .stable tr.ours td:first-child { box-shadow: inset 3px 0 0 var(--accent-text); }
+
+/* Half field: the picture cropped to its top half (rows 1 to 3), for a map folded onto it. */
+.heat .field.half { aspect-ratio: 8 / 3; overflow: hidden; }
+.field.half .field-picture { height: 200%; }
+/* The one averaged cycle: bold yellow over a dark halo, its label beside it; the routes thinner and fainter beneath. */
+.routes.faint .route { opacity: .55; }
+.routes.faint .route.on { opacity: 1; }
+.avg-cycle { pointer-events: none; }
+.avg-cycle .avg-halo, .avg-cycle .avg-line { fill: none; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.avg-cycle .avg-halo { stroke: #1a1b1e; stroke-width: 9; stroke-opacity: .7; }
+.avg-cycle .avg-line { stroke: #FFF200; stroke-width: 5; }
+.map-overlay .avg-cycle circle { fill: #FFF200; stroke: #1a1b1e; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.map-overlay .avg-cycle .avg-label { fill: #FFF200; stroke: #1a1b1e; stroke-width: .9; font: 700 3.6px var(--font-mono); }

@@ -45,7 +45,8 @@ type Read = { ratings: Rating[]; projections: Projection[]; games: Game[] };
 // What every screen gets: the model (always loaded), and the scouting figures, maps and splits, each of which may
 // still be loading or have failed without stopping the rest.
 export type Ctx = {
-  api: StrategyApi; eventUuid: string; ourTeam: number; settings: Settings; model: Model; labels: Map<string, string>;
+  api: StrategyApi; eventUuid: string; ourTeam: number; settings: Settings; changeSettings(patch: Partial<Settings>): void;
+  model: Model; labels: Map<string, string>;
   scouting: Load<TeamsTab>; retryScouting(): void; profile(team: number): TeamProfile | undefined;
   maps: Load<TeamMap[]>; retryMaps(): void;
   // Each team's strength from scouting (or its official share), and bonus RP per qualification match.
@@ -137,15 +138,15 @@ export default function StrategyApp({ api, ourTeam, signedOut = false, onSignIn 
           : events.state === "failed" ? <p>Couldn't load the event list. <button type="button" onClick={retryEvents}>Retry</button></p>
           : !event ? <p>No events yet.</p> : null)}
         {/* Kept while Settings is open, so the team and match picked and the figures stay as they were. */}
-        {event && <EventView key={event.eventUuid} api={api} eventUuid={event.eventUuid} tab={tab} go={go} tick={tick} settings={settings} />}
+        {event && <EventView key={event.eventUuid} api={api} eventUuid={event.eventUuid} tab={tab} go={go} tick={tick} settings={settings} onSettings={change} />}
       </div>
       <footer className="foot-brand foot-wide">Lebob Strategy · FTC team 29550</footer>
     </>
   );
 }
 
-function EventView({ api, eventUuid, tab, go, tick, settings }: {
-  api: StrategyApi; eventUuid: string; tab: Tab; go(t: Tab): void; tick: number; settings: Settings;
+function EventView({ api, eventUuid, tab, go, tick, settings, onSettings }: {
+  api: StrategyApi; eventUuid: string; tab: Tab; go(t: Tab): void; tick: number; settings: Settings; onSettings(patch: Partial<Settings>): void;
 }) {
   const [team, setTeam] = useState<number | null>(null);
   const [matchUuid, setMatchUuid] = useState<string | null>(null);
@@ -173,7 +174,7 @@ function EventView({ api, eventUuid, tab, go, tick, settings }: {
   const points = (n: number) => pointsFigure(profiles.get(n), shares.get(n) ?? []);
   const byTeam = new Map(cycles.state === "ok" ? cycles.data.map((c) => [c.teamNumber, c]) : []);
   const ctx: Ctx = {
-    api, eventUuid, ourTeam, settings, model: m, labels: matchLabels(m.forecasts),
+    api, eventUuid, ourTeam, settings, changeSettings: onSettings, model: m, labels: matchLabels(m.forecasts),
     scouting, retryScouting, profile: (n) => profiles.get(n), maps, retryMaps,
     strengths: st, bonusRates: rates,
     officialShare: (u, t) => { const g = byUuid.get(u); return g ? officialShare(g, t, (n) => profiles.get(n)) : null; },

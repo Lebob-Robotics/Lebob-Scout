@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Ctx } from "./StrategyApp";
 import { PATH_COLOURS } from "./autos";
-import { cycleCells, cycleTime, cyclesFigure, roundedLine, routeLabel, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part } from "./cycles";
+import {
+  averageLabel, cycleCells, cycleTime, cyclesFigure, mirroredNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,
+} from "./cycles";
 import { one, popPlace } from "./logic";
 import { Card, HeatField, RangeBar, Switch, Tiles, Waiting } from "./parts";
 import type { CycleRoute, TeamCycles } from "./types";
@@ -41,6 +43,7 @@ export function CyclesCard({ ctx, team }: { ctx: Ctx; team: number }) {
         <>
           <CycleMap c={c} measure={measure} smooth={ctx.settings.heatStyle === "smooth"} drawn={ctx.settings.autoStyle === "drawn"} />
           <p className="caption">Shown from red's side: blue matches are turned half a turn.</p>
+          {mirroredNote(c.mirroredShare) && <p className="caption">{mirroredNote(c.mirroredShare)}</p>}
         </>
       )}
     </Card>
@@ -61,9 +64,10 @@ function TimeBar({ parts }: { parts: Part[] }) {
   );
 }
 
-// The cycle map: the chosen measure shaded per square, and on top the routes the team uses most (thicker for more of
-// its cycles, labelled with how many and their time; hover or tap one for where it goes), or with "As drawn" every
-// cycle as a thin line.
+// The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold, labelled with the
+// average time and how many cycles), over the routes the team uses most (fainter, thicker for more of its cycles;
+// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Cycles shot from the lower half
+// arrive mirrored onto the upper half; the map stays the full field since they can still collect below.
 function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: CycleMeasure; smooth: boolean; drawn: boolean }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const [open, setOpen] = useState<number | null>(null);
@@ -76,6 +80,8 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   }, [open]);
 
   const routes = c.routes.map((r, i) => ({ r, line: roundedLine(r.points), colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
+  const average = roundedLine(c.average ?? []);
+  const avgMid = average[Math.floor(average.length / 2)] ?? [0, 0];
   const overlay = drawn ? (
     <g className="cycle-lines">
       {c.cycles.map((row, i) => (
@@ -85,31 +91,40 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
       ))}
     </g>
   ) : (
-    <g className="routes">
+    <>
+    <g className="routes faint">
       {routes.map(({ r, line, colour }, i) => {
         const pts = line.map((q) => q.join(",")).join(" ");
-        const mid = line[Math.floor(line.length / 2)];
         const end = line[line.length - 1];
+        const width = Math.max(1.5, routeWidth(r.share) * 0.6);
         const show = (e: { pointerType: string }) => { if (e.pointerType === "mouse") setOpen(i); };
         return (
           <g key={i} className={open === i ? "route on" : "route"} style={{ color: colour }}
             onPointerEnter={show} onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}
             onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(open === i ? null : i); }}>
             <polyline className="route-hit" points={pts} />
-            <polyline className="route-halo" points={pts} strokeWidth={routeWidth(r.share) + 3} />
-            <polyline className="route-line" points={pts} strokeWidth={routeWidth(r.share)} />
-            <circle className="route-end" cx={end[0]} cy={end[1]} r="2" />
-            <text className="route-label" x={mid[0]} y={mid[1] - 2.5}>{routeLabel(r)}</text>
+            <polyline className="route-halo" points={pts} strokeWidth={width + 3} />
+            <polyline className="route-line" points={pts} strokeWidth={width} />
+            <circle className="route-end" cx={end[0]} cy={end[1]} r="1.6" />
           </g>
         );
       })}
     </g>
+    {average.length > 1 && (
+      <g className="avg-cycle">
+        <polyline className="avg-halo" points={average.map((q) => q.join(",")).join(" ")} />
+        <polyline className="avg-line" points={average.map((q) => q.join(",")).join(" ")} />
+        <circle cx={average[average.length - 1][0]} cy={average[average.length - 1][1]} r="2.6" />
+        <text className="avg-label" x={avgMid[0]} y={avgMid[1] - 3.5}>{averageLabel(c)}</text>
+      </g>
+    )}
+    </>
   );
   const pick = open != null ? routes[open] : null;
   return (
     <div ref={wrap}>
       <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null}
-        label={`Cycle map: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, ${c.routes.length} routes`}`}>
+        label={`Cycle map: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
         {pick && <RoutePop route={pick.r} at={pick.line[Math.floor(pick.line.length / 2)]} cols={field.cols} rows={field.rows} />}
       </HeatField>
     </div>

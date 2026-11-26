@@ -6,8 +6,8 @@ import { createDevApi } from "../devApi";
 import { DEV_TEAMS_TAB } from "../devTeamsTab";
 import { MAPS_NOT_READY, type StrategyApi } from "./api";
 import { resample } from "./autos";
-import { centre, crossedSquares } from "./cycles";
-import { buildMatchMaps } from "./logic";
+import { averageCycle, centre, crossedSquares, mirrorCycle } from "./cycles";
+import { buildMatchMaps, foldHalf } from "./logic";
 import { isPlayed, label, type Game } from "./scouted";
 import type { CycleRoute, CycleRow, CycleSquare, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 
@@ -89,7 +89,9 @@ const FIELD_MAPS: TeamMap[] = DEV_TEAMS_TAB.teams.filter((t) => t.matches > 0).m
     const s = squares.get(sq) ?? { square: sq, autoScored: 0, teleopScored: 0, pickedUp: 0 };
     squares.set(sq, { ...s, autoScored: n });
   });
-  return { teamNumber: t.teamNumber, matches: t.matches, squares: [...squares.values()].sort((a, b) => a.square.localeCompare(b.square)) };
+  const all = [...squares.values()].sort((a, b) => a.square.localeCompare(b.square));
+  // The dev squares stand in red's view; folded onto the upper half as the functions fold theirs.
+  return { teamNumber: t.teamNumber, matches: t.matches, squares: all, half: foldHalf(all) };
 });
 
 // Each played match's score shared evenly, standing in for the pointSplits function (the app no longer shows it).
@@ -114,7 +116,8 @@ function devCycles(teamNumber: number, trips: Trip[]): TeamCycles {
   const labels = [...new Set(trips.map((t) => t.label))];
   const matches = labels.length;
   const counts = labels.map((l) => trips.filter((t) => t.label === l).length);
-  const rows: CycleRow[] = trips.map((t) => ({
+  // Each cycle shot from the lower half is mirrored onto the upper half first, as the functions do.
+  const rows: CycleRow[] = trips.map((t) => mirrorCycle({
     label: t.label, ...(t.from ? { from: t.from } : {}), via: t.via, to: t.to, pieces: t.pieces,
     points: [...(t.from ? [centre(t.from)] : []), ...t.via.map(centre), centre(t.to)],
     ...(t.from ? { seconds: r1(t.collect + t.travel + t.shoot), collectSeconds: r1(t.collect) } : {}),
@@ -142,6 +145,7 @@ function devCycles(teamNumber: number, trips: Trip[]): TeamCycles {
     squares: [...squares.values()].map((q) => ({ square: q.square, passes: r2(q.passes / matches), intakes: r2(q.intakes / matches), shots: r2(q.shots / matches) }))
       .sort((a, b) => a.square.localeCompare(b.square)),
     routes, cycles: rows,
+    mirroredShare: r2(rows.filter((r) => r.mirrored).length / rows.length), average: averageCycle(rows),
   };
 }
 const DEV_CYCLES: TeamCycles[] = [

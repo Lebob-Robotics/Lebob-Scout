@@ -49,3 +49,16 @@ test("the dev cycles: times add up, routes share the timed cycles, and they fail
   });
   await expect(createDevStrategyApi({ failMaps: true }).teamCycles(E)).rejects.toThrow(MAPS_NOT_READY);
 });
+
+test("the dev cycles shoot from the upper half once mirrored, with one averaged cycle; the dev half maps stay in rows 1 to 3", async () => {
+  const api = createDevStrategyApi();
+  const [cycles, maps] = await Promise.all([api.teamCycles(E), api.fieldMaps(E)]);
+  cycles.forEach((c) => {
+    c.cycles.forEach((r) => expect(Number(r.to.slice(1))).toBeLessThanOrEqual(3));
+    expect(c.average.length === 12 || (c.average.length === 0 && c.seconds == null)).toBe(true);
+    expect(c.mirroredShare! >= 0 && c.mirroredShare! <= 1).toBe(true);
+  });
+  // 12345 shoots from C4 (row 4) on its main route: mirrored to C3.
+  expect(cycles.find((c) => c.teamNumber === 12345)!.mirroredShare).toBeGreaterThan(0);
+  maps.forEach((m) => m.half.forEach((s) => expect(Number(s.square.slice(1))).toBeLessThanOrEqual(3)));
+});

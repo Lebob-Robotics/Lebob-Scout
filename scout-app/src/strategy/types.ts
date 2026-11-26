@@ -31,7 +31,9 @@ export type Pick = {
 
 // From the functions (scout-functions/src/teams/maps.ts). Figures per match.
 export type SquareMap = { square: string; autoScored: number; teleopScored: number; pickedUp: number };
-export type TeamMap = { teamNumber: number; matches: number; squares: SquareMap[] };
+// `squares` are as tapped; `half` is the same in the red alliance's view folded onto the upper half (rows 1 to 3), a
+// lower-half square added onto its mirror (functions 0.9.0 on; read as empty when missing).
+export type TeamMap = { teamNumber: number; matches: number; squares: SquareMap[]; half: SquareMap[] };
 export type AllianceMap = { robots: TeamMap[]; squares: SquareMap[] };
 export type SquareOverlap = { square: string; red: number; blue: number; both: number };
 export type MatchMaps = { matchUuid: string; label: string; red: AllianceMap; blue: AllianceMap; overlap: SquareOverlap[] };
@@ -46,9 +48,14 @@ export type CycleRoute = { points: CyclePoint[]; cycles: number; share: number; 
 export type CycleRow = {
   label: string; from?: string; via: string[]; to: string; pieces: number; points: CyclePoint[];
   seconds?: number; collectSeconds?: number; travelSeconds?: number; shootSeconds?: number; weight: number;
+  // Shot from the lower half, so mirrored onto the upper half (rows 4 to 6 become 3 to 1).
+  mirrored: boolean;
 };
 export type TeamCycles = {
   teamNumber: number; matches: number; cyclesPerMatch: number; cyclesLow?: number; cyclesHigh?: number;
   seconds?: number; collectSeconds?: number; travelSeconds?: number; shootSeconds?: number; piecesPerCycle?: number;
   squares: CycleSquare[]; routes: CycleRoute[]; cycles: CycleRow[];
+  // The share of its cycles (0 to 1) shot from the lower half and mirrored, and the one averaged cycle: every timed
+  // cycle's line averaged point by point (12 points; empty with none).
+  mirroredShare?: number; average: CyclePoint[];
 };

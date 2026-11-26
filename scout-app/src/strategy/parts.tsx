@@ -125,10 +125,11 @@ const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 // each other), start spots as dots. No numbers: hovering a square with a mouse, or tapping it, shows its figures in a
 // pop-up; tapping anywhere else closes it. `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
 // `overlay` is drawn over the shading in the same 0 to 100 frame (the cycle routes); `children` sit on the field (a
-// route's pop-up); `hidePop` hides the square's pop-up while another one shows.
-export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false }: {
+// route's pop-up); `hidePop` hides the square's pop-up while another one shows. `half` shows only the upper half of
+// the field (rows 1 to 3), for a map folded onto it.
+export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false, half = false }: {
   cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both" | "cross"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
-  overlay?: ReactNode; children?: ReactNode; hidePop?: boolean;
+  overlay?: ReactNode; children?: ReactNode; hidePop?: boolean; half?: boolean;
 }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const gid = `heat${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -142,10 +143,11 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
   }, [open]);
 
   const w = 100 / field.cols, h = 100 / field.rows;
+  const rows = half ? field.rows / 2 : field.rows;
   const max = Math.max(0, ...[...cells.values()].map((c) => c.value));
   const at = (i: number) => ({ col: i % field.cols, row: Math.floor(i / field.cols) });
   const value = (col: number, row: number) => cells.get(squareName(col, row))?.value ?? 0;
-  const squares = Array.from({ length: field.cols * field.rows }, (_, i) => {
+  const squares = Array.from({ length: field.cols * rows }, (_, i) => {
     const { col, row } = at(i);
     const here = open?.col === col && open.row === row;
     return (
@@ -154,23 +156,23 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
         onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(here ? null : { col, row }); }} />
     );
   });
-  const pop = open && popPlace(open.col, open.row, field.cols, field.rows);
+  const pop = open && popPlace(open.col, open.row, field.cols, rows);
   const name = open && squareName(open.col, open.row);
   const cell = name ? cells.get(name) : undefined;
   return (
     <div ref={wrap} className={small ? "heat small" : "heat"}>
-      <div className="field">
+      <div className={half ? "field half" : "field"}>
         <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} />
-        <svg className={`map-overlay ${tone}`} viewBox="0 0 100 100" role="img" aria-label={label}
+        <svg className={`map-overlay ${tone}`} viewBox={`0 0 100 ${rows * h}`} role="img" aria-label={label}
           onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
           {smooth && (
             <>
               <defs>
                 <radialGradient id={`${gid}g`}><stop offset="0" className="hs-in" /><stop offset="1" className="hs-out" /></radialGradient>
-                <clipPath id={`${gid}c`}><rect width="100" height="100" /></clipPath>
+                <clipPath id={`${gid}c`}><rect width="100" height={rows * h} /></clipPath>
               </defs>
               <g clipPath={`url(#${gid}c)`} className="heat-soft">
-                {Array.from({ length: field.cols * field.rows }, (_, i) => {
+                {Array.from({ length: field.cols * rows }, (_, i) => {
                   const { col, row } = at(i);
                   const v = value(col, row);
                   return v > 0 && <circle key={i} cx={(col + 0.5) * w} cy={(row + 0.5) * h} r={w * 1.3} fill={`url(#${gid}g)`} opacity={Math.min(1, shade(v, max) * 1.15)} />;
@@ -180,7 +182,7 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
           )}
           {squares}
           {overlay}
-          {starts.map((s, i) => {
+          {!half && starts.map((s, i) => {
             const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
             return <circle key={i} className={s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
           })}

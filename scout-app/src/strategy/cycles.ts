@@ -1,9 +1,9 @@
 // Sums behind the Cycles card and the Match planner's cycle figures. Cycles come only from our scouting (teamCycles),
 // or, for a team nobody scouted, the cycle time its pit report claims. Never from the rating.
 import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
-import { chaikin, type Pt } from "./autos";
+import { chaikin, resample, type Pt } from "./autos";
 import type { Cell } from "./logic";
-import type { CyclePoint, CycleRoute, CycleSquare, TeamCycles } from "./types";
+import type { CyclePoint, CycleRoute, CycleRow, CycleSquare, TeamCycles } from "./types";
 
 const FIELD = FIELDS[CURRENT_FIELD_KEY];
 const r1 = (x: number) => Math.round(x * 10) / 10;
@@ -68,3 +68,38 @@ export function crossedSquares(points: CyclePoint[]): string[] {
 
 // A square's centre, in squares.
 export const centre = (square: string): CyclePoint => ({ x: square.charCodeAt(0) - 65 + 0.5, y: Number(square.slice(1)) - 0.5 });
+
+// A cycle shot from the lower half (rows 4 to 6), mirrored onto the upper half with the whole cycle: each square's
+// row r becomes 7 − r and each point's y becomes 6 − y. A cycle shot from the upper half is left as it is.
+const mirrorSq = (sq: string) => `${sq[0]}${FIELD.rows + 1 - Number(sq.slice(1))}`;
+export function mirrorCycle<T extends Pick2<CycleRow, "from" | "via" | "to" | "points">>(c: T): T & { mirrored: boolean } {
+  if (Number(c.to.slice(1)) <= FIELD.rows / 2) return { ...c, mirrored: false };
+  return {
+    ...c, ...(c.from ? { from: mirrorSq(c.from) } : {}), via: c.via.map(mirrorSq), to: mirrorSq(c.to),
+    points: c.points.map((p) => ({ x: p.x, y: r2(FIELD.rows - p.y) })), mirrored: true,
+  };
+}
+type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
+const r2 = (x: number) => Math.round(x * 100) / 100;
+
+// The one averaged cycle: every timed cycle's line resampled to 12 points and averaged point by point by weight,
+// as the functions do. Empty with no timed cycle.
+export function averageCycle(cycles: Pick2<CycleRow, "points" | "seconds" | "weight">[], n = 12): CyclePoint[] {
+  const timed = cycles.filter((c) => c.seconds != null);
+  const total = timed.reduce((a, c) => a + c.weight, 0);
+  if (!total) return [];
+  const lines = timed.map((c) => ({ line: resample(c.points.map((p): Pt => [p.x, p.y]), n), w: c.weight }));
+  return Array.from({ length: n }, (_, i) => ({
+    x: r2(lines.reduce((a, l) => a + l.line[i][0] * l.w, 0) / total), y: r2(lines.reduce((a, l) => a + l.line[i][1] * l.w, 0) / total),
+  }));
+}
+
+// The averaged cycle's label: the average cycle time and how many timed cycles it is drawn from.
+export function averageLabel(c: Pick2<TeamCycles, "seconds" | "cycles">): string {
+  const n = Math.round(c.cycles.filter((x) => x.seconds != null).reduce((a, x) => a + x.weight, 0) * 10) / 10;
+  return [c.seconds != null && `${r1(c.seconds)}s`, `${n} cycle${n === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
+}
+
+// The note under a cycle map: how many were mirrored, or nothing when none were.
+export const mirroredNote = (share: number | undefined) =>
+  share ? `Cycles shot from the lower half are mirrored onto the upper half (${Math.round(share * 100)}%).` : null;

@@ -10,14 +10,17 @@ import {
 import { Dropdown } from "../../components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { CyclesCard } from "../CyclesCard";
+import type { HeatField as FieldView } from "../settings";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];
+const FIELDS: [FieldView, string][] = [["full", "Full field"], ["half", "Half field"]];
 
 // One team: its OPR (from this event's official scores) and how it moved, what the scouts saw, where it plays, and
 // its matches.
 export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTeam(team: number): void }) {
   const { model, labels, scale } = ctx;
   const [measure, setMeasure] = useState<Measure>(ctx.settings.measure);
+  const half = ctx.settings.heatField === "half";
   const row = model.teams.find((r) => r.teamNumber === team);
   const opr = row?.opr ?? null;
   const range = opr == null ? null : likely(opr, row!.oprSe);
@@ -97,11 +100,16 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
         </div>
 
         <div className="col">
-          <Card title="Heatmap" control={ctx.maps.state === "ok" && <Switch label="Measure" value={measure} options={MEASURES} onChange={setMeasure} />}>
-            {ctx.maps.state !== "ok" ? <Waiting load={ctx.maps} what="the heatmaps" retry={ctx.retryMaps} /> : (
-              <HeatField cells={teamCells(map?.squares ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"} smooth={ctx.settings.heatStyle === "smooth"}
-                label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match`} />
-            )}
+          <Card title="Heatmap" control={ctx.maps.state === "ok" && <>
+            <Switch label="Measure" value={measure} options={MEASURES} onChange={setMeasure} />
+            <Switch label="Field" value={ctx.settings.heatField} options={FIELDS} onChange={(v) => ctx.changeSettings({ heatField: v })} />
+          </>}>
+            {ctx.maps.state !== "ok" ? <Waiting load={ctx.maps} what="the heatmaps" retry={ctx.retryMaps} /> : <>
+              <HeatField cells={teamCells((half ? map?.half : map?.squares) ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"}
+                smooth={ctx.settings.heatStyle === "smooth"} half={half}
+                label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match${half ? ", the lower half folded onto the upper half" : ""}`} />
+              {half && <p className="caption">Red's side view, the lower half folded onto the upper half.</p>}
+            </>}
           </Card>
 
           <Card title="Auto paths">

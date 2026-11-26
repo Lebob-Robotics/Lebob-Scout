@@ -3,7 +3,7 @@ import {
   bar, cardKey, keepShut, likely, overlapCells, pointsFigure, pointsTitle, popPlace, ratingRows, readShut, scaleMax, scoutMoreTiles,
   teamCells, tipsPerMatch,
   buildMatchMaps, defaultMatch, favouriteWon, matchLabels, measureOf, nextOurs, nextSort, one, orderForecasts,
-  pct, playedCount, rangeText, robotsOf, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, sortRows, whole, winChance,
+  foldHalf, isLower, mirrorSquare, pct, playedCount, rangeText, robotsOf, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, sortRows, whole, winChance,
 } from "./logic";
 import type { Forecast, TeamMap } from "./types";
 
@@ -111,13 +111,14 @@ test("measureOf picks auto, teleop, both scored, or pick-ups", () => {
 
 test("buildMatchMaps adds each alliance's robots and scores the overlap by the smaller use", () => {
   const maps: TeamMap[] = [
-    { teamNumber: 1, matches: 2, squares: [{ square: "A1", autoScored: 1, teleopScored: 2, pickedUp: 0 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }] },
-    { teamNumber: 2, matches: 1, squares: [{ square: "A1", autoScored: 0, teleopScored: 1, pickedUp: 1 }] },
-    { teamNumber: 3, matches: 1, squares: [{ square: "A1", autoScored: 0, teleopScored: 0, pickedUp: 2 }, { square: "C3", autoScored: 0, teleopScored: 5, pickedUp: 0 }] },
+    { teamNumber: 1, matches: 2, half: [], squares: [{ square: "A1", autoScored: 1, teleopScored: 2, pickedUp: 0 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }] },
+    { teamNumber: 2, matches: 1, half: [], squares: [{ square: "A1", autoScored: 0, teleopScored: 1, pickedUp: 1 }] },
+    { teamNumber: 3, matches: 1, half: [], squares: [{ square: "A1", autoScored: 0, teleopScored: 0, pickedUp: 2 }, { square: "C3", autoScored: 0, teleopScored: 5, pickedUp: 0 }] },
   ];
   const mm = buildMatchMaps("m", "Q1", [1, 2], [3, 4], maps);
   expect(mm.red.squares).toEqual([{ square: "A1", autoScored: 1, teleopScored: 3, pickedUp: 1 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }]);
   expect(mm.blue.robots.map((r) => r.matches)).toEqual([1, 0]);
+  expect(mm.blue.robots[1]).toEqual({ teamNumber: 4, matches: 0, squares: [], half: [] });
   expect(mm.overlap).toEqual([{ square: "A1", red: 5, blue: 2, both: 2 }]);
 });
 
@@ -218,4 +219,15 @@ test("robotsOf gives each robot's points: scouted first, else the official share
 test("ratingRows keeps a team with no OPR yet, with no range", () => {
   const [row] = ratingRows([{ teamNumber: 7, teamName: "G", opr: null, oprSe: null, hiveRating: 60 }], [], () => undefined, () => null);
   expect([row.opr, row.low, row.high]).toEqual([null, null, null]);
+});
+
+test("foldHalf adds each lower-half square onto its mirror, so every square is in rows 1 to 3", () => {
+  expect([mirrorSquare("C4"), mirrorSquare("A6"), mirrorSquare("F1"), isLower("B4"), isLower("B3")]).toEqual(["C3", "A1", "F6", true, false]);
+  const half = foldHalf([
+    { square: "C3", autoScored: 1, teleopScored: 2, pickedUp: 0 },
+    { square: "C4", autoScored: 0, teleopScored: 3, pickedUp: 1 },
+    { square: "E6", autoScored: 0, teleopScored: 0, pickedUp: 2 },
+  ]);
+  expect(half).toEqual([{ square: "C3", autoScored: 1, teleopScored: 5, pickedUp: 1 }, { square: "E1", autoScored: 0, teleopScored: 0, pickedUp: 2 }]);
+  expect(half.every((s) => !isLower(s.square))).toBe(true);
 });

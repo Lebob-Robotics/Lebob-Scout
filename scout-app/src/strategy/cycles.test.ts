@@ -1,8 +1,8 @@
 import { expect, test } from "vitest";
-import { centre, crossedSquares, cycleCells, cycleTime, cyclesFigure, onMap, roundedLine, routeLabel, routeLines, routeWidth, timeParts } from "./cycles";
+import { averageCycle, averageLabel, centre, crossedSquares, mirrorCycle, mirroredNote, cycleCells, cycleTime, cyclesFigure, onMap, roundedLine, routeLabel, routeLines, routeWidth, timeParts } from "./cycles";
 import type { TeamCycles } from "./types";
 
-const team = (t: Partial<TeamCycles> = {}): TeamCycles => ({ teamNumber: 1, matches: 2, cyclesPerMatch: 4.5, squares: [], routes: [], cycles: [], ...t });
+const team = (t: Partial<TeamCycles> = {}): TeamCycles => ({ teamNumber: 1, matches: 2, cyclesPerMatch: 4.5, squares: [], routes: [], cycles: [], average: [], ...t });
 
 test("cycleCells shades by the measure and lists all three figures", () => {
   const cells = cycleCells([{ square: "C3", passes: 2.5, intakes: 1, shots: 0.333 }], "intakes");
@@ -55,4 +55,36 @@ test("crossedSquares lists every square a line passes through, once each", () =>
   expect(crossedSquares([centre("B2"), centre("B2")])).toEqual(["B2"]);
   expect(crossedSquares([centre("A1"), centre("B2")]).sort()).toEqual(["A1", "B2"]);
   expect(centre("C4")).toEqual({ x: 2.5, y: 3.5 });
+});
+
+test("mirrorCycle turns a cycle shot from the lower half onto the upper half, the whole cycle with it", () => {
+  const low = { from: "C4", via: ["E5", "E6"], to: "D4", points: [centre("C4"), centre("E5"), centre("D4")] };
+  const m = mirrorCycle(low);
+  expect([m.from, m.via, m.to, m.mirrored]).toEqual(["C3", ["E2", "E1"], "D3", true]);
+  expect(m.points).toEqual([centre("C3"), centre("E2"), centre("D3")]);
+  const high = { via: ["E5"], to: "C3", points: [centre("E5"), centre("C3")] };
+  expect(mirrorCycle(high)).toEqual({ ...high, mirrored: false }); // shot from the upper half: as it was, even if it collected below
+});
+
+test("averageCycle averages every timed cycle's line by weight into 12 points", () => {
+  const line = (y: number) => [{ x: 0, y }, { x: 6, y }];
+  const avg = averageCycle([
+    { points: line(1), seconds: 10, weight: 1 },
+    { points: line(2), seconds: 12, weight: 0.5 },
+    { points: line(2), seconds: 12, weight: 0.5 },
+    { points: line(5), weight: 1 }, // the first cycle of teleop: no time, left out
+  ]);
+  expect(avg).toHaveLength(12);
+  expect(avg[0]).toEqual({ x: 0, y: 1.5 });
+  expect(avg[11]).toEqual({ x: 6, y: 1.5 });
+  expect(averageCycle([{ points: line(1), weight: 1 }])).toEqual([]);
+});
+
+test("the averaged cycle's label and the mirrored note", () => {
+  const rows = [{ seconds: 10, weight: 1 }, { seconds: 12, weight: 0.5 }, { weight: 1 }].map((r) => ({ label: "Q1", via: [], to: "C3", pieces: 1, points: [], mirrored: false, ...r }));
+  expect(averageLabel({ seconds: 13.44, cycles: rows })).toBe("13.4s · 1.5 cycles");
+  expect(averageLabel({ seconds: undefined, cycles: rows.slice(0, 1) })).toBe("1 cycle");
+  expect(mirroredNote(0.4)).toBe("Cycles shot from the lower half are mirrored onto the upper half (40%).");
+  expect(mirroredNote(0)).toBeNull();
+  expect(mirroredNote(undefined)).toBeNull();
 });
