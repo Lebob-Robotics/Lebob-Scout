@@ -10,7 +10,7 @@ import { MAPS_NOT_READY } from "./api";
 import { hitIndex, matchName, ratingChart } from "./chart";
 import { bar, keepShut, likely, nextSort, one, popPlace, rangeText, readShut, sortRows } from "./logic";
 import type { Cell, Pts, Sort, SortValue } from "./logic";
-import { PATH_COLOURS, asDrawn, averagedAutos, shotMarks, type Auto, type AutoPath } from "./autos";
+import { PATH_COLOURS, asDrawn, averagedAutos, onOurSide, shotMarks, type Auto, type AutoPath } from "./autos";
 import type { HistoryPoint } from "./types";
 import type { Load } from "./useLoad";
 
@@ -127,9 +127,11 @@ const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 // `overlay` is drawn over the shading in the same 0 to 100 frame (the cycle routes); `children` sit on the field (a
 // route's pop-up); `hidePop` hides the square's pop-up while another one shows. `half` shows only the upper half of
 // the field (rows 1 to 3), for a map folded onto it.
-export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false, half = false }: {
+// `tracked`: a team's own map with every match turned to the left-hand side, drawn as the yellow (tracked) alliance
+// against a grey one; start spots then sit on that side too.
+export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false, half = false, tracked = false }: {
   cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both" | "cross"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
-  overlay?: ReactNode; children?: ReactNode; hidePop?: boolean; half?: boolean;
+  overlay?: ReactNode; children?: ReactNode; hidePop?: boolean; half?: boolean; tracked?: boolean;
 }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const gid = `heat${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
@@ -162,7 +164,7 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
   return (
     <div ref={wrap} className={small ? "heat small" : "heat"}>
       <div className={half ? "field half" : "field"}>
-        <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} />
+        <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} tracked={tracked} />
         <svg className={`map-overlay ${tone}`} viewBox={`0 0 100 ${rows * h}`} role="img" aria-label={label}
           onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
           {smooth && (
@@ -183,8 +185,8 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
           {squares}
           {overlay}
           {!half && starts.map((s, i) => {
-            const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
-            return <circle key={i} className={s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
+            const p = wallPoint(s.wallPos, tracked || s.alliance !== "blue" ? "red" : "blue");
+            return <circle key={i} className={tracked ? "ours" : s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
           })}
         </svg>
         {pop && !hidePop && (
@@ -200,12 +202,13 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
 }
 
 // A team's autos on one field: averaged (similar autos merged into one rounded path, "x3") or every path as drawn.
-// Points are stored as the scout app draws them (0 to 100 across the grid area, red's wall on the left), so they are
-// drawn as stored. Each auto has its own colour: its drive path, the spots a scout marked, and a filled marker on
-// each square it shot from, sized and labelled by the count. Start spots from set-up show as alliance dots.
+// Points are stored as the scout app draws them (0 to 100 across the grid area, red's wall on the left). Every auto
+// is turned to the left-hand side, the yellow (tracked) alliance, as the team's other maps are. Each auto has its own
+// colour: its drive path, the spots a scout marked, and a filled marker on each square it shot from, sized and
+// labelled by the count. Start spots from set-up show as yellow dots on that side.
 const count = (n: number) => String(Math.round(n * 10) / 10);
 export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[]; starts?: StartDot[]; averaged: boolean }) {
-  const autos = (averaged ? averagedAutos(paths) : asDrawn(paths)).map((a, i) => ({ ...a, colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
+  const autos = (averaged ? averagedAutos(paths) : asDrawn(paths)).map(onOurSide).map((a, i) => ({ ...a, colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
   const marks = shotMarks(autos);
   // Two scouts in one match give two autos with the same label: name each match once, with how many autos merged.
   const name = (a: Auto) => `${[...new Set(a.labels)].join(", ")}${a.labels.length > 1 ? ` x${a.labels.length}` : ""}`;
@@ -213,11 +216,11 @@ export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[];
     <>
       <div className="heat">
         <div className="field">
-          <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} />
+          <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} tracked />
           <svg className="path-overlay" viewBox="0 0 100 100" role="img" aria-label={`${autos.length} auto${autos.length === 1 ? "" : "s"}, with shooting squares and start spots`}>
             {starts.map((s, i) => {
-              const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
-              return <circle key={`s${i}`} className={`wall ${s.alliance}`} cx={inset(p.x)} cy={inset(p.y)} r="3"><title>{`Start ${s.label}`}</title></circle>;
+              const p = wallPoint(s.wallPos, "red");
+              return <circle key={`s${i}`} className="wall ours" cx={inset(p.x)} cy={inset(p.y)} r="3"><title>{`Start ${s.label}`}</title></circle>;
             })}
             {autos.map((a, i) => {
               const first = a.lines[0]?.[0] ?? a.dots[0];
@@ -225,7 +228,7 @@ export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[];
                 <g key={i} style={{ color: a.colour }}>
                   {a.lines.map((l, j) => <polyline key={j} points={l.map((q) => q.join(",")).join(" ")} />)}
                   {a.dots.map(([x, y], j) => <circle key={`d${j}`} className="pspot" cx={x} cy={y} r="1.6" />)}
-                  {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{`${name(a)} (${a.alliance})`}</title></circle>}
+                  {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{name(a)}</title></circle>}
                 </g>
               );
             })}
@@ -240,7 +243,7 @@ export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[];
       </div>
       {autos.length > 0 && (
         <ul className="path-legend">
-          {autos.map((a, i) => <li key={i}><span className="swatch" style={{ background: a.colour }} />{name(a)} <span className={`ally ${a.alliance}`}>{a.alliance}</span></li>)}
+          {autos.map((a, i) => <li key={i}><span className="swatch" style={{ background: a.colour }} />{name(a)}</li>)}
         </ul>
       )}
     </>

@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { SAME_AUTO, asDrawn, averagedAutos, chaikin, meanDistance, resample, shotMarks, turn, type AutoPath, type Pt } from "./autos";
+import { SAME_AUTO, asDrawn, averagedAutos, chaikin, meanDistance, onOurSide, resample, shotMarks, turn, type AutoPath, type Pt } from "./autos";
 
 const path = (label: string, alliance: string, points: string, shots?: AutoPath["shots"]): AutoPath => ({ label, alliance, points, ...(shots ? { shots } : {}) });
 
@@ -71,4 +71,11 @@ test("shotMarks sits on the square's centre, side by side when autos share it, l
   const marks = shotMarks([auto([{ square: "A1", count: 1 }, { square: "C3", count: 4 }]), auto([{ square: "C3", count: 1 }])]);
   expect(marks.map((m) => [m.auto, m.square, m.x, m.y])).toEqual([[0, "A1", 8.3, 8.3], [0, "C3", 38.7, 41.7], [1, "C3", 44.7, 41.7]]);
   expect(marks[1].r).toBeGreaterThan(marks[0].r);
+});
+
+test("onOurSide turns a blue auto to the left-hand side, shots and all, and leaves a red one", () => {
+  const blue = { labels: ["Q1"], alliance: "blue" as const, lines: [[[90, 80], [70, 60]] as Pt[]], dots: [[60, 50] as Pt], shots: [{ square: "E4", count: 2 }] };
+  expect(onOurSide(blue)).toEqual({ labels: ["Q1"], alliance: "red", lines: [[[10, 20], [30, 40]]], dots: [[40, 50]], shots: [{ square: "B3", count: 2 }] });
+  const red = { ...blue, alliance: "red" as const };
+  expect(onOurSide(red)).toBe(red);
 });

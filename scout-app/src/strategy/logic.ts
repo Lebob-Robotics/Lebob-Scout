@@ -1,4 +1,5 @@
 // Sums and orderings for the strategy screens. No React here, so each is tested on its own.
+import { CURRENT_FIELD_KEY, FIELDS, flipSquare } from "../field";
 import type { TeamProfile } from "../api";
 import type { AllianceMap, Forecast, MatchMaps, Projection, SquareMap, SquareOverlap, TeamMap } from "./types";
 
@@ -192,11 +193,17 @@ export function addMaps(maps: TeamMap[]): SquareMap[] {
 const use = (s: SquareMap) => s.autoScored + s.teleopScored + s.pickedUp;
 export function buildMatchMaps(matchUuid: string, label: string, red: number[], blue: number[], maps: TeamMap[]): MatchMaps {
   const byTeam = new Map(maps.map((m) => [m.teamNumber, m]));
-  const side = (teams: number[]): AllianceMap => {
-    const robots = teams.map((t) => byTeam.get(t) ?? { teamNumber: t, matches: 0, squares: [], half: [] });
+  // Each robot's aligned map (red's view) on the side it plays here, as the functions place it.
+  const place = (teams: number[], side: "red" | "blue"): AllianceMap => {
+    const robots = teams.map((t): TeamMap => {
+      const m = byTeam.get(t);
+      if (!m) return { teamNumber: t, matches: 0, squares: [], aligned: [], half: [] };
+      const placed = side === "blue" ? m.aligned.map((s) => ({ ...s, square: flipSquare(s.square, FIELDS[CURRENT_FIELD_KEY]) })) : m.aligned;
+      return { ...m, squares: [...placed].sort((a, b) => a.square.localeCompare(b.square)) };
+    });
     return { robots, squares: addMaps(robots) };
   };
-  const r = side(red), b = side(blue);
+  const r = place(red, "red"), b = place(blue, "blue");
   const blueUse = new Map(b.squares.map((s) => [s.square, use(s)]));
   const overlap = r.squares
     .filter((s) => blueUse.has(s.square))

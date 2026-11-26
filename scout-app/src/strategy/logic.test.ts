@@ -111,14 +111,16 @@ test("measureOf picks auto, teleop, both scored, or pick-ups", () => {
 
 test("buildMatchMaps adds each alliance's robots and scores the overlap by the smaller use", () => {
   const maps: TeamMap[] = [
-    { teamNumber: 1, matches: 2, half: [], squares: [{ square: "A1", autoScored: 1, teleopScored: 2, pickedUp: 0 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }] },
-    { teamNumber: 2, matches: 1, half: [], squares: [{ square: "A1", autoScored: 0, teleopScored: 1, pickedUp: 1 }] },
-    { teamNumber: 3, matches: 1, half: [], squares: [{ square: "A1", autoScored: 0, teleopScored: 0, pickedUp: 2 }, { square: "C3", autoScored: 0, teleopScored: 5, pickedUp: 0 }] },
+    { teamNumber: 1, matches: 2, half: [], squares: [], aligned: [{ square: "A1", autoScored: 1, teleopScored: 2, pickedUp: 0 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }] },
+    { teamNumber: 2, matches: 1, half: [], squares: [], aligned: [{ square: "A1", autoScored: 0, teleopScored: 1, pickedUp: 1 }] },
+    // Team 3 plays blue here: its aligned F6 and D4 (red's view) land on A1 and C3.
+    { teamNumber: 3, matches: 1, half: [], squares: [], aligned: [{ square: "F6", autoScored: 0, teleopScored: 0, pickedUp: 2 }, { square: "D4", autoScored: 0, teleopScored: 5, pickedUp: 0 }] },
   ];
   const mm = buildMatchMaps("m", "Q1", [1, 2], [3, 4], maps);
   expect(mm.red.squares).toEqual([{ square: "A1", autoScored: 1, teleopScored: 3, pickedUp: 1 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }]);
   expect(mm.blue.robots.map((r) => r.matches)).toEqual([1, 0]);
-  expect(mm.blue.robots[1]).toEqual({ teamNumber: 4, matches: 0, squares: [], half: [] });
+  expect(mm.blue.robots[1]).toEqual({ teamNumber: 4, matches: 0, squares: [], aligned: [], half: [] });
+  expect(mm.blue.robots[0]!.squares.map((s) => s.square)).toEqual(["A1", "C3"]);
   expect(mm.overlap).toEqual([{ square: "A1", red: 5, blue: 2, both: 2 }]);
 });
 

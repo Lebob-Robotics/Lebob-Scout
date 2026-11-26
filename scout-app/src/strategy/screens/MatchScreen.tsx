@@ -131,7 +131,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
               <div><dt>cycle time</dt><dd><CycleTimeFig time={time} /></dd></div>
             </dl>
             {map?.matches || p?.starts.length ? (
-              <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={p?.starts ?? []} smooth={ctx.settings.heatStyle === "smooth"}
+              <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={(p?.starts ?? []).map((s) => ({ ...s, alliance: side }))} smooth={ctx.settings.heatStyle === "smooth"}
                 label={`${team} ${scope === "scored" ? "scoring" : "pick-ups"} per match, and start spots`} />
             ) : <p className="caption">Not scouted yet.</p>}
           </div>

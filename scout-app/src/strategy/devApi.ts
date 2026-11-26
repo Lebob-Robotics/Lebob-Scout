@@ -91,7 +91,8 @@ const FIELD_MAPS: TeamMap[] = DEV_TEAMS_TAB.teams.filter((t) => t.matches > 0).m
   });
   const all = [...squares.values()].sort((a, b) => a.square.localeCompare(b.square));
   // The dev squares stand in red's view; folded onto the upper half as the functions fold theirs.
-  return { teamNumber: t.teamNumber, matches: t.matches, squares: all, half: foldHalf(all) };
+  // The dev squares stand for red's view, so they are the aligned map as they are.
+  return { teamNumber: t.teamNumber, matches: t.matches, squares: all, aligned: all, half: foldHalf(all) };
 });
 
 // Each played match's score shared evenly, standing in for the pointSplits function (the app no longer shows it).

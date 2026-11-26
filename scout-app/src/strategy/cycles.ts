@@ -107,4 +107,4 @@ export function averageLabel(c: Pick2<TeamCycles, "seconds" | "cycles">): string
 
 // The note under the cycle map: it is folded, and how many of the cycles were shot from the lower half.
 export const foldNote = (share: number | undefined) =>
-  `Red's side view. Every cycle is folded onto the upper half${share != null ? ` (shots from the lower half: ${Math.round(share * 100)}%)` : ""}.`;
+  `The yellow alliance's side. Every cycle is folded onto the upper half${share != null ? ` (shots from the lower half: ${Math.round(share * 100)}%)` : ""}.`;

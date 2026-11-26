@@ -33,7 +33,9 @@ export type Pick = {
 export type SquareMap = { square: string; autoScored: number; teleopScored: number; pickedUp: number };
 // `squares` are as tapped; `half` is the same in the red alliance's view folded onto the upper half (rows 1 to 3), a
 // lower-half square added onto its mirror (functions 0.9.0 on; read as empty when missing).
-export type TeamMap = { teamNumber: number; matches: number; squares: SquareMap[]; half: SquareMap[] };
+// squares: as tapped (in matchMaps, the aligned map placed on the side the robot plays). aligned: every match turned to
+// the left-hand (red) side, shown as the yellow tracked alliance. half: aligned, folded onto the upper half.
+export type TeamMap = { teamNumber: number; matches: number; squares: SquareMap[]; aligned: SquareMap[]; half: SquareMap[] };
 export type AllianceMap = { robots: TeamMap[]; squares: SquareMap[] };
 export type SquareOverlap = { square: string; red: number; blue: number; both: number };
 export type MatchMaps = { matchUuid: string; label: string; red: AllianceMap; blue: AllianceMap; overlap: SquareOverlap[] };

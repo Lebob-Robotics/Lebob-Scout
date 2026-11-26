@@ -89,7 +89,7 @@ test("the averaged cycle's label and the fold note", () => {
   const rows = [{ seconds: 10, weight: 1 }, { seconds: 12, weight: 0.5 }, { weight: 1 }].map((r) => ({ label: "Q1", via: [], to: "C3", pieces: 1, points: [], mirrored: false, ...r }));
   expect(averageLabel({ seconds: 13.44, cycles: rows })).toBe("13.4s · 1.5 cycles");
   expect(averageLabel({ seconds: undefined, cycles: rows.slice(0, 1) })).toBe("1 cycle");
-  expect(foldNote(0.4)).toBe("Red's side view. Every cycle is folded onto the upper half (shots from the lower half: 40%).");
-  expect(foldNote(0)).toBe("Red's side view. Every cycle is folded onto the upper half (shots from the lower half: 0%).");
-  expect(foldNote(undefined)).toBe("Red's side view. Every cycle is folded onto the upper half.");
+  expect(foldNote(0.4)).toBe("The yellow alliance's side. Every cycle is folded onto the upper half (shots from the lower half: 40%).");
+  expect(foldNote(0)).toBe("The yellow alliance's side. Every cycle is folded onto the upper half (shots from the lower half: 0%).");
+  expect(foldNote(undefined)).toBe("The yellow alliance's side. Every cycle is folded onto the upper half.");
 });

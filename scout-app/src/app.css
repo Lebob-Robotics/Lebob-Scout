@@ -786,3 +786,5 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .avg-cycle .avg-line { stroke: #FFF200; stroke-width: 5; }
 .map-overlay .avg-cycle circle { fill: #FFF200; stroke: #1a1b1e; stroke-width: 1.5; vector-effect: non-scaling-stroke; }
 .map-overlay .avg-cycle .avg-label { fill: #FFF200; stroke: #1a1b1e; stroke-width: .9; font: 700 3.6px var(--font-mono); }
+/* The tracked (yellow) alliance on a team's own maps: start spots on its side. */
+.map-overlay circle.ours, .path-overlay circle.wall.ours { fill: #facc15; }

@@ -122,7 +122,7 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   const pick = open != null ? routes[open] : null;
   return (
     <div ref={wrap}>
-      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} half
+      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} half tracked
         label={`Cycle map, folded onto the upper half: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
         {pick && <RoutePop route={pick.r} at={pick.line[Math.floor(pick.line.length / 2)]} cols={field.cols} rows={field.rows} />}
       </HeatField>

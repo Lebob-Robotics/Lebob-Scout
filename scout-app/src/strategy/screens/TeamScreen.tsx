@@ -105,10 +105,10 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             <Switch label="Field" value={ctx.settings.heatField} options={FIELDS} onChange={(v) => ctx.changeSettings({ heatField: v })} />
           </>}>
             {ctx.maps.state !== "ok" ? <Waiting load={ctx.maps} what="the heatmaps" retry={ctx.retryMaps} /> : <>
-              <HeatField cells={teamCells((half ? map?.half : map?.squares) ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"}
+              <HeatField tracked cells={teamCells((half ? map?.half : map?.aligned) ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"}
                 smooth={ctx.settings.heatStyle === "smooth"} half={half}
                 label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match${half ? ", the lower half folded onto the upper half" : ""}`} />
-              {half && <p className="caption">Red's side view, the lower half folded onto the upper half.</p>}
+              <p className="caption">{half ? "The yellow alliance's side, the lower half folded onto the upper half." : "Every match turned to the yellow alliance's side."}</p>
             </>}
           </Card>
 

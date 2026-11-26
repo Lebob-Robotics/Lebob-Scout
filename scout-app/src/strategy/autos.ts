@@ -23,6 +23,16 @@ const side = (a: string): "red" | "blue" => (a === "blue" ? "blue" : "red");
 export const turn = ([x, y]: Pt): Pt => [100 - x, 100 - y];
 const shotsOf = (p: AutoPath) => (p.shots ?? []).filter((s) => isSquare(s.square, FIELD) && s.count > 0);
 
+// An auto on the left-hand side, the side the strategy app shows a team on: a blue one turned a half-turn, its lines,
+// marked spots and shooting squares with it. A red one is already there.
+export function onOurSide(a: Auto): Auto {
+  if (a.alliance !== "blue") return a;
+  return {
+    ...a, alliance: "red", lines: a.lines.map((l) => l.map(turn)), dots: a.dots.map(turn),
+    shots: a.shots.map((s) => ({ ...s, square: flipSquare(s.square, FIELD) })),
+  };
+}
+
 export function asDrawn(paths: AutoPath[]): Auto[] {
   return paths.map((p) => ({ labels: [p.label], alliance: side(p.alliance), ...splitPath(p.points), shots: shotsOf(p) }));
 }
