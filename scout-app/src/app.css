@@ -773,9 +773,10 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .stable tr.ours td { background: var(--hover); }
 .stable tr.ours td:first-child { box-shadow: inset 3px 0 0 var(--accent-text); }
 
-/* Half field: the picture cropped to its top half (rows 1 to 3), for a map folded onto it. */
-.heat .field.half { aspect-ratio: 8 / 3; overflow: hidden; }
-.field.half .field-picture { height: 200%; }
+/* Half field: the picture cropped to its top half (rows 1 to 3), for a map folded onto it. Only the picture is
+   clipped, so a pop-up can still reach past the field's edge. */
+.heat .field.half { aspect-ratio: 8 / 3; }
+.field.half .field-picture { position: absolute; top: 0; left: 0; width: 100%; height: 200%; clip-path: inset(0 0 50% 0); }
 /* The one averaged cycle: bold yellow over a dark halo, its label beside it; the routes thinner and fainter beneath. */
 .routes.faint .route { opacity: .55; }
 .routes.faint .route.on { opacity: 1; }

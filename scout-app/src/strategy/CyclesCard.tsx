@@ -3,7 +3,7 @@ import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Ctx } from "./StrategyApp";
 import { PATH_COLOURS } from "./autos";
 import {
-  averageLabel, cycleCells, cycleTime, cyclesFigure, mirroredNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,
+  averageLabel, cycleCells, cycleTime, cyclesFigure, foldNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,
 } from "./cycles";
 import { one, popPlace } from "./logic";
 import { Card, HeatField, RangeBar, Switch, Tiles, Waiting } from "./parts";
@@ -42,8 +42,7 @@ export function CyclesCard({ ctx, team }: { ctx: Ctx; team: number }) {
       {fig && c && (
         <>
           <CycleMap c={c} measure={measure} smooth={ctx.settings.heatStyle === "smooth"} drawn={ctx.settings.autoStyle === "drawn"} />
-          <p className="caption">Shown from red's side: blue matches are turned half a turn.</p>
-          {mirroredNote(c.mirroredShare) && <p className="caption">{mirroredNote(c.mirroredShare)}</p>}
+          <p className="caption">{foldNote(c.mirroredShare)}</p>
         </>
       )}
     </Card>
@@ -66,8 +65,8 @@ function TimeBar({ parts }: { parts: Part[] }) {
 
 // The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold, labelled with the
 // average time and how many cycles), over the routes the team uses most (fainter, thicker for more of its cycles;
-// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Cycles shot from the lower half
-// arrive mirrored onto the upper half; the map stays the full field since they can still collect below.
+// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Every cycle arrives folded onto
+// the upper half (see foldCycle), so the map is always the half field.
 function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: CycleMeasure; smooth: boolean; drawn: boolean }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const [open, setOpen] = useState<number | null>(null);
@@ -123,19 +122,22 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   const pick = open != null ? routes[open] : null;
   return (
     <div ref={wrap}>
-      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null}
-        label={`Cycle map: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
+      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} half
+        label={`Cycle map, folded onto the upper half: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
         {pick && <RoutePop route={pick.r} at={pick.line[Math.floor(pick.line.length / 2)]} cols={field.cols} rows={field.rows} />}
       </HeatField>
     </div>
   );
 }
 
+// A route's pop-up at its middle point, on the half field: the picture shows rows 1 to 3, so heights are measured
+// against half the field.
 function RoutePop({ route, at, cols, rows }: { route: CycleRoute; at: [number, number]; cols: number; rows: number }) {
-  const col = Math.min(cols - 1, Math.floor((at[0] / 100) * cols)), row = Math.min(rows - 1, Math.floor((at[1] / 100) * rows));
-  const p = popPlace(col, row, cols, rows);
+  const shown = rows / 2, squareH = 100 / rows;
+  const col = Math.min(cols - 1, Math.floor((at[0] / 100) * cols)), row = Math.min(shown - 1, Math.floor(at[1] / squareH));
+  const p = popPlace(col, row, cols, shown);
   return (
-    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${12.5 + at[0] * 0.75}%`, top: `${at[1]}%` }} role="status">
+    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${12.5 + at[0] * 0.75}%`, top: `${(at[1] / (shown * squareH)) * 100}%` }} role="status">
       <b>Route</b>
       <dl>{routeLines(route).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </div>
