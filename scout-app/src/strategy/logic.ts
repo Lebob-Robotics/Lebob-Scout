@@ -61,6 +61,7 @@ export const nextSort = <K extends string>(s: Sort<K>, key: K, natural: "asc" | 
   s.key === key ? { key, dir: s.dir === "asc" ? "desc" : "asc" } : { key, dir: natural };
 
 const isQual = (f: { level: string }) => f.level.toLowerCase().startsWith("q");
+type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
 
 // Qualification matches by number, then playoffs by series and number.
 export function orderForecasts(fs: Forecast[]): Forecast[] {
@@ -116,14 +117,40 @@ export function splitsByMatch(splits: PointSplit[]): Map<string, Map<number, num
   return out;
 }
 
-// A forecast's four robots, red then blue, with their split points when the match has them.
-export type Robot = { team: number; name: string; side: Side; points: number | null };
-export function robotsOf(f: Forecast, split?: Map<number, number>): Robot[] {
-  const at = (team: number) => split?.get(team) ?? null;
+// Scouting first: a figure our scouts saw, or the model's when they saw none (marked `model`).
+export type Pts = { value: number; model: boolean };
+export function scoutingFirst(scouted: number | null | undefined, model: number | null | undefined): Pts | null {
+  if (scouted != null && Number.isFinite(scouted)) return { value: scouted, model: false };
+  if (model != null && Number.isFinite(model)) return { value: model, model: true };
+  return null;
+}
+
+// A team's scouted points in one match (its scouts averaged first, from the Teams tab), found by match type and
+// number; null when nobody scouted it there.
+type MatchPoints = { matchType: string; matchNumber: number; points: number }[] | undefined;
+export function scoutedMatchPoints(matchPoints: MatchPoints, f: Pick2<Forecast, "level" | "number">): number | null {
+  const type = isQual(f) ? "qualification" : "playoff";
+  return matchPoints?.find((m) => m.matchType === type && m.matchNumber === f.number)?.points ?? null;
+}
+
+// A forecast's four robots, red then blue, each with its points in that match: scouted when we have them, else its
+// rating share of the alliance's score (the point split).
+export type Robot = { team: number; name: string; side: Side; points: Pts | null };
+export function robotsOf(f: Forecast, split?: Map<number, number>, scouted: (team: number) => number | null = () => null): Robot[] {
+  const at = (team: number) => scoutingFirst(scouted(team), split?.get(team));
   return [
     ...f.red.map((team, i) => ({ team, name: f.redNames[i], side: "red" as const, points: at(team) })),
     ...f.blue.map((team, i) => ({ team, name: f.blueNames[i], side: "blue" as const, points: at(team) })),
   ];
+}
+
+// An alliance's scouted points per match: its robots' scouted figures added, with the low and high ends added too.
+// Null unless every robot on it has been scouted.
+type Scouted = { matches: number; points: number; pointsLow?: number; pointsHigh?: number } | undefined;
+export function scoutedTotal(robots: Scouted[]): { value: number; low: number; high: number } | null {
+  if (!robots.length || robots.some((r) => !r || !r.matches)) return null;
+  const sum = (f: (r: NonNullable<Scouted>) => number) => robots.reduce((a, r) => a + f(r!), 0);
+  return { value: sum((r) => r.points), low: sum((r) => r.pointsLow ?? r.points), high: sum((r) => r.pointsHigh ?? r.points) };
 }
 
 // A team's partners when it picks, best chance of winning the event first.
@@ -251,7 +278,6 @@ export const scoutMoreTiles = (t: TeamProfile): [string, string][] => [
 
 // Each card's open or shut state, kept on this device. Storage may be missing or refuse: then cards start open.
 type Store = Pick2<Storage, "getItem" | "setItem" | "removeItem">;
-type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
 export const cardKey = (title: string) => `lsa:card:${title}`;
 export function readShut(title: string, store: () => Store = () => localStorage): boolean {
   try { return store().getItem(cardKey(title)) === "1"; } catch { return false; }

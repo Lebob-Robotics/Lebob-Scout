@@ -1,5 +1,5 @@
 import type { Ctx } from "../StrategyApp";
-import { pointsTitle, rangeText, ratingRows, whole, type RatingRow } from "../logic";
+import { nextOurs, one, pct, playedCount, pointsTitle, rangeText, ratingRows, sideOf, whole, winChance, type RatingRow } from "../logic";
 import { BreakButton, BreakIcon, Card, RangeBar, SortTable, TeamName, Waiting, type Col } from "../parts";
 
 // Home: every team's rating and likely range, points per match, real rank, and breakages.
@@ -25,6 +25,7 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
 
   return (
     <div className="strategy-screen">
+      <Status ctx={ctx} />
       <Card title="Ratings">
         {ctx.scouting.state !== "ok" && <Waiting load={ctx.scouting} what="the scouting figures" retry={ctx.retryScouting} />}
         {rows.length ? (
@@ -32,5 +33,27 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
         ) : <p>No ratings yet for this event.</p>}
       </Card>
     </div>
+  );
+}
+
+// Where the event stands for us: matches played, our rank, our next match and its win chance.
+function Status({ ctx }: { ctx: Ctx }) {
+  const { model, ourTeam, labels } = ctx;
+  const { played, total } = playedCount(model.forecasts, model.matches);
+  const us = model.projections.find((p) => p.teamNumber === ourTeam);
+  const next = nextOurs(model.forecasts, ourTeam);
+  const side = next && sideOf(next, ourTeam);
+  return (
+    <dl className="status-tiles" aria-label="Event status">
+      <div><dt>played</dt><dd>{played} / {total}</dd></div>
+      <div><dt>our rank</dt><dd>{whole(us?.rankNow)}</dd></div>
+      <div>
+        <dt>our next match</dt>
+        <dd>{next ? <button type="button" className="next-link" title={`Plan ${labels.get(next.matchUuid)}`} onClick={() => ctx.openMatch(next.matchUuid)}>{labels.get(next.matchUuid)}</button> : "–"}</dd>
+      </div>
+      <div title={next && side ? `Expected ${one(side === "red" ? next.redScore : next.blueScore)} to ${one(side === "red" ? next.blueScore : next.redScore)}` : undefined}>
+        <dt>win chance</dt><dd>{next && side ? pct(winChance(next, side)) : "–"}</dd>
+      </div>
+    </dl>
   );
 }

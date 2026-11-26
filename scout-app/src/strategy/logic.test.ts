@@ -3,7 +3,7 @@ import {
   bar, cardKey, keepShut, likely, overlapCells, pointsFigure, pointsTitle, popPlace, ratingRows, readShut, scaleMax, scoutMoreTiles, sharesByTeam,
   teamCells, tipsPerMatch,
   buildMatchMaps, defaultMatch, favouriteWon, historyChart, matchLabels, measureOf, nextOurs, nextSort, one, orderForecasts, partnersFor,
-  pct, playedCount, rangeText, robotsOf, rsNeeded, scoutTiles, sideOf, sortRows, splitsByMatch, whole, winChance,
+  pct, playedCount, rangeText, robotsOf, rsNeeded, scoutTiles, scoutedMatchPoints, scoutedTotal, scoutingFirst, sideOf, sortRows, splitsByMatch, whole, winChance,
 } from "./logic";
 import type { Forecast, Pick, TeamMap } from "./types";
 
@@ -113,8 +113,12 @@ test("splits join a match's robots, red then blue", () => {
     { matchUuid: "m", label: "Q1", alliance: "red", teamNumber: 1, allianceScore: 90, points: 60 },
     { matchUuid: "m", label: "Q1", alliance: "red", teamNumber: 2, allianceScore: 90, points: 30 },
   ]);
-  expect(robotsOf(fc(), splits.get("m")).map((r) => [r.team, r.side, r.points])).toEqual([[1, "red", 60], [2, "red", 30], [3, "blue", null], [4, "blue", null]]);
+  const model = (value: number) => ({ value, model: true });
+  expect(robotsOf(fc(), splits.get("m")).map((r) => [r.team, r.side, r.points])).toEqual([[1, "red", model(60)], [2, "red", model(30)], [3, "blue", null], [4, "blue", null]]);
   expect(robotsOf(fc()).every((r) => r.points === null)).toBe(true);
+  // Scouting first: a scouted figure wins over the split.
+  const scouted = (t: number) => (t === 2 ? 41.5 : t === 4 ? 12 : null);
+  expect(robotsOf(fc(), splits.get("m"), scouted).map((r) => r.points)).toEqual([model(60), { value: 41.5, model: false }, null, { value: 12, model: false }]);
 });
 
 test("partnersFor keeps one team's picks, best chance of winning first", () => {
@@ -232,4 +236,26 @@ test("popPlace keeps a square's pop-up on the picture", () => {
   expect(popPlace(0, 0, 6, 6).top).toBeCloseTo(8.333);
   expect(popPlace(5, 5, 6, 6)).toMatchObject({ left: 81.25, below: false, lean: "left" });
   expect(popPlace(2, 3, 6, 6).lean).toBe("middle");
+});
+
+test("scoutingFirst takes the scouted figure, else the model's marked as such, else nothing", () => {
+  expect(scoutingFirst(30, 50)).toEqual({ value: 30, model: false });
+  expect(scoutingFirst(0, 50)).toEqual({ value: 0, model: false });
+  expect(scoutingFirst(null, 50)).toEqual({ value: 50, model: true });
+  expect(scoutingFirst(undefined, NaN)).toBeNull();
+});
+
+test("scoutedMatchPoints finds a match by type and number", () => {
+  const mp = [{ label: "Q2", matchType: "qualification", matchNumber: 2, points: 31.5 }, { label: "P2", matchType: "playoff", matchNumber: 2, points: 60 }];
+  expect(scoutedMatchPoints(mp, { level: "qual", number: 2 })).toBe(31.5);
+  expect(scoutedMatchPoints(mp, { level: "playoff", number: 2 })).toBe(60);
+  expect(scoutedMatchPoints(mp, { level: "qual", number: 3 })).toBeNull();
+  expect(scoutedMatchPoints(undefined, { level: "qual", number: 2 })).toBeNull();
+});
+
+test("scoutedTotal adds an alliance's scouted figures only when every robot was scouted", () => {
+  expect(scoutedTotal([{ matches: 2, points: 30, pointsLow: 20, pointsHigh: 40 }, { matches: 1, points: 10 }])).toEqual({ value: 40, low: 30, high: 50 });
+  expect(scoutedTotal([{ matches: 2, points: 30 }, { matches: 0, points: 0 }])).toBeNull();
+  expect(scoutedTotal([{ matches: 2, points: 30 }, undefined])).toBeNull();
+  expect(scoutedTotal([])).toBeNull();
 });

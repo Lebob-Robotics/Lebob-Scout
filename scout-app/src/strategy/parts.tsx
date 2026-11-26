@@ -1,15 +1,15 @@
 // Pieces the strategy screens share: cards, loading, tables that sort, range bars, heatmaps, auto paths and the rating chart.
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { StartDot } from "../api";
-import { splitPath } from "../autoPath";
 import { FieldPicture } from "../components/FieldPicture";
 import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
 import { wallPoint } from "../startWall";
 import { shade } from "../teamsView";
 import { MAPS_NOT_READY } from "./api";
 import { bar, historyChart, keepShut, nextSort, one, popPlace, readShut, sortRows } from "./logic";
-import type { Cell, Sort, SortValue } from "./logic";
+import type { Cell, Pts, Sort, SortValue } from "./logic";
+import { asDrawn, averagedAutos, shotMarks, type Auto, type AutoPath } from "./autos";
 import type { HistoryPoint } from "./types";
 import type { Load } from "./useLoad";
 
@@ -120,13 +120,14 @@ export const BreakIcon = () => (
 const EDGE = 0.02;
 const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 
-// A heatmap on the field picture: red's wall on the left, a shaded square per value, start spots as dots. No numbers:
-// hovering a square with a mouse, or tapping it, shows its figures in a pop-up; tapping anywhere else closes it.
-// `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
-export function HeatField({ cells, tone, starts = [], label, small = false }: {
-  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both"; starts?: StartDot[]; label: string; small?: boolean;
+// A heatmap on the field picture: red's wall on the left, a shade per square (or, smooth, soft spots that blend into
+// each other), start spots as dots. No numbers: hovering a square with a mouse, or tapping it, shows its figures in a
+// pop-up; tapping anywhere else closes it. `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
+export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false }: {
+  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
 }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
+  const gid = `heat${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
   const [open, setOpen] = useState<{ col: number; row: number } | null>(null);
   const wrap = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -138,12 +139,13 @@ export function HeatField({ cells, tone, starts = [], label, small = false }: {
 
   const w = 100 / field.cols, h = 100 / field.rows;
   const max = Math.max(0, ...[...cells.values()].map((c) => c.value));
+  const at = (i: number) => ({ col: i % field.cols, row: Math.floor(i / field.cols) });
+  const value = (col: number, row: number) => cells.get(squareName(col, row))?.value ?? 0;
   const squares = Array.from({ length: field.cols * field.rows }, (_, i) => {
-    const col = i % field.cols, row = Math.floor(i / field.cols);
-    const v = cells.get(squareName(col, row))?.value ?? 0;
+    const { col, row } = at(i);
     const here = open?.col === col && open.row === row;
     return (
-      <rect key={i} className={here ? "on" : undefined} x={col * w} y={row * h} width={w} height={h} fillOpacity={shade(v, max)}
+      <rect key={i} className={here ? "on" : undefined} x={col * w} y={row * h} width={w} height={h} fillOpacity={smooth ? 0 : shade(value(col, row), max)}
         onPointerEnter={(e) => { if (e.pointerType === "mouse") setOpen({ col, row }); }}
         onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(here ? null : { col, row }); }} />
     );
@@ -157,6 +159,21 @@ export function HeatField({ cells, tone, starts = [], label, small = false }: {
         <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} />
         <svg className={`map-overlay ${tone}`} viewBox="0 0 100 100" role="img" aria-label={label}
           onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
+          {smooth && (
+            <>
+              <defs>
+                <radialGradient id={`${gid}g`}><stop offset="0" className="hs-in" /><stop offset="1" className="hs-out" /></radialGradient>
+                <clipPath id={`${gid}c`}><rect width="100" height="100" /></clipPath>
+              </defs>
+              <g clipPath={`url(#${gid}c)`} className="heat-soft">
+                {Array.from({ length: field.cols * field.rows }, (_, i) => {
+                  const { col, row } = at(i);
+                  const v = value(col, row);
+                  return v > 0 && <circle key={i} cx={(col + 0.5) * w} cy={(row + 0.5) * h} r={w * 1.3} fill={`url(#${gid}g)`} opacity={Math.min(1, shade(v, max) * 1.15)} />;
+                })}
+              </g>
+            </>
+          )}
           {squares}
           {starts.map((s, i) => {
             const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
@@ -174,34 +191,51 @@ export function HeatField({ cells, tone, starts = [], label, small = false }: {
   );
 }
 
-// Every auto path a team's scouts drew, on one field. Points are stored as the scout app draws them: 0 to 100 across
-// the grid area, red's wall on the left, whatever the alliance, so they are drawn as stored. Lines are drive paths,
-// single points are shooting spots; each match has its own colour and its start dot names the match on hover.
+// A team's autos on one field: averaged (similar autos merged into one rounded path, "x3") or every path as drawn.
+// Points are stored as the scout app draws them (0 to 100 across the grid area, red's wall on the left), so they are
+// drawn as stored. Each auto has its own colour: its drive path, the spots a scout marked, and a filled marker on
+// each square it shot from, sized and labelled by the count. Start spots from set-up show as alliance dots.
 const PATH_COLOURS = ["#fde68a", "#a5f3fc", "#f9a8d4", "#bbf7d0", "#c4b5fd", "#fed7aa", "#e5e7eb"];
-export function AutoPaths({ paths }: { paths: { label: string; alliance: string; points: string }[] }) {
-  const drawn = paths.map((p, i) => ({ ...p, colour: PATH_COLOURS[i % PATH_COLOURS.length], ...splitPath(p.points) }));
+const count = (n: number) => String(Math.round(n * 10) / 10);
+export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[]; starts?: StartDot[]; averaged: boolean }) {
+  const autos = (averaged ? averagedAutos(paths) : asDrawn(paths)).map((a, i) => ({ ...a, colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
+  const marks = shotMarks(autos);
+  // Two scouts in one match give two autos with the same label: name each match once, with how many autos merged.
+  const name = (a: Auto) => `${[...new Set(a.labels)].join(", ")}${a.labels.length > 1 ? ` x${a.labels.length}` : ""}`;
   return (
     <>
       <div className="heat">
         <div className="field">
           <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} />
-          <svg className="path-overlay" viewBox="0 0 100 100" role="img" aria-label={`${paths.length} auto paths`}>
-            {drawn.map((p, i) => {
-              const first = p.lines[0]?.[0] ?? p.dots[0];
+          <svg className="path-overlay" viewBox="0 0 100 100" role="img" aria-label={`${autos.length} auto${autos.length === 1 ? "" : "s"}, with shooting squares and start spots`}>
+            {starts.map((s, i) => {
+              const p = wallPoint(s.wallPos, s.alliance === "blue" ? "blue" : "red");
+              return <circle key={`s${i}`} className={`wall ${s.alliance}`} cx={inset(p.x)} cy={inset(p.y)} r="3"><title>{`Start ${s.label}`}</title></circle>;
+            })}
+            {autos.map((a, i) => {
+              const first = a.lines[0]?.[0] ?? a.dots[0];
               return (
-                <g key={i} style={{ color: p.colour }}>
-                  {p.lines.map((l, j) => <polyline key={j} points={l.map((q) => q.join(",")).join(" ")} />)}
-                  {p.dots.map(([x, y], j) => <circle key={`d${j}`} className="pspot" cx={x} cy={y} r="1.6" />)}
-                  {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{`${p.label} (${p.alliance})`}</title></circle>}
+                <g key={i} style={{ color: a.colour }}>
+                  {a.lines.map((l, j) => <polyline key={j} points={l.map((q) => q.join(",")).join(" ")} />)}
+                  {a.dots.map(([x, y], j) => <circle key={`d${j}`} className="pspot" cx={x} cy={y} r="1.6" />)}
+                  {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{`${name(a)} (${a.alliance})`}</title></circle>}
                 </g>
               );
             })}
+            {marks.map((m, i) => (
+              <g key={`m${i}`} className="shot" style={{ color: autos[m.auto].colour }}>
+                <circle cx={m.x} cy={m.y} r={m.r}><title>{`${name(autos[m.auto])}: ${count(m.count)} from ${m.square}`}</title></circle>
+                <text x={m.x} y={m.y}>{count(m.count)}</text>
+              </g>
+            ))}
           </svg>
         </div>
       </div>
-      <ul className="path-legend">
-        {drawn.map((p, i) => <li key={i}><span className="swatch" style={{ background: p.colour }} />{p.label} <span className={`ally ${p.alliance}`}>{p.alliance}</span></li>)}
-      </ul>
+      {autos.length > 0 && (
+        <ul className="path-legend">
+          {autos.map((a, i) => <li key={i}><span className="swatch" style={{ background: a.colour }} />{name(a)} <span className={`ally ${a.alliance}`}>{a.alliance}</span></li>)}
+        </ul>
+      )}
     </>
   );
 }
@@ -231,6 +265,14 @@ export function RatingChart({ points }: { points: HistoryPoint[] }) {
       <text x={W - 8} y={H - 4} className="axis to-right">Q{c.xMax}</text>
     </svg>
   );
+}
+
+// A scouting-first figure: plain when our scouts saw it; grey, tagged "model", when it is the model's share by rating.
+export function PtsFig({ pts, tag = true, round = false }: { pts: Pts | null; tag?: boolean; round?: boolean }) {
+  if (!pts) return <>–</>;
+  const text = round ? String(Math.round(pts.value)) : one(pts.value);
+  if (!pts.model) return <span className="fig" title="Scouted">{text}</span>;
+  return <span className="fig model" title="Model: by rating, not scouted">{text}{tag && <small> model</small>}</span>;
 }
 
 export const Tiles = ({ tiles }: { tiles: [string, ReactNode][] }) => (

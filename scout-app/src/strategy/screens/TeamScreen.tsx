@@ -3,11 +3,12 @@ import { clockTime } from "../../teams";
 import { breakageLine, pitLines } from "../../teamsView";
 import type { Ctx } from "../StrategyApp";
 import {
-  likely, one, partnersFor, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, sideOf, splitsByMatch, teamCells, tipsPerMatch, whole, winChance,
+  likely, one, partnersFor, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, splitsByMatch, teamCells, tipsPerMatch,
+  whole, winChance,
   type Measure,
 } from "../logic";
 import { Dropdown } from "../../components/Dropdown";
-import { AutoPaths, Card, HeatField, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
+import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { PartnersTable } from "./AllianceScreen";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];
@@ -15,7 +16,7 @@ const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Tele
 // One team: its rating and how it moved, what the scouts saw, where it plays, its matches and its best partners.
 export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTeam(team: number): void }) {
   const { model, labels, scale } = ctx;
-  const [measure, setMeasure] = useState<Measure>("teleop");
+  const [measure, setMeasure] = useState<Measure>(ctx.settings.measure);
   const rating = model.ratings.find((r) => r.teamNumber === team);
   const range = rating && likely(rating.opr, rating.oprSe);
   const proj = model.projections.find((p) => p.teamNumber === team);
@@ -58,7 +59,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             {rating && (rating.priorWeight ?? 0) > 0.5 && rating.priorNote && <p className="caption">{rating.priorNote}</p>}
           </Card>
 
-          <Card title="Rating after each match">
+          <Card title="Rating">
             <RatingChart points={history} />
           </Card>
 
@@ -77,7 +78,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               <ul className="note-list">
                 {profile.notes.map((n, i) => (
                   <li key={i} className="note-block">
-                    <p>{[n.label, n.scoutName, n.createdAt && clockTime(n.createdAt, now)].filter(Boolean).join(" · ")}</p>
+                    <p>{[n.label, n.scoutName, n.createdAt && clockTime(n.createdAt, now, ctx.timeZone)].filter(Boolean).join(" · ")}</p>
                     {n.autoNotes && <p>Auto: {n.autoNotes}</p>}
                     {n.notes && <p>{n.notes}</p>}
                   </li>
@@ -89,32 +90,33 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           <Card title="Breakages" id="breakages" openKey={ctx.breakageAsk}>
             {scouted(() => (!profile?.breakages.length ? <p>No breakages reported.</p> : (
               <ul className="note-list">
-                {profile.breakages.map((b) => <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{b.createdAt && <p>{clockTime(b.createdAt, now)}</p>}</li>)}
+                {profile.breakages.map((b) => <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{b.createdAt && <p>{clockTime(b.createdAt, now, ctx.timeZone)}</p>}</li>)}
               </ul>
             )))}
           </Card>
         </div>
 
         <div className="col">
-          <Card title="Where it plays" control={ctx.maps.state === "ok" && <Switch label="Measure" value={measure} options={MEASURES} onChange={setMeasure} />}>
+          <Card title="Heatmap" control={ctx.maps.state === "ok" && <Switch label="Measure" value={measure} options={MEASURES} onChange={setMeasure} />}>
             {ctx.maps.state !== "ok" ? <Waiting load={ctx.maps} what="the heatmaps" retry={ctx.retryMaps} /> : (
-              <HeatField cells={teamCells(map?.squares ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"}
-                starts={profile?.starts ?? []} label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match, and start spots`} />
+              <HeatField cells={teamCells(map?.squares ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"} smooth={ctx.settings.heatStyle === "smooth"}
+                label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match`} />
             )}
           </Card>
 
           <Card title="Auto paths">
-            {scouted(() => (!profile?.autoPaths.length ? <p>No auto paths drawn yet.</p> : <AutoPaths paths={profile.autoPaths} />))}
+            {scouted(() => (!profile?.autoPaths.length && !profile?.starts.length ? <p>No auto paths drawn yet.</p>
+              : <AutoPaths paths={profile.autoPaths} starts={profile.starts} averaged={ctx.settings.autoStyle === "averaged"} />))}
           </Card>
 
-          <Card title="Its matches">
+          <Card title="Matches">
             {ctx.splits.state === "failed" && <Waiting load={ctx.splits} what="the point splits" retry={ctx.retrySplits} />}
             {matches.length ? (
               <div className="table-wrap">
                 <table className="stable">
                   <thead>
                     <tr><th>Match</th><th>With</th><th>Against</th><th className="num">Win</th><th className="num">Result</th>
-                      <th className="num" title="Its share of the alliance's score, by rating">Its pts</th></tr>
+                      <th className="num" title="Scouted points in the match; in italics: the model's share by rating where nobody scouted">Pts</th></tr>
                   </thead>
                   <tbody>
                     {matches.map((f) => {
@@ -129,7 +131,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
                           <td>{opp.map((t) => <TeamName key={t} team={t} onOpen={ctx.openTeam} />)}</td>
                           <td className="num">{pct(winChance(f, side))}</td>
                           <td className="num">{f.played && mine != null && theirs != null ? `${mine > theirs ? "Won" : mine < theirs ? "Lost" : "Tied"} ${mine}–${theirs}` : "–"}</td>
-                          <td className="num">{one(splits?.get(f.matchUuid)?.get(team))}</td>
+                          <td className="num"><PtsFig pts={scoutingFirst(scoutedMatchPoints(profile?.matchPoints, f), splits?.get(f.matchUuid)?.get(team))} /></td>
                         </tr>
                       );
                     })}

@@ -48,6 +48,8 @@ const r8 = report({
 
 // A report's points; a match's points average its reports.
 const pts = (...rs: ReportSummary[]) => rs.reduce((a, r) => a + r.autoPoints + r.teleopPoints + r.parkPoints, 0) / rs.length;
+// Each scouted match's points, scouts averaged first, as the functions give them.
+const mp = (matchNumber: number, ...rs: ReportSummary[]) => ({ label: `Q${matchNumber}`, matchType: "qualification", matchNumber, points: Math.round(pts(...rs) * 10) / 10 });
 const note = (label: string, scoutName: string, createdAt: string, autoNotes?: string, notes?: string) =>
   ({ label, scoutName, createdAt, ...(autoNotes ? { autoNotes } : {}), ...(notes ? { notes } : {}) });
 
@@ -110,9 +112,10 @@ export const DEV_TEAMS_TAB: TeamsTab = {
         note("Q1", "Alice Nguyen", r1.createdAt, undefined, "Good driver, picks up from the far corner every time"),
       ],
       autoPaths: [
-        { label: "Q1", alliance: "red", points: "4,22 16,26 30,38 40,46|38,44" },
-        { label: "Q2", alliance: "blue", points: "96,74 84,70 70,60 62,52|62,52" },
+        { label: "Q1", alliance: "red", points: "4,22 16,26 30,38 40,46|38,44", shots: [{ square: "C3", count: 2 }] },
+        { label: "Q2", alliance: "blue", points: "96,74 84,70 70,60 62,52|62,52", shots: [{ square: "D4", count: 1 }] },
       ],
+      matchPoints: [mp(1, r1), mp(2, r2)],
       squares: [
         { square: "A1", scored: 0, pickedUp: 2 }, { square: "B2", scored: 2, pickedUp: 0 }, { square: "C3", scored: 4, pickedUp: 0 },
         { square: "D4", scored: 4, pickedUp: 0 }, { square: "F6", scored: 0, pickedUp: 3 },
@@ -134,9 +137,11 @@ export const DEV_TEAMS_TAB: TeamsTab = {
         note("Q1", "Alice Nguyen", r3.createdAt, "Clean auto"),
       ],
       autoPaths: [
-        { label: "Q1", alliance: "red", points: "6,40 22,42 40,50 52,54|46,50|50,56" },
-        { label: "Q2", alliance: "blue", points: "94,30 80,36 66,46 58,52|60,50" },
+        { label: "Q1", alliance: "red", points: "6,40 22,42 40,50 52,54|46,50|50,56", shots: [{ square: "C4", count: 2 }, { square: "D3", count: 1 }] },
+        { label: "Q1", alliance: "red", points: "5,42 20,44 38,51 50,56", shots: [{ square: "C4", count: 2 }] },
+        { label: "Q2", alliance: "blue", points: "94,30 80,36 66,46 58,52|60,50", shots: [{ square: "D4", count: 2 }] },
       ],
+      matchPoints: [mp(1, r3, r4), mp(2, r8)],
       squares: [{ square: "C4", scored: 7, pickedUp: 0 }, { square: "D3", scored: 3, pickedUp: 0 }, { square: "E2", scored: 0, pickedUp: 2.5 }, { square: "E5", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 60, label: "Q1" }, { alliance: "blue", wallPos: 140, label: "Q2" }],
       reports: [r3, r4, r8], pits: [DEV_PIT], breakages: [],
@@ -147,7 +152,8 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoScored: 1, cycles: 2, cycleSeconds: 35, pointsLow: pts(r7), pointsHigh: pts(r7),
       leaveRate: 1, autoParkRate: 0, teleopParkRate: 1, minorFouls: 1, majorFouls: 0, brokeDownMatches: 0,
       notes: [note("Q2", "Sam", r7.createdAt, undefined, "Tipped a little on the ramp but carried on")],
-      autoPaths: [{ label: "Q2", alliance: "red", points: "4,30 18,34 30,40" }],
+      autoPaths: [{ label: "Q2", alliance: "red", points: "4,30 18,34 30,40", shots: [{ square: "B3", count: 1 }] }],
+      matchPoints: [mp(2, r7)],
       squares: [{ square: "B3", scored: 3, pickedUp: 0 }, { square: "E4", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 40, label: "Q2" }],
       reports: [r7], pits: [], breakages: [],
@@ -164,6 +170,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
         note("Q1", "Alice Nguyen", r5.createdAt, "Did not move in auto"),
       ],
       autoPaths: [],
+      matchPoints: [mp(1, r5), mp(2, r6)],
       squares: [{ square: "B5", scored: 3, pickedUp: 0 }, { square: "E5", scored: 2, pickedUp: 1 }],
       starts: [{ alliance: "blue", wallPos: 170, label: "Q1" }, { alliance: "red", wallPos: 100, label: "Q2" }],
       reports: [r5, r6], pits: [], breakages: [DEV_BREAKAGE],
