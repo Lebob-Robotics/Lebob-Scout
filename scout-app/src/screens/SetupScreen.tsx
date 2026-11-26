@@ -3,6 +3,7 @@ import type { Api, EventRow } from "../api";
 import { StartPad } from "../components/StartPad";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Target } from "../observation";
+import { rememberFlip, rememberedFlip } from "../prefs";
 import { startSquareFor } from "../startWall";
 import { firstEvent, onEvent, remember, rememberedEvent, withEvent } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
@@ -10,11 +11,6 @@ import { MatchRobotPicker } from "./MatchRobotPicker";
 
 const field = FIELDS[CURRENT_FIELD_KEY];
 const localToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 10);
-const FLIP_KEY = "lsa:flip";
-const rememberedFlip = () => {
-  try { return localStorage.getItem(FLIP_KEY) === "1"; } catch { return false; }
-};
-
 // initial: the event, match and robot already picked, as if by hand (from the Teams tab's coverage grid).
 export function SetupScreen({ api, initial, onStart }: {
   api: Api;
@@ -95,7 +91,7 @@ export function SetupScreen({ api, initial, onStart }: {
   };
   const flip = () => {
     setFlipped(!flipped);
-    try { localStorage.setItem(FLIP_KEY, flipped ? "0" : "1"); } catch { /* not remembered */ }
+    rememberFlip(!flipped);
   };
 
   const retry = (
@@ -112,31 +108,30 @@ export function SetupScreen({ api, initial, onStart }: {
 
   return (
     <div className="setup">
-      {offline ? (
-        <>
-          {retry}
-          <span className="label">Event</span>
-          <p>{event.eventName}</p>
-        </>
-      ) : (
-        <>
-          <label htmlFor="event">Event</label>
-          <select id="event" value={event.eventUuid} onChange={(e) => chooseEvent(e.target.value)}>
-            {events!.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
-          </select>
-        </>
-      )}
+      <div className="card">
+        <h2>Match setup</h2>
+        {offline ? (
+          <>
+            {retry}
+            <span className="label">Event</span>
+            <p>{event.eventName}</p>
+          </>
+        ) : (
+          <>
+            <label htmlFor="event">Event</label>
+            <select id="event" value={event.eventUuid} onChange={(e) => chooseEvent(e.target.value)}>
+              {events!.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
+            </select>
+          </>
+        )}
 
-      <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} onShown={() => setShown(true)} />
+        <MatchRobotPicker key={event.eventUuid} api={api} eventUuid={event.eventUuid} value={target} onChange={setTarget} startTyped={offline} onShown={() => setShown(true)} />
 
-      <div className="square-bar">
-        {/* With no robot the pad says "Pick the robot first."; one instruction at a time. */}
-        <span className="label">{target && `Start: ${square ?? "tap along your wall"}`}</span>
-        <button type="button" onClick={flip}>Flip field</button>
+        <span className="label">Start position</span>
+        <StartPad fieldKey={field.key} flipped={flipped} alliance={target?.alliance ?? null} value={wallPos} onChange={setWallPos} onFlip={flip} />
+
+        <button type="button" className="start" disabled={!target || !square} onClick={start}>Start match timer</button>
       </div>
-      <StartPad fieldKey={field.key} flipped={flipped} alliance={target?.alliance ?? null} value={wallPos} onChange={setWallPos} />
-
-      <button type="button" className="start" disabled={!target || !square} onClick={start}>Start</button>
     </div>
   );
 }

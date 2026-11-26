@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { Api } from "../api";
 import type { FinalPage, Observation, Target } from "../observation";
+import { rememberedFlip } from "../prefs";
 import { changes, taps } from "../reports";
 import { FinalScreen } from "./FinalScreen";
 import { MatchRobotPicker } from "./MatchRobotPicker";
@@ -10,6 +11,7 @@ export function Correction({ api, report, onBack, onSaved }: { api: Api; report:
   const [final, setFinal] = useState<FinalPage>(report);
   const [saving, setSaving] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [flipped, setFlipped] = useState(rememberedFlip);
 
   const save = () => {
     if (!target) return;
@@ -36,7 +38,10 @@ export function Correction({ api, report, onBack, onSaved }: { api: Api; report:
         saveLabel={saving ? "Saving…" : "Save changes"}
         saveDisabled={saving || !target}
         fieldKey={report.fieldKey}
-        flipped={false}
+        flipped={flipped}
+        onFlip={() => setFlipped(!flipped)}
+        alliance={target?.alliance ?? report.alliance}
+        startWallPos={report.startWallPos}
       >
         {!target && <p className="save-note">Pick the robot first.</p>}
         {failed && <p className="save-note error" role="alert">Couldn't save. Check your signal and try again.</p>}

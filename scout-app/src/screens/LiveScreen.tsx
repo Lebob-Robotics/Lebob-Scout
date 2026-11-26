@@ -5,6 +5,7 @@ import { matchSeconds, phaseAt, skipToTeleop } from "../clock";
 import { FIELDS } from "../field";
 import { liveReducer, type LiveAction, type LiveState } from "../live";
 import type { Draft } from "../observation";
+import { matchSummary } from "../summary";
 
 const clockText = (remaining: number) => {
   const s = Math.max(0, Math.ceil(remaining));
@@ -55,12 +56,20 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
   const { mode, square, area } = pick;
   const hint = !mode ? "Pick Shoot or Intake." : mode === "intake" ? "Tap every square it collects from." : !square ? "Tap the square." : "How many scored?";
   const records = draft.taps.length;
+  const sum = matchSummary(draft.taps, field);
 
   return (
     <div className="live" data-mode={mode ?? undefined}>
       <div className="side modes">
-        <button type="button" className="shoot" aria-pressed={mode === "shoot"} onClick={() => act({ type: "mode", mode: "shoot" })}>Shoot</button>
-        <button type="button" className="intake" aria-pressed={mode === "intake"} onClick={() => act({ type: "mode", mode: "intake" })}>Intake</button>
+        {/* Counters as on the old site: what to tap on the left, the running total on the right. */}
+        <button type="button" className="ctr shoot" aria-pressed={mode === "shoot"} onClick={() => act({ type: "mode", mode: "shoot" })}>
+          <span className="cl"><small>Score</small><b>Shoot</b></span>
+          <span className="cn">{sum.autoScored + sum.teleopScored}</span>
+        </button>
+        <button type="button" className="ctr intake" aria-pressed={mode === "intake"} onClick={() => act({ type: "mode", mode: "intake" })}>
+          <span className="cl"><small>Pick up</small><b>Intake</b></span>
+          <span className="cn">{sum.intakeSquares}</span>
+        </button>
         <button type="button" className="undo" disabled={!records} onClick={() => act({ type: "undo" })}>
           Undo <small>{records} {records === 1 ? "record" : "records"}</small>
         </button>
@@ -84,9 +93,9 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
       </div>
 
       <div className="bar">
-        <output className="clock"><span>{phase.toUpperCase()}</span> {clockText(remaining)}</output>
+        <output className="clock"><span className={`phase ${phase}`}>{phase.toUpperCase()}</span> {clockText(remaining)}</output>
         {!confirming && (phase === "auto" || phase === "changeover") && (
-          <button type="button" className="skip" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to teleop</button>
+          <button type="button" className="skip" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to TELEOP</button>
         )}
         {/* One hint, always mounted, so screen readers hear the change. */}
         <p className="hint" aria-live="polite">{confirming ? "End the match now?" : hint}</p>
@@ -98,7 +107,7 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
           </>
         ) : (
           <>
-            <button key="flip" type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Flip field</button>
+            <button key="flip" type="button" className="flip" onClick={() => onChange({ ...draft, flipped: !draft.flipped })}>Rotate view</button>
             <button key="end" type="button" className="end" onClick={() => (phase === "over" ? onEnd() : setConfirming(true))}>End match</button>
           </>
         )}

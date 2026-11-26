@@ -41,3 +41,11 @@ export function startSquareFor(v: number, alliance: Alliance, field: Field): str
   const col = Math.min(field.cols - 1, Math.floor(x * field.cols)), half = field.cols / 2;
   return squareName(alliance === "red" ? Math.min(half - 1, col) : Math.max(half, col), Math.min(field.rows - 1, Math.floor(y * field.rows)));
 }
+
+// The old site's names for stretches of the wall, for the set-up caption ("Start: GARDEN corner.").
+const START_ZONES: [number, number, string][] = [
+  [0, 9, "LOADING side, by the centre line"], [23, 49, "LOADING side, FLOWER to corner"], [50, 67, "outer wall, corner to LOADING ZONE"],
+  [83, 109, "outer wall, LOADING ZONE to FLOWER"], [123, 149, "outer wall, FLOWER to GARDEN corner"], [150, 169, "GARDEN corner"],
+  [170, 200, "GARDEN side, by the centre line"],
+];
+export const startZoneText = (v: number): string | null => START_ZONES.find(([a, b]) => v >= a && v <= b)?.[2] ?? null;

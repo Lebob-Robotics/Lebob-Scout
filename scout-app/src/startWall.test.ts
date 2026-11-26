@@ -1,6 +1,6 @@
 import { test, expect } from "vitest";
 import { FIELDS } from "./field";
-import { startNearest, startSnap, startSquareFor, startXY, wallPoint } from "./startWall";
+import { startNearest, startSnap, startSquareFor, startXY, startZoneText, wallPoint } from "./startWall";
 
 const f = FIELDS["ftc-2026"];
 test("wall positions map to the wall", () => {
@@ -48,4 +48,12 @@ test("off the centre line the square is as before", () => {
     return "ABCDEF"[Math.min(5, Math.floor(x * 6))] + (Math.min(5, Math.floor(y * 6)) + 1);
   };
   for (let v = 1; v <= 199; v++) for (const a of ["red", "blue"] as const) expect(startSquareFor(v, a, f)).toBe(before(v, a));
+});
+
+test("every allowed start position has the old site's stretch name", () => {
+  const field = FIELDS["ftc-2026"];
+  for (let v = 0; v <= 200; v++) if (field.startOk.some(([a, b]) => v >= a && v <= b)) expect(startZoneText(v)).not.toBeNull();
+  expect(startZoneText(0)).toBe("LOADING side, by the centre line");
+  expect(startZoneText(160)).toBe("GARDEN corner");
+  expect(startZoneText(15)).toBeNull(); // not a place a robot may start
 });

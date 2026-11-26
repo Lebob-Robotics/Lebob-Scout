@@ -35,3 +35,13 @@ export const decPath = (t: string | null): Stroke[] =>
   String(t || "").split("|")
     .map((s) => s.trim().split(/\s+/).map((p) => p.split(",").map(Number)).filter((p): p is [number, number] => p.length === 2 && p.every(Number.isFinite)))
     .filter((s) => s.length);
+
+// AUTO shooting spots ride in the same text as one-point strokes: a drawn line always has two points or more
+// ("a tap is not a line"), so a lone point can only be a spot. Lines first, then spots.
+export const AUTO_DOTS = 6, SPOT_NEAR = 7; // SPOT_NEAR in 0-100 units
+export function splitPath(t: string | null): { lines: Stroke[]; dots: [number, number][] } {
+  const all = decPath(t);
+  return { lines: all.filter((s) => s.length > 1), dots: all.filter((s) => s.length === 1).map((s) => s[0]) };
+}
+export const joinPath = (lines: Stroke[], dots: [number, number][]): string | null =>
+  encPath([...simplifyPath(lines), ...dots.map((d): Stroke => [d])]);
