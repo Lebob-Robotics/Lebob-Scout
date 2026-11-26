@@ -11,11 +11,11 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | 1. Match scout page and data backend | Done, deployed |
 | Second pass (intake as an area, team's look, start dot, portrait live view) | Done, deployed |
 | 3. Teams tab (profiles, map, coverage grid, scout from a gap) | Done, deployed |
-| 2. Pit survey and breakage forms, ported as they are | Built and tested, functions live, app not yet deployed |
+| 2. Pit survey and breakage forms, ported as they are | Done, deployed as 0.4.1; signed-in Brave check and phone check still to do |
 | 4. Strategist page | Not started |
 | 5. Retire the old site | Not started |
 
-- **Live version: 0.3.3** at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
+- **Live version: 0.4.1** (deployed 26 Nov; includes the restyle tagged 0.4.0 and job 2) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
 - **App repo:** public on GitHub at `Lebob-Robotics/Lebob-Scout`, branch `main`, tag `0.3.3`, 99 tests. Every commit hash changed on 26 Nov: before the first push the commit address was swapped for Harry's GitHub no-reply address, so the hashes in the ledgers are the old ones. New commits use the committer's own GitHub no-reply address.
 - **Functions repo** (`scout-functions/`): pushed, head `9d82343`, published as version 0.4.1 (0.4.0's release failed, see the job 2 spec, R9). Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 65 tests. Set-up on Windows (no `rune` there) is in `scout-app/README.md`.
 - **SDK:** `@lebob-scout/sdk` 0.4.0, which adds PitSurvey, BreakageReport and their create and modify actions (generated 26 Nov through the palantir-mcp tools, no sign-in scope change).
@@ -27,7 +27,7 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 - **Functions 0.4.1 are live:** each team's profile lists its pit reports and breakages (read by the event's code), the scouts tally counts all three kinds, and the Workshop rows gain counts. The live app (0.3.3) ignores the new fields.
 - **App, committed but not deployed:** Pit and Breakage tabs with the old forms and a saved list (tap to change); "Pit report" and "Breakage" buttons on each team; pit and breakage sections and chips on the Teams tab; the phone's queue holds all three kinds (older queued match reports still load). 124 tests. Checked in Chrome at 360 and 375 wide with `?dev=1`, after rebasing onto the restyle commit `f0c7c70` (which added a Settings tab; the tab bar is now Reports, Teams, Pit, Breakage, Settings).
 - **Saving checked against Foundry** with the dummy event code `SPIKE`, team 0: one pit survey `spike-pit-check` and one breakage `spike-breakage-check`. Both were created and then changed by a second save, leaving one copy each. They cannot be deleted; they show only under the code `SPIKE`.
-- **Still to do:** deploy 0.4.0, Brave check signed in, then a phone check.
+- **Still to do:** a signed-in check in Brave (no browser tools in the 26 Nov session) and a phone check. The restyle commit f0c7c70 (tag 0.4.0) went live in the same deploy and has not been checked on a phone either.
 
 ## Done on 26 Nov
 
