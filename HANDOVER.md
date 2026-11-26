@@ -37,13 +37,6 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 - **Answered:** the first save from a phone went through, the team update message was sent, and sharing the site with the scouts is in hand.
 - **Email in the functions history: left as it is.** Release tag 0.1.0 points at `2537292` and 0.2.0 is built on it, so rewriting it would mean moving published release tags. The repo is visible only inside the Lebob Foundry org.
 
-## Still open
-
-- **Schedule times: fixed in our code (26 Nov).** The FIRST API gives match times as the event's local wall clock with no zone, and the import (old project, untouched) stores them marked as UTC. The functions now read them back through the event's zone (`scout-functions/typescript-functions/src/teams/zones.ts`, a table by event code: AUPEQ Perth, AUCMP Sydney, as the FIRST API gives them), and the Teams tab shows times on the event's clock with "Times are Sydney time." **Add each new event to that table before it starts**; an event not listed keeps its times as stored.
-- **AUCMP has no schedule in Foundry yet** (26 Nov): FIRST has not published it (`published: false` in the raw payload). Foundry syncs from the FIRST API on three schedules in the old project: daily at 4 am Perth, monthly, and every 5 minutes from 6 am to 10 pm Sydney time on weekends in November and December for our events. So the schedule lands on its own once FIRST publishes it, and updates live during AUCMP.
-- **`tap_counts` description:** proposal open for approval (26 Nov): https://lebob.euw-3.palantirfoundry.co.uk/workspace/developer-branching/proposal/ri.branch..proposal.c6fc40d3-05b4-4345-a0e5-e42e32e99bef . Description change only.
-- **"Media sets" read and write** are still on for the app in Developer Console and the app does not use them. Agreed to switch off: a click for a person in Developer Console.
-
 ## Job 4: where it is
 
 Design: `docs/superpowers/specs/2026-11-26-strategy-app-design.md`.
