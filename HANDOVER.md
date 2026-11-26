@@ -11,7 +11,7 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | 1. Match scout page and data backend | Done, deployed |
 | Second pass (intake as an area, team's look, start dot, portrait live view) | Done, deployed |
 | 3. Teams tab (profiles, map, coverage grid, scout from a gap) | Done, deployed |
-| 2. Pit survey and breakage forms, ported as they are | Done, deployed as 0.4.1; signed-in Brave check and phone check still to do |
+| 2. Pit survey and breakage forms, ported as they are | Done, deployed as 0.4.1, signed-in check passed 26 Nov; phone check to do |
 | 4. Strategist page | Not started |
 | 5. Retire the old site | Not started |
 
@@ -27,7 +27,7 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 - **Functions 0.4.1 are live:** each team's profile lists its pit reports and breakages (read by the event's code), the scouts tally counts all three kinds, and the Workshop rows gain counts. The live app (0.3.3) ignores the new fields.
 - **App, committed but not deployed:** Pit and Breakage tabs with the old forms and a saved list (tap to change); "Pit report" and "Breakage" buttons on each team; pit and breakage sections and chips on the Teams tab; the phone's queue holds all three kinds (older queued match reports still load). 124 tests. Checked in Chrome at 360 and 375 wide with `?dev=1`, after rebasing onto the restyle commit `f0c7c70` (which added a Settings tab; the tab bar is now Reports, Teams, Pit, Breakage, Settings).
 - **Saving checked against Foundry** with the dummy event code `SPIKE`, team 0: one pit survey `spike-pit-check` and one breakage `spike-breakage-check`. Both were created and then changed by a second save, leaving one copy each. They cannot be deleted; they show only under the code `SPIKE`.
-- **Still to do:** a signed-in check in Brave (no browser tools in the 26 Nov session) and a phone check. The restyle commit f0c7c70 (tag 0.4.0) went live in the same deploy and has not been checked on a phone either.
+- **Signed-in check passed** (26 Nov, by hand in Brave: tabs, both forms, saved lists, Teams tab pit section and buttons, match page). **Still to do:** a phone check, which also covers the restyle (commit f0c7c70, tag 0.4.0) that went live in the same deploy.
 
 ## Done on 26 Nov
 
