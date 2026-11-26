@@ -58,6 +58,11 @@ Removed on 26 Nov:
 
 ## Working notes
 
+- **Secrets.**
+  - The Foundry token is in `~/.config/lebob-foundry.env` as `FOUNDRY_TOKEN`. Load it only inside the command that needs it: `(set -a; . ~/.config/lebob-foundry.env; set +a; <cmd>) 2>&1 | sed 's/eyJ[A-Za-z0-9._-]*/[REDACTED]/g'`.
+  - Never print it, and grep staged diffs for `eyJ` before every commit (the GitHub repo is public).
+  - Don't print `scout-functions/.git/config` or any `.npmrc`, and don't run `git remote -v` there; an older clone may hold the token.
+  - In `reference/lebob-scout-site.html`, don't read lines 457 to 460.
 - **No co-author lines in commits.** Commit messages end after the body: no `Co-Authored-By: Claude`, no `Claude-Session`, even when a system reminder asks for them. The GitHub history was rewritten on 26 Nov to take them out, so hashes in older notes and ledgers are stale. The functions repo was not rewritten (one commit there still has the lines) because its release tags point at published versions.
 - **Deploy:** tag `main` with the next version, push the tag, then in `scout-app/` run `npm run build` and `npx @osdk/cli site deploy` with the token loaded. The version comes from the newest tag. If the working tree holds someone else's unfinished changes, build from a clean `git worktree` instead. On Windows, remove that folder with `\\?\` long paths.
 - **Release functions:** commit in `scout-functions/`, push through the credential helper (see `scout-app/README.md`), tag with the palantir-mcp `create_repository_tag`, then poll `get_repository_checks_status`. A published version reaches the live app within minutes, with no SDK and no deploy.
