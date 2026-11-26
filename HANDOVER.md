@@ -15,10 +15,10 @@ The plan is five jobs, in this order. Harry: "I assure you you can finish before
 | 4. Strategist page | Not started |
 | 5. Retire the old site | Not started |
 
-- **Live version: 0.4.1** (deployed 26 Nov; includes the restyle tagged 0.4.0 and job 2) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
+- **Live version: 0.4.2** (deployed 26 Nov: the restyle tagged 0.4.0, job 2, and Teams tab times on each event's own clock) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in).
 - **App repo:** public on GitHub at `Lebob-Robotics/Lebob-Scout`, branch `main`, tag `0.3.3`, 99 tests. Every commit hash changed on 26 Nov: before the first push the commit address was swapped for Harry's GitHub no-reply address, so the hashes in the ledgers are the old ones. New commits use the committer's own GitHub no-reply address.
-- **Functions repo** (`scout-functions/`): pushed, head `9d82343`, published as version 0.4.1 (0.4.0's release failed, see the job 2 spec, R9). Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 65 tests. Set-up on Windows (no `rune` there) is in `scout-app/README.md`.
-- **SDK:** `@lebob-scout/sdk` 0.4.0, which adds PitSurvey, BreakageReport and their create and modify actions (generated 26 Nov through the palantir-mcp tools, no sign-in scope change).
+- **Functions repo** (`scout-functions/`): pushed, head `e1c00b0`, published as version 0.4.2 (0.4.0's release failed, see the job 2 spec, R9). Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`. 72 tests. Set-up on Windows (no `rune` there) is in `scout-app/README.md`.
+- **SDK:** `@lebob-scout/sdk` 0.5.0 (0.4.0 added PitSurvey, BreakageReport and their create and modify actions; 0.5.0 picks up the Teams tab's `timeZone`). Both generated 26 Nov through the palantir-mcp tools, with no sign-in scope change.
 
 ## Job 2: where it is
 
@@ -39,9 +39,9 @@ Design: `docs/superpowers/specs/2026-11-26-pit-and-breakage-design.md` (decision
 
 ## Still open
 
-- **Schedule times 8 hours out: left open on purpose, do nothing yet.** Foundry has AUPEQ's Q1 at 10:30 UTC (6:30 pm Perth) and playoffs past midnight. The import probably stores Perth local time as UTC, so "Next scheduled" shows late and an unscouted match only counts as played 8 hours after its time. The import lives in the off-limits old project. If a workaround is wanted later: AUCMP is in Sydney, Melbourne or Canberra (UTC+11 in December), AUPEQ is Perth (UTC+8).
-- **AUCMP has no schedule in Foundry yet** (no matches on 26 Nov). Check it lands before 5 Dec.
-- **`tap_counts` description** still says "1 to 4 per tap" (new reports store 0). Agreed to fix: an ontology change, so it goes on a branch as a proposal to approve.
+- **Schedule times: fixed in our code (26 Nov).** The FIRST API gives match times as the event's local wall clock with no zone, and the import (old project, untouched) stores them marked as UTC. The functions now read them back through the event's zone (`scout-functions/typescript-functions/src/teams/zones.ts`, a table by event code: AUPEQ Perth, AUCMP Sydney, as the FIRST API gives them), and the Teams tab shows times on the event's clock with "Times are Sydney time." **Add each new event to that table before it starts**; an event not listed keeps its times as stored.
+- **AUCMP has no schedule in Foundry yet** (26 Nov): FIRST has not published it (`published: false` in the raw payload). Foundry syncs from the FIRST API on three schedules in the old project: daily at 4 am Perth, monthly, and every 5 minutes from 6 am to 10 pm Sydney time on weekends in November and December for our events. So the schedule lands on its own once FIRST publishes it, and updates live during AUCMP.
+- **`tap_counts` description:** proposal open for approval (26 Nov): https://lebob.euw-3.palantirfoundry.co.uk/workspace/developer-branching/proposal/ri.branch..proposal.c6fc40d3-05b4-4345-a0e5-e42e32e99bef . Description change only.
 - **"Media sets" read and write** are still on for the app in Developer Console and the app does not use them. Agreed to switch off: a click for a person in Developer Console.
 
 ## What comes next

@@ -123,7 +123,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
               <div><dt>matches covered</dt><dd>{data.coverage.slots ? `${data.coverage.have}/${data.coverage.slots}` : "–"}</dd></div>
               <div><dt>waiting to save</dt><dd>{waiting}</dd></div>
             </dl>
-            <p className="caption">{noteLine(event?.eventName || event?.eventCode || "", data.coverage.playedBy)}</p>
+            <p className="caption">{noteLine(event?.eventName || event?.eventCode || "", data.coverage.playedBy, data.timeZone)}</p>
           </section>
           <section className="card">
             <h2>Teams</h2>
@@ -140,6 +140,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
                     key={t.teamNumber}
                     team={t}
                     now={last.at}
+                    timeZone={data.timeZone}
                     open={open.has(t.teamNumber)}
                     onToggle={(o) => toggle(t.teamNumber, o)}
                     opening={pick && !pick.failed ? pick.id : null}
@@ -161,7 +162,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
           <section className="card">
             <h2>Scouts</h2>
             {data.scouts.length ? (
-              <ul className="scouts">{data.scouts.map((s) => <li key={s.scoutUserId}>{scoutLine(s, userId, last.at)}</li>)}</ul>
+              <ul className="scouts">{data.scouts.map((s) => <li key={s.scoutUserId}>{scoutLine(s, userId, last.at, data.timeZone)}</li>)}</ul>
             ) : (
               <p>No reports yet for this event.</p>
             )}

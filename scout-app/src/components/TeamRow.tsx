@@ -10,9 +10,10 @@ const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) 
 // One team: a summary row with its chips, and when open its next match, profile tiles, report lines, pit reports,
 // breakages, and buttons to add a pit report or a breakage for it.
 // `opening` is the report being loaded for correction; `failed` the one that couldn't be.
-export function TeamRow({ team: t, now, open, onToggle, opening, failed, onReport, onPit, onBreakage }: {
+export function TeamRow({ team: t, now, timeZone, open, onToggle, opening, failed, onReport, onPit, onBreakage }: {
   team: TeamProfile;
   now: number; // read times against this day
+  timeZone?: string; // the event's, when known: times show on its clock
   open: boolean;
   onToggle(open: boolean): void;
   opening: string | null;
@@ -42,7 +43,7 @@ export function TeamRow({ team: t, now, open, onToggle, opening, failed, onRepor
         <span className="chips">{chips(t).map((c) => <span key={c.text} className={`chip ${c.tone}`}>{c.text}</span>)}</span>
       </summary>
       <div className="team-body">
-        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{t.nextTime ? ` at ${clockTime(t.nextTime, now)}` : ""}.</p>}
+        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{t.nextTime ? ` at ${clockTime(t.nextTime, now, timeZone)}` : ""}.</p>}
         {t.matches ? (
           <>
             <dl className="tiles">{tiles.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>

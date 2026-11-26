@@ -27,7 +27,7 @@ test("scoutLine names the day of a latest report from another day", () => {
 });
 
 test("noteLine names the event and how a match counts as played", () => {
-  expect(noteLine("WA Qualifier", "times")).toBe("WA Qualifier · A match counts as played once its start time passes.");
+  expect(noteLine("WA Qualifier", "times")).toBe("WA Qualifier · A match counts as played once it is scouted or its start time passes.");
   expect(noteLine("WA Qualifier", "scouted")).toBe("WA Qualifier · The schedule has no start times, so matches up to the last one anyone scouted count as played.");
   expect(noteLine("WA Qualifier", "none")).toBe("WA Qualifier · No schedule for this event yet.");
 });
@@ -82,4 +82,17 @@ test("cellName says the match, alliance, team, reports and what a tap does", () 
 test("scoutLine adds pit reports and breakages when there are any, and drops 0 match reports for a pit-only scout", () => {
   expect(scoutLine({ ...scout, pitReports: 2, breakages: 1 }, "u2", now)).toBe("Alice · 3 match reports · 2 pit reports · 1 breakage · last 2:05 pm");
   expect(scoutLine({ ...scout, scoutUserId: "", scoutName: "JK", reports: 0, pitReports: 1 }, "", now)).toBe("JK · 1 pit report · last 2:05 pm");
+});
+
+test("clockTime reads a moment on the event's clock when given its zone", () => {
+  const at = Date.parse("2026-12-04T22:00:00Z"); // 9:00 am Saturday in Sydney, 6:00 am Saturday in Perth
+  expect(clockTime("2026-12-04T22:00:00Z", at, "Australia/Sydney")).toBe("9:00 am");
+  expect(clockTime("2026-12-04T22:00:00Z", at, "Australia/Perth")).toBe("6:00 am");
+  expect(clockTime("2026-12-05T13:30:00Z", at, "Australia/Sydney")).toBe("Sun 12:30 am");
+});
+
+test("noteLine says whose clock the times are on", () => {
+  expect(noteLine("Australia Championship", "times", "Australia/Sydney"))
+    .toBe("Australia Championship · A match counts as played once it is scouted or its start time passes. · Times are Sydney time.");
+  expect(noteLine("Dev", "none")).toBe("Dev · No schedule for this event yet.");
 });

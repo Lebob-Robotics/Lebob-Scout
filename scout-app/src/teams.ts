@@ -2,33 +2,49 @@ import type { Coverage, CoverageCell, CoverageRow, ScoutTally } from "./api";
 import type { Target } from "./observation";
 
 const PLAYED_RULE: Record<string, string> = {
-  times: "A match counts as played once its start time passes.",
+  times: "A match counts as played once it is scouted or its start time passes.",
   scouted: "The schedule has no start times, so matches up to the last one anyone scouted count as played.",
   none: "No schedule for this event yet.",
 };
 
-// The line under the status tiles: the event, then how the figures decide a match is played.
-export const noteLine = (eventName: string, playedBy: string) =>
-  [eventName, PLAYED_RULE[playedBy]].filter(Boolean).join(" · ");
+// "Australia/Sydney" reads as "Sydney time".
+export const zoneLabel = (timeZone: string) => `${(timeZone.split("/").pop() ?? timeZone).replace(/_/g, " ")} time`;
+
+// The line under the status tiles: the event, how the figures decide a match is played, and whose clock the times are on.
+export const noteLine = (eventName: string, playedBy: string, timeZone?: string) =>
+  [eventName, PLAYED_RULE[playedBy], timeZone && `Times are ${zoneLabel(timeZone)}.`].filter(Boolean).join(" · ");
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-// A time in the phone's own time; with the short weekday in front when it is not on the same day as `now`.
-export const clockTime = (iso: string, now: number) => {
-  const d = new Date(iso);
-  const day = d.toDateString() === new Date(now).toDateString() ? "" : `${DAYS[d.getDay()]} `;
-  return `${day}${d.getHours() % 12 || 12}:${String(d.getMinutes()).padStart(2, "0")}\u00a0${d.getHours() < 12 ? "am" : "pm"}`;
+// A moment's day, weekday and clock in a time zone (the phone's own when none is given).
+function inZone(ms: number, timeZone?: string) {
+  if (!timeZone) {
+    const d = new Date(ms);
+    return { day: d.toDateString(), weekday: DAYS[d.getDay()], hours: d.getHours(), minutes: d.getMinutes() };
+  }
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-US", {
+    timeZone, weekday: "short", year: "numeric", month: "2-digit", day: "2-digit", hour: "numeric", minute: "2-digit", hourCycle: "h23",
+  }).formatToParts(ms).map((x) => [x.type, x.value]));
+  return { day: `${p.year}-${p.month}-${p.day}`, weekday: p.weekday, hours: Number(p.hour), minutes: Number(p.minute) };
+}
+
+// A time on the event's clock (the phone's with no zone); with the short weekday in front when it is not on the same
+// day as `now`.
+export const clockTime = (iso: string, now: number, timeZone?: string) => {
+  const t = inZone(Date.parse(iso), timeZone);
+  const day = t.day === inZone(now, timeZone).day ? "" : `${t.weekday} `;
+  return `${day}${t.hours % 12 || 12}:${String(t.minutes).padStart(2, "0")} ${t.hours < 12 ? "am" : "pm"}`;
 };
 
 const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
 // Match reports always show, unless the scout has only pit or breakage reports; those show when there are any.
-export const scoutLine = (s: ScoutTally, userId: string, now: number) => {
+export const scoutLine = (s: ScoutTally, userId: string, now: number, timeZone?: string) => {
   const kinds = [
     (s.reports || !(s.pitReports || s.breakages)) && count(s.reports, "match report"),
     s.pitReports > 0 && count(s.pitReports, "pit report"),
     s.breakages > 0 && count(s.breakages, "breakage"),
   ].filter(Boolean);
-  return `${s.scoutName || "?"}${s.scoutUserId && s.scoutUserId === userId ? " (you)" : ""} · ${kinds.join(" · ")} · last ${clockTime(s.lastAt, now)}`;
+  return `${s.scoutName || "?"}${s.scoutUserId && s.scoutUserId === userId ? " (you)" : ""} · ${kinds.join(" · ")} · last ${clockTime(s.lastAt, now, timeZone)}`;
 };
 
 // The coverage card's summary, from the counts the function gives.
