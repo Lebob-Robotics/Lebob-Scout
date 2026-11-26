@@ -28,7 +28,7 @@ const n = (v: number | null | undefined) => v ?? null;
 
 export const toRating = (r: Partial<EventRating.Props>): Rating => ({
   teamNumber: r.teamNumber ?? 0, teamName: r.teamName ?? "", opr: r.opr ?? 0, oprSe: n(r.oprSe),
-  autoRating: n(r.autoRating), teleopRating: n(r.teleopRating), priorWeight: n(r.priorWeight), priorNote: r.priorNote ?? null,
+  autoRating: n(r.autoRating), teleopRating: n(r.teleopRating), hiveRating: n(r.hiveRating), priorWeight: n(r.priorWeight), priorNote: r.priorNote ?? null,
   matchesFitted: n(r.matchesFitted),
 });
 export const toHistory = (r: Partial<RatingHistory.Props>): HistoryPoint => ({

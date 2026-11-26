@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import type { EventRow, MatchRow, TeamProfile, TeamsTab } from "../api";
-import mark from "../assets/lebob-mark.svg";
+import mark from "../assets/strategy-mark.png";
 import { firstEvent } from "../schedule";
 import type { StrategyApi } from "./api";
-import { matchLabels, orderForecasts } from "./logic";
+import { keepShut, likely, matchLabels, nextOurs, one, orderForecasts, pct, playedCount, pointsFigure, scaleMax, sharesByTeam, sideOf, whole, winChance } from "./logic";
+import type { Figure } from "./logic";
 import { useLoad, type Load } from "./useLoad";
 import { AllianceScreen } from "./screens/AllianceScreen";
 import { EventScreen } from "./screens/EventScreen";
@@ -12,8 +14,8 @@ import { MatchesScreen } from "./screens/MatchesScreen";
 import { TeamScreen } from "./screens/TeamScreen";
 import type { Forecast, HistoryPoint, Pick, PointSplit, Projection, Rating, TeamMap } from "./types";
 
-type Tab = "event" | "team" | "match" | "matches" | "alliance";
-const TABS: [Tab, string][] = [["event", "Event"], ["team", "Team"], ["match", "Match"], ["matches", "Matches"], ["alliance", "Alliance"]];
+type Tab = "event" | "team" | "match" | "schedule" | "alliance";
+const TABS: [Tab, string][] = [["event", "Event"], ["team", "Team"], ["match", "Match"], ["schedule", "Schedule"], ["alliance", "Alliance"]];
 
 // The strategy app keeps its own event, so picking one on a laptop never changes what a scout's phone shows.
 const EVENT_KEY = "lsa:strategy-event";
@@ -37,7 +39,12 @@ export type Ctx = {
   api: StrategyApi; eventUuid: string; ourTeam: number; model: Model; labels: Map<string, string>;
   scouting: Load<TeamsTab>; retryScouting(): void; profile(team: number): TeamProfile | undefined;
   maps: Load<TeamMap[]>; retryMaps(): void; splits: Load<PointSplit[]>; retrySplits(): void;
-  openTeam(team: number): void; openMatch(matchUuid: string): void;
+  // Points per match (scouted, else the official share) and each bar column's track length.
+  points(team: number): Figure | null; scale: { rating: number; points: number };
+  openTeam(team: number): void; openMatch(matchUuid: string): void; openBreakages(team: number): void;
+  // Goes up each time a breakage button is pressed: the Team tab opens and shows its Breakages card.
+  // takeBreakageAsk is true once per press, so coming back to the tab later does not scroll again.
+  breakageAsk: number; takeBreakageAsk(): boolean;
 };
 
 function Header({ event }: { event?: string }) {
@@ -50,9 +57,19 @@ function Header({ event }: { event?: string }) {
   );
 }
 
+// The browser tab shows the strategy mark while this app is open.
+function useTabIcon() {
+  useEffect(() => {
+    const link = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (link) { link.type = "image/png"; link.href = mark; }
+    document.title = "Lebob Strategy";
+  }, []);
+}
+
 export default function StrategyApp({ api, ourTeam, signedOut = false, onSignIn }: {
   api: StrategyApi; ourTeam: number; signedOut?: boolean; onSignIn?: () => Promise<void>;
 }) {
+  useTabIcon();
   const [events, retryEvents] = useLoad("events", () => api.ourEvents());
   const [picked, setPicked] = useState<EventRow | null>(null);
   const [signIn, setSignIn] = useState<"idle" | "working" | "failed">("idle");
@@ -79,7 +96,7 @@ export default function StrategyApp({ api, ourTeam, signedOut = false, onSignIn 
           : events.state === "failed" ? <p>Couldn't load the event list. <button type="button" onClick={retryEvents}>Retry</button></p>
           : !event ? <p>No events yet.</p>
           : (
-            <>
+            <EventView key={event.eventUuid} api={api} eventUuid={event.eventUuid} ourTeam={ourTeam} picker={(
               <label className="event-pick">
                 <span className="label">Event</span>
                 <select value={event.eventUuid} onChange={(e) => {
@@ -89,19 +106,20 @@ export default function StrategyApp({ api, ourTeam, signedOut = false, onSignIn 
                   {list.map((e) => <option key={e.eventUuid} value={e.eventUuid}>{e.eventName}</option>)}
                 </select>
               </label>
-              <EventView key={event.eventUuid} api={api} eventUuid={event.eventUuid} ourTeam={ourTeam} />
-            </>
+            )} />
           )}
       </div>
-      <footer className="foot-brand">Lebob Strategy · FTC team 29550</footer>
+      <footer className="foot-brand foot-wide">Lebob Strategy · FTC team 29550</footer>
     </>
   );
 }
 
-function EventView({ api, eventUuid, ourTeam }: { api: StrategyApi; eventUuid: string; ourTeam: number }) {
+function EventView({ api, eventUuid, ourTeam, picker }: { api: StrategyApi; eventUuid: string; ourTeam: number; picker: ReactNode }) {
   const [tab, setTab] = useState<Tab>("event");
   const [team, setTeam] = useState<number | null>(null);
   const [matchUuid, setMatchUuid] = useState<string | null>(null);
+  const [breakageAsk, setBreakageAsk] = useState(0);
+  const handledAsk = useRef(0);
   const [model, retryModel] = useLoad(eventUuid, async (): Promise<Model> => {
     const [ratings, history, forecasts, projections, picks, matches] = await Promise.all([
       api.ratings(eventUuid), api.history(eventUuid), api.forecasts(eventUuid), api.projections(eventUuid), api.picks(eventUuid), api.matches(eventUuid),
@@ -119,28 +137,72 @@ function EventView({ api, eventUuid, ourTeam }: { api: StrategyApi; eventUuid: s
     </nav>
   );
   if (model.state !== "ok") {
-    return <>{tabs}{model.state === "loading" ? <p>Loading…</p> : <p>Couldn't load the match model's figures. <button type="button" onClick={retryModel}>Retry</button></p>}</>;
+    return (
+      <>
+        <div className="topbar">{picker}</div>
+        {tabs}
+        {model.state === "loading" ? <p>Loading…</p> : <p>Couldn't load the match model's figures. <button type="button" onClick={retryModel}>Retry</button></p>}
+      </>
+    );
   }
-  if (!model.data.ratings.length && !model.data.forecasts.length) return <>{tabs}<p>No ratings or forecasts yet for this event.</p></>;
+  const m = model.data;
+  if (!m.ratings.length && !m.forecasts.length) return <><div className="topbar">{picker}</div>{tabs}<p>No ratings or forecasts yet for this event.</p></>;
 
   const profiles = new Map(scouting.state === "ok" ? scouting.data.teams.map((t) => [t.teamNumber, t]) : []);
+  const shares = splits.state === "ok" ? sharesByTeam(splits.data) : new Map<number, number[]>();
+  const points = (n: number) => pointsFigure(profiles.get(n), shares.get(n) ?? []);
   const ctx: Ctx = {
-    api, eventUuid, ourTeam, model: model.data, labels: matchLabels(model.data.forecasts),
+    api, eventUuid, ourTeam, model: m, labels: matchLabels(m.forecasts),
     scouting, retryScouting, profile: (n) => profiles.get(n), maps, retryMaps, splits, retrySplits,
+    points,
+    scale: {
+      rating: scaleMax(m.ratings.map((r) => likely(r.opr, r.oprSe)?.high ?? r.opr)),
+      points: scaleMax(m.ratings.map((r) => points(r.teamNumber)?.high ?? 0)),
+    },
     openTeam: (n) => { setTeam(n); go("team"); },
-    openMatch: (m) => { setMatchUuid(m); go("match"); },
+    openMatch: (u) => { setMatchUuid(u); go("match"); },
+    openBreakages: (n) => { keepShut("Breakages", false); setTeam(n); setTab("team"); setBreakageAsk((a) => a + 1); },
+    breakageAsk,
+    takeBreakageAsk: () => {
+      if (breakageAsk <= handledAsk.current) return false;
+      handledAsk.current = breakageAsk;
+      return true;
+    },
   };
-  const teams = model.data.ratings.map((r) => r.teamNumber);
+  const teams = m.ratings.map((r) => r.teamNumber);
   const shownTeam = team ?? (teams.includes(ourTeam) ? ourTeam : [...teams].sort((a, b) => a - b)[0] ?? null);
 
   return (
     <>
+      <div className="topbar">{picker}<Status ctx={ctx} /></div>
       {tabs}
       {tab === "event" && <EventScreen ctx={ctx} />}
       {tab === "team" && (shownTeam == null ? <p>No teams yet for this event.</p> : <TeamScreen ctx={ctx} team={shownTeam} onTeam={setTeam} />)}
       {tab === "match" && <MatchScreen ctx={ctx} matchUuid={matchUuid} onMatch={setMatchUuid} />}
-      {tab === "matches" && <MatchesScreen ctx={ctx} />}
+      {tab === "schedule" && <MatchesScreen ctx={ctx} />}
       {tab === "alliance" && <AllianceScreen ctx={ctx} />}
     </>
+  );
+}
+
+// Where the event stands for us, on every tab: matches played, our rank, our next match and its win chance.
+function Status({ ctx }: { ctx: Ctx }) {
+  const { model, ourTeam, labels } = ctx;
+  const { played, total } = playedCount(model.forecasts, model.matches);
+  const us = model.projections.find((p) => p.teamNumber === ourTeam);
+  const next = nextOurs(model.forecasts, ourTeam);
+  const side = next && sideOf(next, ourTeam);
+  return (
+    <dl className="status-tiles" aria-label="Event status">
+      <div><dt>played</dt><dd>{played} / {total}</dd></div>
+      <div><dt>our rank</dt><dd>{whole(us?.rankNow)}</dd></div>
+      <div>
+        <dt>our next match</dt>
+        <dd>{next ? <button type="button" className="next-link" title={`Plan ${labels.get(next.matchUuid)}`} onClick={() => ctx.openMatch(next.matchUuid)}>{labels.get(next.matchUuid)}</button> : "–"}</dd>
+      </div>
+      <div title={next && side ? `Expected ${one(side === "red" ? next.redScore : next.blueScore)} to ${one(side === "red" ? next.blueScore : next.redScore)}` : undefined}>
+        <dt>its win chance</dt><dd>{next && side ? pct(winChance(next, side)) : "–"}</dd>
+      </div>
+    </dl>
   );
 }

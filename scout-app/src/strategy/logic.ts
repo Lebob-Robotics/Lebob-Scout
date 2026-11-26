@@ -1,17 +1,44 @@
 // Sums and orderings for the strategy screens. No React here, so each is tested on its own.
 import type { TeamProfile } from "../api";
-import type { AllianceMap, Forecast, HistoryPoint, MatchMaps, Pick, PointSplit, SquareMap, TeamMap } from "./types";
+import type { AllianceMap, Forecast, HistoryPoint, MatchMaps, Pick, PointSplit, Projection, Rating, SquareMap, SquareOverlap, TeamMap } from "./types";
 
 // Figures as the screens show them: ratings to one decimal, chances as whole percentages, "–" when missing.
 export const one = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? "–" : (Math.round(x * 10) / 10).toFixed(1));
 export const pct = (p: number | null | undefined) => (p == null || !Number.isFinite(p) ? "–" : `${Math.round(p * 100)}%`);
 export const whole = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? "–" : String(Math.round(x)));
 
-// The rating's likely range: rating ± 1.28 × standard error, the 80% range. Empty when there is no standard error.
-export function rangeText(opr: number, se: number | null): string {
-  if (se == null || !Number.isFinite(se)) return "";
-  return `${one(opr - 1.28 * se)}–${one(opr + 1.28 * se)}`;
+// The rating's likely range: rating ± 1.28 × standard error, the 80% range. Null when there is no standard error.
+export function likely(opr: number, se: number | null): { low: number; high: number } | null {
+  if (se == null || !Number.isFinite(se)) return null;
+  return { low: opr - 1.28 * se, high: opr + 1.28 * se };
 }
+export const rangeText = (low: number, high: number) => `${one(low)} to ${one(high)}`;
+
+// A range bar: a band from low to high and a marker at the value, as shares (0 to 100) of a track from 0 to max.
+// Every bar in a column shares one max, so they compare. Values outside the track sit at its ends.
+export function bar(value: number, low: number, high: number, max: number): { left: number; width: number; at: number } {
+  const p = (v: number) => (max > 0 ? Math.max(0, Math.min(100, (v / max) * 100)) : 0);
+  const l = p(Math.min(low, high)), h = p(Math.max(low, high));
+  return { left: l, width: h - l, at: p(value) };
+}
+// A column's track length: the largest high end, never 0.
+export const scaleMax = (highs: number[]) => Math.max(0, ...highs.filter(Number.isFinite)) || 1;
+
+// Points per match for a team: what our scouts saw (with the lowest and highest scouted match), or, when nobody
+// scouted it, its official points share (the point split) averaged over its played matches. Null when neither.
+export type Figure = { value: number; low: number; high: number; official: boolean };
+export function pointsFigure(profile: { matches: number; points: number; pointsLow?: number; pointsHigh?: number } | undefined, shares: number[]): Figure | null {
+  if (profile && profile.matches > 0) {
+    return { value: profile.points, low: profile.pointsLow ?? profile.points, high: profile.pointsHigh ?? profile.points, official: false };
+  }
+  if (!shares.length) return null;
+  return { value: shares.reduce((a, b) => a + b, 0) / shares.length, low: Math.min(...shares), high: Math.max(...shares), official: true };
+}
+// The hover text for a points bar.
+export const pointsTitle = (f: Figure) => (f.official ? "Official points share (not scouted)" : `${rangeText(f.low, f.high)} scouted`);
+
+// TIPS per match from the model's HIVE rating (20 points a TIP).
+export const tipsPerMatch = (hiveRating: number | null) => (hiveRating == null ? null : hiveRating / 20);
 
 // Sort rows by one column. Blanks always go last, whichever way the column is sorted; ties keep their order.
 export type SortValue = number | string | null | undefined;
@@ -130,7 +157,29 @@ export function historyChart(points: HistoryPoint[], w: number, h: number, pad =
 export type Measure = "auto" | "teleop" | "scored" | "pickedUp";
 export const measureOf = (s: SquareMap, m: Measure) =>
   m === "auto" ? s.autoScored : m === "teleop" ? s.teleopScored : m === "scored" ? s.autoScored + s.teleopScored : s.pickedUp;
-export const squareValues = (squares: SquareMap[], m: Measure) => new Map(squares.map((s) => [s.square, measureOf(s, m)]));
+
+// What a heatmap draws: per square, how strongly to shade it and the lines its pop-up shows.
+export type Cell = { value: number; lines: [string, string][] };
+const fig2 = (x: number) => String(Math.round(x * 100) / 100);
+export const teamCells = (squares: SquareMap[], m: Measure): Map<string, Cell> => new Map(squares.map((s) => [s.square, {
+  value: measureOf(s, m),
+  lines: [["Auto scored", fig2(s.autoScored)], ["Teleop scored", fig2(s.teleopScored)], ["Picked up", fig2(s.pickedUp)]],
+}]));
+export const overlapCells = (overlap: SquareOverlap[]): Map<string, Cell> => new Map(overlap.map((o) => [o.square, {
+  value: o.both, lines: [["Red use", fig2(o.red)], ["Blue use", fig2(o.blue)], ["Both", fig2(o.both)]],
+}]));
+
+// Where a square's pop-up sits on the field: at the square's centre (as shares of the whole picture, whose grid is the
+// middle 75%), above it unless the square is in the top two rows, and leaning inwards near the side walls so it stays
+// on the picture.
+export function popPlace(col: number, row: number, cols: number, rows: number) {
+  return {
+    left: 12.5 + ((col + 0.5) / cols) * 75,
+    top: ((row + 0.5) / rows) * 100,
+    below: row < 2,
+    lean: col < 2 ? "right" : col >= cols - 2 ? "left" : "middle",
+  } as const;
+}
 
 // The same sums as the matchMaps function (scout-functions/src/teams/maps.ts), for the dev stand-in: each alliance's
 // robots added square by square, and the overlap scored by the smaller of the two alliances' use of a square.
@@ -189,3 +238,51 @@ export const scoutTiles = (t: TeamProfile): [string, string][] => [
   ["speed 1-5", maybe(t.robotSpeed)],
   ["matches", String(t.matches)],
 ];
+
+// The scouting card's other figures: how often it left its start, parked, fouled and broke down.
+export const scoutMoreTiles = (t: TeamProfile): [string, string][] => [
+  ["left start in auto", pct(t.leaveRate)],
+  ["parked in auto", pct(t.autoParkRate)],
+  ["parked at end", pct(t.teleopParkRate)],
+  ["minor fouls / match", one(t.minorFouls)],
+  ["major fouls / match", one(t.majorFouls)],
+  ["broke down", `${t.brokeDownMatches} of ${t.matches}`],
+];
+
+// Each card's open or shut state, kept on this device. Storage may be missing or refuse: then cards start open.
+type Store = Pick2<Storage, "getItem" | "setItem" | "removeItem">;
+type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
+export const cardKey = (title: string) => `lsa:card:${title}`;
+export function readShut(title: string, store: () => Store = () => localStorage): boolean {
+  try { return store().getItem(cardKey(title)) === "1"; } catch { return false; }
+}
+export function keepShut(title: string, shut: boolean, store: () => Store = () => localStorage): void {
+  try {
+    if (shut) store().setItem(cardKey(title), "1");
+    else store().removeItem(cardKey(title));
+  } catch { /* open again next time */ }
+}
+
+// The Event tab's ratings table: rating with its likely range, points per match, real rank and breakages.
+export type RatingRow = {
+  teamNumber: number; teamName: string; opr: number; low: number; high: number; rankNow: number | null; points: Figure | null; breakages: number;
+};
+export function ratingRows(
+  ratings: Rating[], projections: Projection[], profile: (team: number) => { breakages: unknown[] } | undefined, points: (team: number) => Figure | null,
+): RatingRow[] {
+  const rank = new Map(projections.map((p) => [p.teamNumber, p.rankNow]));
+  return ratings.map((r) => {
+    const range = likely(r.opr, r.oprSe);
+    return {
+      teamNumber: r.teamNumber, teamName: r.teamName, opr: r.opr, low: range?.low ?? r.opr, high: range?.high ?? r.opr,
+      rankNow: rank.get(r.teamNumber) ?? null, points: points(r.teamNumber), breakages: profile(r.teamNumber)?.breakages.length ?? 0,
+    };
+  });
+}
+
+// Each team's point-split points over its played matches.
+export function sharesByTeam(splits: PointSplit[]): Map<number, number[]> {
+  const out = new Map<number, number[]>();
+  splits.forEach((s) => out.set(s.teamNumber, [...(out.get(s.teamNumber) ?? []), s.points]));
+  return out;
+}

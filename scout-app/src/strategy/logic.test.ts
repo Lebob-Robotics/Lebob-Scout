@@ -1,5 +1,7 @@
 import { expect, test } from "vitest";
 import {
+  bar, cardKey, keepShut, likely, overlapCells, pointsFigure, pointsTitle, popPlace, ratingRows, readShut, scaleMax, scoutMoreTiles, sharesByTeam,
+  teamCells, tipsPerMatch,
   buildMatchMaps, defaultMatch, favouriteWon, historyChart, matchLabels, measureOf, nextOurs, nextSort, one, orderForecasts, partnersFor,
   pct, playedCount, rangeText, robotsOf, rsNeeded, scoutTiles, sideOf, sortRows, splitsByMatch, whole, winChance,
 } from "./logic";
@@ -25,9 +27,34 @@ test("figures: one decimal, whole percentages, dashes for blanks", () => {
   expect(whole(3.6)).toBe("4");
 });
 
-test("rangeText is rating ± 1.28 standard errors, blank with no error", () => {
-  expect(rangeText(50, 10)).toBe("37.2–62.8");
-  expect(rangeText(50, null)).toBe("");
+test("likely is rating ± 1.28 standard errors, none with no error; rangeText reads low to high", () => {
+  expect(likely(50, 10)).toEqual({ low: 37.2, high: 62.8 });
+  expect(likely(50, null)).toBeNull();
+  expect(rangeText(45.31, 66.3)).toBe("45.3 to 66.3");
+});
+
+test("bar places the band and marker as shares of the column's track, kept on the track", () => {
+  expect(bar(50, 25, 75, 100)).toEqual({ left: 25, width: 50, at: 50 });
+  expect(bar(10, -5, 30, 20)).toEqual({ left: 0, width: 100, at: 50 });
+  expect(bar(5, 5, 5, 0)).toEqual({ left: 0, width: 0, at: 0 });
+  expect(scaleMax([12, 66.3, NaN])).toBe(66.3);
+  expect(scaleMax([])).toBe(1);
+});
+
+test("pointsFigure: scouted points with the low and high match, else the official share, else nothing", () => {
+  expect(pointsFigure({ matches: 2, points: 30, pointsLow: 20, pointsHigh: 40 }, [99])).toEqual({ value: 30, low: 20, high: 40, official: false });
+  expect(pointsFigure({ matches: 1, points: 30 }, [])).toEqual({ value: 30, low: 30, high: 30, official: false });
+  expect(pointsFigure({ matches: 0, points: 0 }, [10, 30, 20])).toEqual({ value: 20, low: 10, high: 30, official: true });
+  expect(pointsFigure(undefined, [12])).toEqual({ value: 12, low: 12, high: 12, official: true });
+  expect(pointsFigure(undefined, [])).toBeNull();
+  expect(pointsTitle({ value: 20, low: 10, high: 30, official: true })).toBe("Official points share (not scouted)");
+  expect(pointsTitle({ value: 20, low: 10, high: 30, official: false })).toBe("10.0 to 30.0 scouted");
+});
+
+test("tips per match are the HIVE rating over 20", () => {
+  expect(tipsPerMatch(90)).toBe(4.5);
+  expect(tipsPerMatch(null)).toBeNull();
+  expect(one(tipsPerMatch(89.3))).toBe("4.5");
 });
 
 test("sortRows sorts either way and keeps blanks last", () => {
@@ -140,8 +167,69 @@ test("playedCount uses forecasts, else the schedule", () => {
 test("scoutTiles shows the Teams tab figures, dashes for missing ones", () => {
   const tiles = new Map(scoutTiles({
     teamNumber: 1, name: "", need: false, matches: 2, played: 2, toCome: 0, scheduled: 2, missing: [], twice: [], points: 41.6, autoPoints: 8.25,
-    teleopPoints: 30, parkPoints: 2.5, autoScored: 1, cycles: 3, cycleSeconds: 22.25, squares: [], starts: [], reports: [], pits: [], breakages: [],
+    teleopPoints: 30, parkPoints: 2.5, autoScored: 1, cycles: 3, cycleSeconds: 22.25, squares: [], starts: [], reports: [], pits: [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [],
   }));
   expect([tiles.get("points / match"), tiles.get("auto pts"), tiles.get("cycle time"), tiles.get("driver 1-5"), tiles.get("matches")])
     .toEqual(["42", "8.3", "22.3s", "–", "2"]);
+});
+
+test("scoutMoreTiles shows the rates as whole percentages, fouls to one decimal, and breakdowns of matches", () => {
+  const tiles = new Map(scoutMoreTiles({
+    teamNumber: 1, name: "", need: false, matches: 4, played: 4, toCome: 0, scheduled: 4, missing: [], twice: [], points: 0, autoPoints: 0,
+    teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0, squares: [], starts: [], reports: [], pits: [], breakages: [],
+    brokeDownMatches: 1, notes: [], autoPaths: [], leaveRate: 0.75, teleopParkRate: 1, minorFouls: 0.25,
+  }));
+  expect([tiles.get("left start in auto"), tiles.get("parked in auto"), tiles.get("parked at end"), tiles.get("minor fouls / match"),
+    tiles.get("major fouls / match"), tiles.get("broke down")]).toEqual(["75%", "–", "100%", "0.3", "–", "1 of 4"]);
+});
+
+test("card state is kept per title, and a missing or refusing storage leaves cards open", () => {
+  const kept = new Map<string, string>();
+  const store = () => ({ getItem: (k: string) => kept.get(k) ?? null, setItem: (k: string, v: string) => { kept.set(k, v); }, removeItem: (k: string) => { kept.delete(k); } });
+  expect(readShut("Ratings", store)).toBe(false);
+  keepShut("Ratings", true, store);
+  expect(kept.get(cardKey("Ratings"))).toBe("1");
+  expect(readShut("Ratings", store)).toBe(true);
+  expect(readShut("Breakages", store)).toBe(false);
+  keepShut("Ratings", false, store);
+  expect(readShut("Ratings", store)).toBe(false);
+  const refuses = () => { throw new Error("blocked"); };
+  expect(readShut("Ratings", refuses)).toBe(false);
+  expect(() => keepShut("Ratings", true, refuses)).not.toThrow();
+  const full = () => ({ getItem: () => null, setItem: () => { throw new Error("full"); }, removeItem: () => {} });
+  expect(() => keepShut("Ratings", true, full)).not.toThrow();
+});
+
+test("ratingRows joins rating range, rank, points and breakages, and sorts by breakage count", () => {
+  const rows = ratingRows(
+    [{ teamNumber: 1, teamName: "A", opr: 50, oprSe: 10, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null },
+      { teamNumber: 2, teamName: "B", opr: 30, oprSe: null, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null },
+      { teamNumber: 3, teamName: "C", opr: 20, oprSe: 1, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null }],
+    [{ teamNumber: 2, teamName: "B", rankNow: 1, rpNow: null, rsNow: null, expRank: null, medianRank: null, expRs: null, pRank1: null, pTop4: null,
+      pTop8: null, remaining: null, rsNeededRank1: null, rsNeededRank4: null, rsNeededRank8: null }],
+    (t) => (t === 1 ? { breakages: [{}] } : t === 3 ? { breakages: [{}, {}] } : undefined),
+    (t) => (t === 1 ? { value: 9, low: 8, high: 10, official: false } : null),
+  );
+  expect(rows[0]).toEqual({ teamNumber: 1, teamName: "A", opr: 50, low: 37.2, high: 62.8, rankNow: null, points: { value: 9, low: 8, high: 10, official: false }, breakages: 1 });
+  expect([rows[1].low, rows[1].high, rows[1].rankNow, rows[1].breakages]).toEqual([30, 30, 1, 0]);
+  expect(sortRows(rows, (r) => r.breakages, "desc").map((r) => r.teamNumber)).toEqual([3, 1, 2]);
+});
+
+test("sharesByTeam gathers each team's split points", () => {
+  const split = (teamNumber: number, points: number) => ({ matchUuid: "m", label: "", alliance: "red", teamNumber, allianceScore: 0, points });
+  expect([...sharesByTeam([split(1, 10), split(2, 5), split(1, 20)])]).toEqual([[1, [10, 20]], [2, [5]]]);
+});
+
+test("heat cells shade by the measure and list the square's figures", () => {
+  const c = teamCells([{ square: "A1", autoScored: 1, teleopScored: 2.333, pickedUp: 0 }], "scored").get("A1")!;
+  expect(c.value).toBeCloseTo(3.333);
+  expect(c.lines).toEqual([["Auto scored", "1"], ["Teleop scored", "2.33"], ["Picked up", "0"]]);
+  expect(overlapCells([{ square: "B2", red: 3, blue: 1.5, both: 1.5 }]).get("B2")).toEqual({ value: 1.5, lines: [["Red use", "3"], ["Blue use", "1.5"], ["Both", "1.5"]] });
+});
+
+test("popPlace keeps a square's pop-up on the picture", () => {
+  expect(popPlace(0, 0, 6, 6)).toMatchObject({ left: 18.75, below: true, lean: "right" });
+  expect(popPlace(0, 0, 6, 6).top).toBeCloseTo(8.333);
+  expect(popPlace(5, 5, 6, 6)).toMatchObject({ left: 81.25, below: false, lean: "left" });
+  expect(popPlace(2, 3, 6, 6).lean).toBe("middle");
 });

@@ -4,7 +4,7 @@
 export const OUR_TEAM = 29550;
 
 export type Rating = {
-  teamNumber: number; teamName: string; opr: number; oprSe: number | null; autoRating: number | null; teleopRating: number | null;
+  teamNumber: number; teamName: string; opr: number; oprSe: number | null; autoRating: number | null; teleopRating: number | null; hiveRating: number | null;
   priorWeight: number | null; priorNote: string | null; matchesFitted: number | null;
 };
 export type HistoryPoint = { teamNumber: number; afterMatch: number; lastMatch: string | null; opr: number; oprSe: number | null; ratingRank: number | null };

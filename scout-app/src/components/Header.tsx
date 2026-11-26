@@ -1,6 +1,6 @@
-import mark from "../assets/lebob-mark.svg";
+import mark from "../assets/scout-mark.png";
 
-// As on the old site: the mark and "Scout", the event code, then how many reports are still on this phone.
+// Lebob with a clipboard (the scouting logo) and "Scout", the event code, then how many reports are still on this phone.
 // Every screen but the live one.
 export function Header({ event, pill }: { event?: string | null; pill?: string | null }) {
   return (

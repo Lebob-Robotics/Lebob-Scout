@@ -79,7 +79,7 @@ function ratings(fs: Forecast[]): Rating[] {
     const fitted = fs.filter((f) => f.played && f.level === "qual" && (f.red.includes(t) || f.blue.includes(t))).length;
     const priorWeight = r2(Math.max(0.1, 1 - fitted / 4));
     return {
-      teamNumber: t, teamName: NAMES[t], opr, oprSe: se, autoRating: r1(opr * auto), teleopRating: r1(opr * (1 - auto)),
+      teamNumber: t, teamName: NAMES[t], opr, oprSe: se, autoRating: r1(opr * auto), teleopRating: r1(opr * (1 - auto)), hiveRating: r1(opr * 1.6),
       priorWeight, priorNote: priorWeight > 0.5 ? `Only ${fitted} matches played here: most of this rating still comes from its last event.` : null,
       matchesFitted: fitted,
     };

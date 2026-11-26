@@ -10,7 +10,7 @@ const report = (r: Partial<ReportSummary> = {}): ReportSummary => ({
 const team = (t: Partial<TeamProfile> = {}): TeamProfile => ({
   teamNumber: 11115, name: "Gluten Free", need: false, matches: 2, played: 2, toCome: 0, scheduled: 2,
   missing: [], twice: [], points: 15.6, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-  squares: [], starts: [], reports: [], pits: [], breakages: [], ...t,
+  squares: [], starts: [], reports: [], pits: [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [], ...t,
 });
 
 const teams = [

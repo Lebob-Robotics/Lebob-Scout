@@ -46,6 +46,11 @@ const r8 = report({
   autoScored: 2, teleopScored: 8, cycles: 4, cycleSeconds: 18, autoPoints: 3 + 5 + 2 * P, teleopPoints: 8 * P, parkPoints: 5,
 });
 
+// A report's points; a match's points average its reports.
+const pts = (...rs: ReportSummary[]) => rs.reduce((a, r) => a + r.autoPoints + r.teleopPoints + r.parkPoints, 0) / rs.length;
+const note = (label: string, scoutName: string, createdAt: string, autoNotes?: string, notes?: string) =>
+  ({ label, scoutName, createdAt, ...(autoNotes ? { autoNotes } : {}), ...(notes ? { notes } : {}) });
+
 const NAMES: Record<number, string> = { 11115: "Gluten Free", 12345: "Bolt", 14469: "Perth Modern Robotics Collective", 16021: "Cogs and Sprockets",
   18172: "Wired Wombats", 19044: "Kelp Forest", 21230: "Null Pointers", 23511: "Spare Parts Society",
 };
@@ -98,6 +103,16 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoPoints: (r1.autoPoints + r2.autoPoints) / 2, teleopPoints: (r1.teleopPoints + r2.teleopPoints) / 2, parkPoints: 2.5,
       points: (r1.autoPoints + r2.autoPoints + r1.teleopPoints + r2.teleopPoints) / 2 + 2.5,
       autoScored: 1.5, cycles: 2.5, cycleSeconds: 27.75, driverSkill: 4, robotSpeed: 3.5,
+      pointsLow: Math.min(pts(r1), pts(r2)), pointsHigh: Math.max(pts(r1), pts(r2)),
+      leaveRate: 1, autoParkRate: 0.5, teleopParkRate: 0.5, minorFouls: 0.5, majorFouls: 0, brokeDownMatches: 0,
+      notes: [
+        note("Q2", "Dev Scout", r2.createdAt, "Left, shot one, parked", "Slow to line up at the HIVE, missed two late shots"),
+        note("Q1", "Alice Nguyen", r1.createdAt, undefined, "Good driver, picks up from the far corner every time"),
+      ],
+      autoPaths: [
+        { label: "Q1", alliance: "red", points: "4,22 16,26 30,38 40,46|38,44" },
+        { label: "Q2", alliance: "blue", points: "96,74 84,70 70,60 62,52|62,52" },
+      ],
       squares: [
         { square: "A1", scored: 0, pickedUp: 2 }, { square: "B2", scored: 2, pickedUp: 0 }, { square: "C3", scored: 4, pickedUp: 0 },
         { square: "D4", scored: 4, pickedUp: 0 }, { square: "F6", scored: 0, pickedUp: 3 },
@@ -111,6 +126,17 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoPoints: ((r3.autoPoints + r4.autoPoints) / 2 + r8.autoPoints) / 2, teleopPoints: ((r3.teleopPoints + r4.teleopPoints) / 2 + r8.teleopPoints) / 2, parkPoints: 5,
       points: ((r3.autoPoints + r4.autoPoints + r3.teleopPoints + r4.teleopPoints) / 2 + r8.autoPoints + r8.teleopPoints) / 2 + 5,
       autoScored: 2.25, cycles: 3.75, cycleSeconds: 19.5, driverSkill: 3, robotSpeed: 4,
+      pointsLow: Math.min(pts(r3, r4), pts(r8)), pointsHigh: Math.max(pts(r3, r4), pts(r8)),
+      leaveRate: 1, autoParkRate: 1, teleopParkRate: 1, minorFouls: 0.25, majorFouls: 0.5, brokeDownMatches: 0,
+      notes: [
+        note("Q2", "Dev Scout", r8.createdAt, "Three in auto, very quick", "Fastest cycles here. Got a major for pinning"),
+        note("Q1", "Sam", r4.createdAt, undefined, "Turret keeps shooting while it drives"),
+        note("Q1", "Alice Nguyen", r3.createdAt, "Clean auto"),
+      ],
+      autoPaths: [
+        { label: "Q1", alliance: "red", points: "6,40 22,42 40,50 52,54|46,50|50,56" },
+        { label: "Q2", alliance: "blue", points: "94,30 80,36 66,46 58,52|60,50" },
+      ],
       squares: [{ square: "C4", scored: 7, pickedUp: 0 }, { square: "D3", scored: 3, pickedUp: 0 }, { square: "E2", scored: 0, pickedUp: 2.5 }, { square: "E5", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 60, label: "Q1" }, { alliance: "blue", wallPos: 140, label: "Q2" }],
       reports: [r3, r4, r8], pits: [DEV_PIT], breakages: [],
@@ -118,7 +144,10 @@ export const DEV_TEAMS_TAB: TeamsTab = {
     {
       teamNumber: 14469, name: NAMES[14469], need: true, matches: 1, ...counts, missing: ["Q1"], twice: [], ...next,
       autoPoints: r7.autoPoints, teleopPoints: r7.teleopPoints, parkPoints: 5, points: r7.autoPoints + r7.teleopPoints + 5,
-      autoScored: 1, cycles: 2, cycleSeconds: 35,
+      autoScored: 1, cycles: 2, cycleSeconds: 35, pointsLow: pts(r7), pointsHigh: pts(r7),
+      leaveRate: 1, autoParkRate: 0, teleopParkRate: 1, minorFouls: 1, majorFouls: 0, brokeDownMatches: 0,
+      notes: [note("Q2", "Sam", r7.createdAt, undefined, "Tipped a little on the ramp but carried on")],
+      autoPaths: [{ label: "Q2", alliance: "red", points: "4,30 18,34 30,40" }],
       squares: [{ square: "B3", scored: 3, pickedUp: 0 }, { square: "E4", scored: 0, pickedUp: 2 }],
       starts: [{ alliance: "red", wallPos: 40, label: "Q2" }],
       reports: [r7], pits: [], breakages: [],
@@ -128,6 +157,13 @@ export const DEV_TEAMS_TAB: TeamsTab = {
       autoPoints: (r5.autoPoints + r6.autoPoints) / 2, teleopPoints: (r5.teleopPoints + r6.teleopPoints) / 2, parkPoints: 2.5,
       points: (r5.autoPoints + r6.autoPoints + r5.teleopPoints + r6.teleopPoints) / 2 + 2.5,
       autoScored: 0.5, cycles: 1.5, cycleSeconds: 40, driverSkill: 2, robotSpeed: 2.5,
+      pointsLow: Math.min(pts(r5), pts(r6)), pointsHigh: Math.max(pts(r5), pts(r6)),
+      leaveRate: 0.5, autoParkRate: 0.5, teleopParkRate: 0.5, minorFouls: 1.5, majorFouls: 0.5, brokeDownMatches: 1,
+      notes: [
+        note("Q2", "Dev Scout", r6.createdAt, undefined, "Wheel came off with a minute to go, sat still after that"),
+        note("Q1", "Alice Nguyen", r5.createdAt, "Did not move in auto"),
+      ],
+      autoPaths: [],
       squares: [{ square: "B5", scored: 3, pickedUp: 0 }, { square: "E5", scored: 2, pickedUp: 1 }],
       starts: [{ alliance: "blue", wallPos: 170, label: "Q1" }, { alliance: "red", wallPos: 100, label: "Q2" }],
       reports: [r5, r6], pits: [], breakages: [DEV_BREAKAGE],
@@ -135,7 +171,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
     ...UNSCOUTED.map((teamNumber) => ({
       teamNumber, name: NAMES[teamNumber], need: true, matches: 0, played: 8, toCome: 0, scheduled: 8, missing: LATER.map((n) => `Q${n}`), twice: [],
       points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-      squares: [], starts: [], reports: [], pits: [], breakages: [],
+      squares: [], starts: [], reports: [], pits: [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [],
     })),
   ],
 };
