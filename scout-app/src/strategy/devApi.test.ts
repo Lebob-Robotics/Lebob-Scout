@@ -5,21 +5,23 @@ import { addMaps } from "./logic";
 
 const E = "dev-event-now";
 
-test("the dev forecasts cover every dev match, with results for the played ones", async () => {
+test("the dev games cover every dev match and five more quals, with official scores only where played", async () => {
   const api = createDevStrategyApi();
-  const [fs, ms] = await Promise.all([api.forecasts(E), api.matches(E)]);
-  expect(fs.map((f) => f.matchUuid).sort()).toEqual(ms.map((m) => m.matchUuid).sort());
-  fs.forEach((f) => expect(f.played).toBe(f.redActual != null));
-  expect(await api.forecasts("dev-event-next")).toEqual([]);
+  const [gs, ms] = await Promise.all([api.games(E), api.matches(E)]);
+  expect(gs.length).toBe(ms.length + 5);
+  ms.forEach((m) => expect(gs.find((g) => g.matchUuid === m.matchUuid)!.redScore != null).toBe(m.actualTime != null));
+  expect(gs.filter((g) => g.level === "qual" && g.redScore == null).map((g) => g.number)).toEqual([11, 12, 13, 14, 15, 16]);
+  gs.forEach((g) => expect([...g.red, ...g.blue].every((t) => t > 0)).toBe(true));
+  expect(await api.games("dev-event-next")).toEqual([]);
 });
 
-test("the dev point splits add up to each alliance's score", async () => {
+test("the dev standing counts 3 RP a win, 1 a tie, 1 bonus at 70 points", async () => {
   const api = createDevStrategyApi();
-  const [fs, splits] = await Promise.all([api.forecasts(E), api.pointSplits(E)]);
-  fs.filter((f) => f.played).forEach((f) => {
-    const red = splits.filter((s) => s.matchUuid === f.matchUuid && s.alliance === "red").reduce((a, s) => a + s.points, 0);
-    expect(red).toBeCloseTo(f.redActual!, 1);
-  });
+  const ps = await api.projections(E);
+  const bolt = ps.find((p) => p.teamNumber === 12345)!;
+  // Q1 won 70 to 38 with a bonus, Q2 won 63 to 36: 7 RP over 2 quals.
+  expect([bolt.rpNow, bolt.rsNow]).toEqual([7, 3.5]);
+  expect(new Set(ps.map((p) => p.rankNow)).size).toBe(ps.length);
 });
 
 test("the dev match maps add the alliance's field maps", async () => {

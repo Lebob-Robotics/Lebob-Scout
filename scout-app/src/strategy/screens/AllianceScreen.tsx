@@ -1,80 +1,90 @@
-import { useState } from "react";
-import { Dropdown } from "../../components/Dropdown";
 import type { Ctx } from "../StrategyApp";
-import { one, partnersFor, pct, rsNeeded, whole } from "../logic";
-import { Card, SortTable, TeamName, Tiles, type Col } from "../parts";
-import type { Pick, Projection } from "../types";
+import { one } from "../logic";
+import { ordinal, ourView, playOut, type Alliance } from "../playout";
+import { Card, TeamName } from "../parts";
 
-// Alliance selection: where every team is likely to finish, and the best partners for us or any team.
+// Alliance selection as a play-out from scouting: the rest of the qualifications, the predicted ranks, the alliances
+// captains are predicted to pick, and the playoffs by strength. The most likely outcome, no chances.
 export function AllianceScreen({ ctx }: { ctx: Ctx }) {
-  const { model, ourTeam } = ctx;
-  const teams = [...new Set(model.picks.map((p) => p.teamNumber))].sort((a, b) => a - b);
-  const [other, setOther] = useState<number | null>(null);
-  const shown = other ?? teams.find((t) => t !== ourTeam) ?? null;
-  const need = rsNeeded(model.projections);
-  const cols: Col<Projection>[] = [
-    { key: "team", label: "Team", natural: "asc", value: (p) => p.teamNumber, show: (p) => <TeamName team={p.teamNumber} name={p.teamName} onOpen={ctx.openTeam} /> },
-    { key: "rank", label: "Rank", num: true, natural: "asc", value: (p) => p.rankNow, show: (p) => whole(p.rankNow), title: "Rank now" },
-    { key: "rp", label: "RP", num: true, value: (p) => p.rpNow, show: (p) => whole(p.rpNow), title: "Ranking points now" },
-    { key: "rs", label: "RS", num: true, value: (p) => p.rsNow, show: (p) => one(p.rsNow), title: "Ranking score now" },
-    { key: "exp", label: "Exp rank", num: true, natural: "asc", value: (p) => p.expRank, show: (p) => one(p.expRank), title: "Expected final rank" },
-    { key: "median", label: "Median", num: true, natural: "asc", value: (p) => p.medianRank, show: (p) => whole(p.medianRank), title: "Median final rank" },
-    { key: "p1", label: "1st", num: true, value: (p) => p.pRank1, show: (p) => pct(p.pRank1), title: "Chance of finishing 1st" },
-    { key: "top4", label: "Top 4", num: true, value: (p) => p.pTop4, show: (p) => pct(p.pTop4), title: "Chance of finishing in the top 4" },
-    { key: "top8", label: "Top 8", num: true, value: (p) => p.pTop8, show: (p) => pct(p.pTop8), title: "Chance of finishing in the top 8" },
-    { key: "left", label: "Left", num: true, value: (p) => p.remaining, show: (p) => whole(p.remaining), title: "Qualification matches left" },
-  ];
+  const { model, ourTeam, settings } = ctx;
+  const p = playOut(model.games, model.projections, ctx.strengths, ctx.bonusRates, settings.alliances);
+  const v = ourView(p, ourTeam);
+  const name = (t: number) => model.teams.find((r) => r.teamNumber === t)?.teamName;
+  const team = (t: number | null) => (t == null ? "–" : <TeamName team={t} name={name(t)} onOpen={ctx.openTeam} />);
+  // An alliance in one short line: seed and team numbers (each opens its team).
+  const num = (t: number) => <TeamName team={t} onOpen={ctx.openTeam} />;
+  const pair = (a: Alliance) => <>Seed {a.seed}: {num(a.captain)}{a.pick != null && <> and {num(a.pick)}</>}</>;
+  if (!p.rows.length) return <div className="strategy-screen"><p>No standings yet for this event.</p></div>;
 
   return (
     <div className="strategy-screen">
-      <Card title="Rank projection">
-        <Tiles tiles={[["RS for 1st", one(need.rank1)], ["RS for 4th", one(need.rank4)], ["RS for 8th", one(need.rank8)]]} />
-        {model.projections.length ? (
-          <SortTable label="Rank projection" rows={model.projections} cols={cols} initial={{ key: "exp", dir: "asc" }} rowKey={(p) => p.teamNumber} onRow={(p) => ctx.openTeam(p.teamNumber)} />
-        ) : <p>No rank projections yet for this event.</p>}
+      <Card title={`Prediction for ${ourTeam}`}>
+        <p className="caption">{p.finished
+          ? "Qualifications are over: these are the last standings, and the play-out is finished."
+          : `Each remaining match goes to the higher scouted alliance (${p.remaining} qualification${p.remaining === 1 ? "" : "s"} left).`}</p>
+        <dl className="facts pred-facts">
+          <div>
+            <dt>Our predicted rank</dt>
+            <dd>{v.row ? ordinal(v.row.predRank) : "–"}
+              {v.row && <small>RS {one(v.row.predRs)}{v.row.rankNow != null && ` · now ${ordinal(v.row.rankNow)}`}</small>}
+            </dd>
+          </div>
+          <div><dt>Our seed</dt><dd>{v.alliance ? `${v.alliance.seed} (${v.captain ? "captain" : "picked"})` : "Not in an alliance"}</dd></div>
+          <div><dt>{v.alliance && !v.captain ? "Picked by" : "Our partner"}</dt><dd>{team(v.partner)}</dd></div>
+          <div><dt>Most likely to beat us</dt><dd>{v.threat ? pair(v.threat) : v.alliance ? "Nobody: ours is the strongest alliance" : "–"}</dd></div>
+          <div><dt>Predicted winner</dt><dd>{v.winner ? pair(v.winner) : "–"}</dd></div>
+        </dl>
       </Card>
 
-      <div className="cols">
-        <Card title={`Partners for ${ourTeam}`}>
-          <PartnersTable ctx={ctx} picks={partnersFor(model.picks, ourTeam)} />
-        </Card>
-        <Card title="Partners for another team" control={shown != null && (
-          <Dropdown label="Team" value={String(shown)} onChange={(v) => setOther(Number(v))}
-            items={teams.map((t) => ({ value: String(t), label: String(t), sub: model.ratings.find((r) => r.teamNumber === t)?.teamName }))} />
-        )}>
-          {shown == null ? <p>No alliance picks yet for this event.</p> : <PartnersTable ctx={ctx} picks={partnersFor(model.picks, shown)} />}
-        </Card>
-      </div>
-    </div>
-  );
-}
+      <Card title="Predicted alliances">
+        {!p.alliances.length ? <p>Too few teams for alliances.</p> : (
+          <div className="table-wrap">
+            <table className="stable" aria-label="Predicted alliances">
+              <thead>
+                <tr>
+                  <th className="num">Seed</th><th>Captain</th><th>Pick</th>
+                  <th className="num" title="The two teams' strengths added: scouted points per match, or the official share">Strength</th><th className="num">Finish</th>
+                </tr>
+              </thead>
+              <tbody>
+                {p.alliances.map((a) => (
+                  <tr key={a.seed} className={a.captain === ourTeam || a.pick === ourTeam ? "ours" : undefined}>
+                    <td className="num">{a.seed}</td>
+                    <td>{team(a.captain)}</td>
+                    <td>{team(a.pick)}</td>
+                    <td className="num" title={a.complete ? undefined : "A team with no data counts as 0"}>{one(a.strength)}{!a.complete && "*"}</td>
+                    <td className="num">{ordinal(a.finish)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
-// A team's possible partners, best chance of winning the event first (from the model's simulated playoffs).
-export function PartnersTable({ ctx, picks }: { ctx: Ctx; picks: Pick[] }) {
-  if (!picks.length) return <p>No alliance picks yet for this team.</p>;
-  return (
-    <div className="table-wrap">
-      <table className="stable">
-        <thead>
-          <tr>
-            <th>Partner</th><th className="num">Rating</th><th className="num" title="Chance of winning the event together">Win event</th>
-            <th className="num" title="Chance of reaching the finals together">Finals</th><th className="num">Seed</th>
-            <th title="Both teams likely still free to pair">Free</th>
-          </tr>
-        </thead>
-        <tbody>
-          {picks.map((p) => (
-            <tr key={p.partnerNumber}>
-              <td><TeamName team={p.partnerNumber} name={p.partnerName} onOpen={ctx.openTeam} /></td>
-              <td className="num">{one(p.partnerOpr)}</td>
-              <td className="num">{pct(p.pWinEvent)}</td>
-              <td className="num">{pct(p.pFinals)}</td>
-              <td className="num">{whole(p.seed)}</td>
-              <td>{p.free == null ? "–" : p.free ? "Yes" : "No"}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Card title="Predicted ranks">
+        <div className="table-wrap">
+          <table className="stable" aria-label="Predicted ranks">
+            <thead>
+              <tr>
+                <th className="num">Rank</th><th>Team</th><th className="num" title="Ranking score now">RS now</th>
+                <th className="num" title={p.finished ? "Ranking score at the end of qualifications" : "Ranking score after the remaining qualifications"}>Predicted RS</th>
+              </tr>
+            </thead>
+            <tbody>
+              {p.rows.map((r) => (
+                <tr key={r.teamNumber} className={r.teamNumber === ourTeam ? "ours" : undefined}>
+                  <td className="num">{r.predRank}</td>
+                  <td>{team(r.teamNumber)}{r.teamNumber === ourTeam && <span className="tag">us</span>}</td>
+                  <td className="num">{one(r.rsNow)}</td>
+                  <td className="num">{one(r.predRs)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
     </div>
   );
 }

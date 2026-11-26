@@ -1,6 +1,6 @@
 // Sums and orderings for the strategy screens. No React here, so each is tested on its own.
 import type { TeamProfile } from "../api";
-import type { AllianceMap, Forecast, HistoryPoint, MatchMaps, Pick, PointSplit, Projection, Rating, SquareMap, SquareOverlap, TeamMap } from "./types";
+import type { AllianceMap, Forecast, MatchMaps, Projection, SquareMap, SquareOverlap, TeamMap } from "./types";
 
 // Figures as the screens show them: ratings to one decimal, chances as whole percentages, "–" when missing.
 export const one = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? "–" : (Math.round(x * 10) / 10).toFixed(1));
@@ -106,22 +106,11 @@ export function favouriteWon(f: Forecast): boolean | null {
   return pRed > pBlue ? f.redActual > f.blueActual : f.blueActual > f.redActual;
 }
 
-// Each played match's split points by team, for the match lists.
-export function splitsByMatch(splits: PointSplit[]): Map<string, Map<number, number>> {
-  const out = new Map<string, Map<number, number>>();
-  splits.forEach((s) => {
-    const m = out.get(s.matchUuid) ?? new Map<number, number>();
-    m.set(s.teamNumber, s.points);
-    out.set(s.matchUuid, m);
-  });
-  return out;
-}
-
-// Scouting first: a figure our scouts saw, or the model's when they saw none (marked `model`).
-export type Pts = { value: number; model: boolean };
-export function scoutingFirst(scouted: number | null | undefined, model: number | null | undefined): Pts | null {
-  if (scouted != null && Number.isFinite(scouted)) return { value: scouted, model: false };
-  if (model != null && Number.isFinite(model)) return { value: model, model: true };
+// Scouting first: a figure our scouts saw, or the official share when they saw none (marked `official`).
+export type Pts = { value: number; official: boolean };
+export function scoutingFirst(scouted: number | null | undefined, official: number | null | undefined): Pts | null {
+  if (scouted != null && Number.isFinite(scouted)) return { value: scouted, official: false };
+  if (official != null && Number.isFinite(official)) return { value: official, official: true };
   return null;
 }
 
@@ -134,50 +123,14 @@ export function scoutedMatchPoints(matchPoints: MatchPoints, f: Pick2<Forecast, 
 }
 
 // A forecast's four robots, red then blue, each with its points in that match: scouted when we have them, else its
-// rating share of the alliance's score (the point split).
+// official share of the alliance's score (the score less its scouted partner, or half).
 export type Robot = { team: number; name: string; side: Side; points: Pts | null };
-export function robotsOf(f: Forecast, split?: Map<number, number>, scouted: (team: number) => number | null = () => null): Robot[] {
-  const at = (team: number) => scoutingFirst(scouted(team), split?.get(team));
+export function robotsOf(f: Forecast, scouted: (team: number) => number | null = () => null, official: (team: number) => number | null = () => null): Robot[] {
+  const at = (team: number) => scoutingFirst(scouted(team), official(team));
   return [
     ...f.red.map((team, i) => ({ team, name: f.redNames[i], side: "red" as const, points: at(team) })),
     ...f.blue.map((team, i) => ({ team, name: f.blueNames[i], side: "blue" as const, points: at(team) })),
   ];
-}
-
-// An alliance's scouted points per match: its robots' scouted figures added, with the low and high ends added too.
-// Null unless every robot on it has been scouted.
-type Scouted = { matches: number; points: number; pointsLow?: number; pointsHigh?: number } | undefined;
-export function scoutedTotal(robots: Scouted[]): { value: number; low: number; high: number } | null {
-  if (!robots.length || robots.some((r) => !r || !r.matches)) return null;
-  const sum = (f: (r: NonNullable<Scouted>) => number) => robots.reduce((a, r) => a + f(r!), 0);
-  return { value: sum((r) => r.points), low: sum((r) => r.pointsLow ?? r.points), high: sum((r) => r.pointsHigh ?? r.points) };
-}
-
-// A team's partners when it picks, best chance of winning the event first.
-export function partnersFor(picks: Pick[], team: number): Pick[] {
-  return sortRows(picks.filter((p) => p.teamNumber === team), (p) => p.pWinEvent, "desc");
-}
-
-// The rating history chart: the rating line and its ± one standard error band, scaled into a w × h box with a margin
-// for the axis labels. Points in match order.
-export type Chart = { line: string; band: string; yMin: number; yMax: number; xMin: number; xMax: number; dots: { x: number; y: number }[] };
-export function historyChart(points: HistoryPoint[], w: number, h: number, pad = { left: 30, right: 8, top: 8, bottom: 18 }): Chart | null {
-  const ps = [...points].sort((a, b) => a.afterMatch - b.afterMatch);
-  if (!ps.length) return null;
-  const lo = (p: HistoryPoint) => p.opr - (p.oprSe ?? 0), hi = (p: HistoryPoint) => p.opr + (p.oprSe ?? 0);
-  let yMin = Math.min(...ps.map(lo)), yMax = Math.max(...ps.map(hi));
-  if (yMax - yMin < 1) { yMin -= 1; yMax += 1; }
-  const xMin = ps[0].afterMatch, xMax = ps.at(-1)!.afterMatch;
-  const x = (v: number) => pad.left + (xMax === xMin ? 0.5 : (v - xMin) / (xMax - xMin)) * (w - pad.left - pad.right);
-  const y = (v: number) => pad.top + (1 - (v - yMin) / (yMax - yMin)) * (h - pad.top - pad.bottom);
-  const r = (v: number) => Math.round(v * 10) / 10;
-  const path = (xs: [number, number][]) => xs.map(([a, b], i) => `${i ? "L" : "M"}${r(a)} ${r(b)}`).join(" ");
-  const dots = ps.map((p) => ({ x: r(x(p.afterMatch)), y: r(y(p.opr)) }));
-  return {
-    line: path(ps.map((p) => [x(p.afterMatch), y(p.opr)])),
-    band: `${path([...ps.map((p): [number, number] => [x(p.afterMatch), y(hi(p))]), ...[...ps].reverse().map((p): [number, number] => [x(p.afterMatch), y(lo(p))])])} Z`,
-    yMin, yMax, xMin, xMax, dots,
-  };
 }
 
 // The figure a heatmap shows for each square.
@@ -239,12 +192,6 @@ export function buildMatchMaps(matchUuid: string, label: string, red: number[], 
   return { matchUuid, label, red: r, blue: b, overlap };
 }
 
-// The first figure the model gives for the ranking score needed for 1st, 4th and 8th (the same on every row).
-export function rsNeeded<T extends { rsNeededRank1: number | null; rsNeededRank4: number | null; rsNeededRank8: number | null }>(rows: T[]) {
-  const first = (k: keyof T) => rows.map((r) => r[k] as number | null).find((v) => v != null) ?? null;
-  return { rank1: first("rsNeededRank1"), rank4: first("rsNeededRank4"), rank8: first("rsNeededRank8") };
-}
-
 // Matches played and in all: from the forecasts, or from the schedule when there are none.
 export function playedCount(fs: Forecast[], matches: { actualTime: string | null }[]): { played: number; total: number } {
   if (fs.length) return { played: fs.filter((f) => f.played).length, total: fs.length };
@@ -288,16 +235,20 @@ export function keepShut(title: string, shut: boolean, store: () => Store = () =
   } catch { /* open again next time */ }
 }
 
-// The Event tab's ratings table: rating with its likely range, points per match, real rank and breakages.
+// A team with our own OPR (from this event's official scores; none before its first played match) and the model's
+// HIVE figure, kept only for TIPS per match.
+export type OprRow = { teamNumber: number; teamName: string; opr: number | null; oprSe: number | null; hiveRating: number | null };
+
+// The Event tab's table: OPR with its likely range, points per match, real rank and breakages.
 export type RatingRow = {
-  teamNumber: number; teamName: string; opr: number; low: number; high: number; rankNow: number | null; points: Figure | null; breakages: number;
+  teamNumber: number; teamName: string; opr: number | null; low: number | null; high: number | null; rankNow: number | null; points: Figure | null; breakages: number;
 };
 export function ratingRows(
-  ratings: Rating[], projections: Projection[], profile: (team: number) => { breakages: unknown[] } | undefined, points: (team: number) => Figure | null,
+  teams: OprRow[], projections: Projection[], profile: (team: number) => { breakages: unknown[] } | undefined, points: (team: number) => Figure | null,
 ): RatingRow[] {
   const rank = new Map(projections.map((p) => [p.teamNumber, p.rankNow]));
-  return ratings.map((r) => {
-    const range = likely(r.opr, r.oprSe);
+  return teams.map((r) => {
+    const range = r.opr == null ? null : likely(r.opr, r.oprSe);
     return {
       teamNumber: r.teamNumber, teamName: r.teamName, opr: r.opr, low: range?.low ?? r.opr, high: range?.high ?? r.opr,
       rankNow: rank.get(r.teamNumber) ?? null, points: points(r.teamNumber), breakages: profile(r.teamNumber)?.breakages.length ?? 0,
@@ -305,9 +256,3 @@ export function ratingRows(
   });
 }
 
-// Each team's point-split points over its played matches.
-export function sharesByTeam(splits: PointSplit[]): Map<number, number[]> {
-  const out = new Map<number, number[]>();
-  splits.forEach((s) => out.set(s.teamNumber, [...(out.get(s.teamNumber) ?? []), s.points]));
-  return out;
-}

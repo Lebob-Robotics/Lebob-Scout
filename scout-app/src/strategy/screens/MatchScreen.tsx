@@ -1,15 +1,13 @@
 import { useState, type ReactNode } from "react";
 import { Dropdown } from "../../components/Dropdown";
 import type { Ctx } from "../StrategyApp";
-import { defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, scoutedTotal, splitsByMatch, teamCells, type Side } from "../logic";
+import { defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, teamCells, type Side } from "../logic";
 import { CycleTimeFig } from "../CyclesCard";
 import { cycleTime, cyclesFigure } from "../cycles";
 import { Card, HeatField, PtsFig, Switch, TeamName, Waiting } from "../parts";
 import { useLoad } from "../useLoad";
 import type { Forecast, MatchMaps } from "../types";
 
-// The season's ranking-point bonuses, in the model's order.
-const BONUSES = ["SWARM", "POLLINATOR 1", "POLLINATOR 2"];
 type Scope = "scored" | "pickedUp";
 const SCOPES: [Scope, string][] = [["scored", "Scored"], ["pickedUp", "Picked up"]];
 
@@ -30,39 +28,38 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
   const [maps, retryMaps] = useLoad(f.matchUuid, () => ctx.api.matchMaps(ctx.eventUuid, f.matchUuid), ctx.tick);
   const smooth = ctx.settings.heatStyle === "smooth";
   const won = favouriteWon(f);
-  const split = ctx.splits.state === "ok" ? splitsByMatch(ctx.splits.data).get(f.matchUuid) : undefined;
   const range = (lo: number | null, hi: number | null) => (lo == null || hi == null ? "" : `${Math.round(lo)}–${Math.round(hi)}`);
-  // Scouting first: both robots' scouted points per match added, when both have been scouted.
-  const total = (teams: number[]) => scoutedTotal(teams.map(ctx.profile));
-  const [redTotal, blueTotal] = [total(f.red), total(f.blue)];
-  const totalText = (t: ReturnType<typeof total>) => (t ? one(t.value) : "–");
+  // Expected scores from scouting (italics where a robot is counted by its official share, not scouted).
+  const score = (v: number | null, official?: boolean) => (v == null ? "–" : <span className={official ? "fig model" : "fig"} title={official ? "Counts a robot by its official share: not scouted" : "From scouting"}>{one(v)}</span>);
   const rows: [string, ReactNode, ReactNode][] = [
-    ["Scouted total", <span key="red" title={redTotal ? `${rangeText(redTotal.low, redTotal.high)} scouted` : "Not every robot scouted"}>{totalText(redTotal)}</span>,
-      <span key="blue" title={blueTotal ? `${rangeText(blueTotal.low, blueTotal.high)} scouted` : "Not every robot scouted"}>{totalText(blueTotal)}</span>],
-    ["Expected score (model)", one(f.redScore), one(f.blueScore)],
+    ["Expected score", score(f.redScore, f.officialRed), score(f.blueScore, f.officialBlue)],
     ["80% range", range(f.redLow80, f.redHigh80) || "–", range(f.blueLow80, f.blueHigh80) || "–"],
     ["Win", pct(f.pRed), pct(f.pBlue)],
-    ["Expected RP", one(f.redRp), one(f.blueRp)],
-    ...BONUSES.map((b, i): [string, ReactNode, ReactNode] => [b, pct(f.redBonus[i]), pct(f.blueBonus[i])]),
+    ...(f.level === "qual" ? [["Expected RP", one(f.redRp), one(f.blueRp)] as [string, ReactNode, ReactNode]] : []),
   ];
-  if (f.played) rows.unshift(["Actual score", String(f.redActual ?? "–"), String(f.blueActual ?? "–")]);
-  // Each robot's points in this match: scouted, else its rating share.
-  const robots = robotsOf(f, split, (t) => scoutedMatchPoints(ctx.profile(t)?.matchPoints, f));
+  if (f.played) rows.unshift(["Official score", String(f.redActual ?? "–"), String(f.blueActual ?? "–")]);
+  const missing = f.missing ?? [];
+  // Each robot's points in this match: scouted, else its official share.
+  const robots = robotsOf(f, (t) => scoutedMatchPoints(ctx.profile(t)?.matchPoints, f), (t) => ctx.officialShare(f.matchUuid, t));
 
   return (
     <>
       <Card title="Forecast" control={picker}>
+        {missing.length > 0 && (
+          <p className="save-note">Not enough data: {missing.join(" and ")} {missing.length === 1 ? "has" : "have"} no scouting and no official score yet.</p>
+        )}
         <div className="table-wrap">
           <table className="stable versus">
             <thead><tr><th /><th className="num"><span className="ally red">Red</span></th><th className="num"><span className="ally blue">Blue</span></th></tr></thead>
-            <tbody>{rows.map(([what, r, b]) => <tr key={what}><td>{what}</td><td className="num">{r}</td><td className="num">{b}</td></tr>)}</tbody>
+            <tbody>{(missing.length ? rows.filter(([w]) => w === "Official score") : rows).map(([what, r, b]) => <tr key={what}><td>{what}</td><td className="num">{r}</td><td className="num">{b}</td></tr>)}</tbody>
           </table>
         </div>
-        <p className="caption">
-          Tie {pct(f.pTie)}.
-          {f.played && won != null && (won ? " The favourite won." : " The favourite lost.")}
-          {f.played && f.preRedScore != null && ` Forecast before the match: ${one(f.preRedScore)} to ${one(f.preBlueScore)}.`}
-        </p>
+        {!missing.length && (
+          <p className="caption">
+            Tie {pct(f.pTie)}.
+            {f.played && won != null && (won ? " The scouting forecast was right." : " The scouting forecast was wrong.")}
+          </p>
+        )}
       </Card>
 
       <div className="cols">
@@ -89,11 +86,10 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
 
       {f.played && (
         <Card title="Point split">
-          {!robots.some((r) => r.points) ? (ctx.splits.state !== "ok" ? <Waiting load={ctx.splits} what="the point splits" retry={ctx.retrySplits} />
-            : <p>No points for this match yet.</p>) : (
+          {!robots.some((r) => r.points) ? <p>No points for this match yet.</p> : (
             <div className="table-wrap">
               <table className="stable">
-                <thead><tr><th>Robot</th><th className="num" title="Scouted points in the match; in italics: the model's share by rating where nobody scouted">Points</th></tr></thead>
+                <thead><tr><th>Robot</th><th className="num" title="Scouted points in the match; in italics: the official share (the alliance's score less its scouted partner, or half) where nobody scouted">Points</th></tr></thead>
                 <tbody>
                   {robots.map((r) => (
                     <tr key={r.team} className={`row-${r.side}`}><td><TeamName team={r.team} name={r.name} onOpen={ctx.openTeam} /></td><td className="num"><PtsFig pts={r.points} /></td></tr>
@@ -115,7 +111,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
   return (
     <Card title={side === "red" ? "Red" : "Blue"} tone={side}>
       {teams.map((team, i) => {
-        const rating = ctx.model.ratings.find((r) => r.teamNumber === team);
+        const opr = ctx.model.teams.find((r) => r.teamNumber === team)?.opr ?? null;
         const p = ctx.profile(team);
         const pts = ctx.points(team);
         // Cycles from our scouting only; a team nobody scouted shows its pit report's claimed cycle time.
@@ -127,10 +123,10 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
             <p className="robot-name"><TeamName team={team} name={names[i]} onOpen={ctx.openTeam} />{team === ctx.ourTeam && <span className="tag">us</span>}</p>
             <dl className="robot-facts">
               <div title={pts ? pointsTitle(pts) : undefined}>
-                <dt>{pts?.official ? "pts / match (model)" : "pts / match"}</dt>
+                <dt>{pts?.official ? "pts / match (official)" : "pts / match"}</dt>
                 <dd className={pts?.official ? "model" : undefined}>{pts ? <>{one(pts.value)}{pts.low !== pts.high && <small> {rangeText(pts.low, pts.high)}</small>}</> : "–"}</dd>
               </div>
-              <div><dt>rating</dt><dd>{one(rating?.opr)}</dd></div>
+              <div><dt>OPR</dt><dd>{one(opr)}</dd></div>
               <div><dt>cycles / match</dt><dd>{cyc ? one(cyc.value) : "–"}</dd></div>
               <div><dt>cycle time</dt><dd><CycleTimeFig time={time} /></dd></div>
             </dl>

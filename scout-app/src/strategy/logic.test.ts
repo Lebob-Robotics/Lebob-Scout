@@ -1,21 +1,17 @@
 import { expect, test } from "vitest";
 import {
-  bar, cardKey, keepShut, likely, overlapCells, pointsFigure, pointsTitle, popPlace, ratingRows, readShut, scaleMax, scoutMoreTiles, sharesByTeam,
+  bar, cardKey, keepShut, likely, overlapCells, pointsFigure, pointsTitle, popPlace, ratingRows, readShut, scaleMax, scoutMoreTiles,
   teamCells, tipsPerMatch,
-  buildMatchMaps, defaultMatch, favouriteWon, historyChart, matchLabels, measureOf, nextOurs, nextSort, one, orderForecasts, partnersFor,
-  pct, playedCount, rangeText, robotsOf, rsNeeded, scoutTiles, scoutedMatchPoints, scoutedTotal, scoutingFirst, sideOf, sortRows, splitsByMatch, whole, winChance,
+  buildMatchMaps, defaultMatch, favouriteWon, matchLabels, measureOf, nextOurs, nextSort, one, orderForecasts,
+  pct, playedCount, rangeText, robotsOf, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, sortRows, whole, winChance,
 } from "./logic";
-import type { Forecast, Pick, TeamMap } from "./types";
+import type { Forecast, TeamMap } from "./types";
 
 const fc = (f: Partial<Forecast> = {}): Forecast => ({
   matchUuid: "m", level: "qual", number: 1, series: null, played: false, red: [1, 2], blue: [3, 4],
   redNames: ["A", "B"], blueNames: ["C", "D"], redScore: 50, blueScore: 40, redLow80: null, redHigh80: null, blueLow80: null, blueHigh80: null,
   pRed: 0.6, pBlue: 0.38, pTie: 0.02, redRp: null, blueRp: null, redBonus: [null, null, null], blueBonus: [null, null, null],
   redActual: null, blueActual: null, preHit: null, prePRed: null, prePBlue: null, preRedScore: null, preBlueScore: null, ...f,
-});
-const pick = (p: Partial<Pick>): Pick => ({
-  teamNumber: 1, partnerNumber: 2, partnerName: "", partnerOpr: null, pickRank: null, role: null, seed: null, natural: null, free: null,
-  pFinals: null, pWinEvent: null, ...p,
 });
 
 test("figures: one decimal, whole percentages, dashes for blanks", () => {
@@ -108,39 +104,6 @@ test("favouriteWon takes the model's answer, else compares the before-match chan
   expect(favouriteWon(fc({ played: true, redActual: 30, blueActual: 60, prePRed: 0.3, prePBlue: 0.7 }))).toBe(true);
 });
 
-test("splits join a match's robots, red then blue", () => {
-  const splits = splitsByMatch([
-    { matchUuid: "m", label: "Q1", alliance: "red", teamNumber: 1, allianceScore: 90, points: 60 },
-    { matchUuid: "m", label: "Q1", alliance: "red", teamNumber: 2, allianceScore: 90, points: 30 },
-  ]);
-  const model = (value: number) => ({ value, model: true });
-  expect(robotsOf(fc(), splits.get("m")).map((r) => [r.team, r.side, r.points])).toEqual([[1, "red", model(60)], [2, "red", model(30)], [3, "blue", null], [4, "blue", null]]);
-  expect(robotsOf(fc()).every((r) => r.points === null)).toBe(true);
-  // Scouting first: a scouted figure wins over the split.
-  const scouted = (t: number) => (t === 2 ? 41.5 : t === 4 ? 12 : null);
-  expect(robotsOf(fc(), splits.get("m"), scouted).map((r) => r.points)).toEqual([model(60), { value: 41.5, model: false }, null, { value: 12, model: false }]);
-});
-
-test("partnersFor keeps one team's picks, best chance of winning first", () => {
-  const ps = [pick({ partnerNumber: 5, pWinEvent: 0.1 }), pick({ teamNumber: 2, partnerNumber: 1, pWinEvent: 0.9 }),
-    pick({ partnerNumber: 6, pWinEvent: 0.4 }), pick({ partnerNumber: 7 })];
-  expect(partnersFor(ps, 1).map((p) => p.partnerNumber)).toEqual([6, 5, 7]);
-});
-
-test("historyChart scales the line and band into the box", () => {
-  const c = historyChart([
-    { teamNumber: 1, afterMatch: 5, lastMatch: null, opr: 20, oprSe: 5, ratingRank: null },
-    { teamNumber: 1, afterMatch: 1, lastMatch: null, opr: 10, oprSe: 5, ratingRank: null },
-  ], 100, 50, { left: 0, right: 0, top: 0, bottom: 0 })!;
-  expect([c.yMin, c.yMax, c.xMin, c.xMax]).toEqual([5, 25, 1, 5]);
-  expect(c.line).toBe("M0 37.5 L100 12.5");
-  expect(c.band).toBe("M0 25 L100 0 L100 25 L0 50 Z");
-  expect(historyChart([], 100, 50)).toBeNull();
-  // One point sits in the middle.
-  expect(historyChart([{ teamNumber: 1, afterMatch: 3, lastMatch: null, opr: 10, oprSe: null, ratingRank: null }], 100, 50,
-    { left: 0, right: 0, top: 0, bottom: 0 })!.dots).toEqual([{ x: 50, y: 25 }]);
-});
-
 test("measureOf picks auto, teleop, both scored, or pick-ups", () => {
   const s = { square: "A1", autoScored: 1, teleopScored: 2, pickedUp: 4 };
   expect(["auto", "teleop", "scored", "pickedUp"].map((m) => measureOf(s, m as never))).toEqual([1, 2, 3, 4]);
@@ -156,11 +119,6 @@ test("buildMatchMaps adds each alliance's robots and scores the overlap by the s
   expect(mm.red.squares).toEqual([{ square: "A1", autoScored: 1, teleopScored: 3, pickedUp: 1 }, { square: "B2", autoScored: 0, teleopScored: 1, pickedUp: 0 }]);
   expect(mm.blue.robots.map((r) => r.matches)).toEqual([1, 0]);
   expect(mm.overlap).toEqual([{ square: "A1", red: 5, blue: 2, both: 2 }]);
-});
-
-test("rsNeeded takes the first figure given", () => {
-  expect(rsNeeded([{ rsNeededRank1: null, rsNeededRank4: null, rsNeededRank8: null }, { rsNeededRank1: 3, rsNeededRank4: 2, rsNeededRank8: 1 }]))
-    .toEqual({ rank1: 3, rank4: 2, rank8: 1 });
 });
 
 test("playedCount uses forecasts, else the schedule", () => {
@@ -205,11 +163,11 @@ test("card state is kept per title, and a missing or refusing storage leaves car
   expect(() => keepShut("Ratings", true, full)).not.toThrow();
 });
 
-test("ratingRows joins rating range, rank, points and breakages, and sorts by breakage count", () => {
+test("ratingRows joins OPR range, rank, points and breakages, and sorts by breakage count", () => {
   const rows = ratingRows(
-    [{ teamNumber: 1, teamName: "A", opr: 50, oprSe: 10, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null },
-      { teamNumber: 2, teamName: "B", opr: 30, oprSe: null, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null },
-      { teamNumber: 3, teamName: "C", opr: 20, oprSe: 1, autoRating: null, teleopRating: null, hiveRating: null, priorWeight: null, priorNote: null, matchesFitted: null }],
+    [{ teamNumber: 1, teamName: "A", opr: 50, oprSe: 10, hiveRating: null },
+      { teamNumber: 2, teamName: "B", opr: 30, oprSe: null, hiveRating: null },
+      { teamNumber: 3, teamName: "C", opr: 20, oprSe: 1, hiveRating: null }],
     [{ teamNumber: 2, teamName: "B", rankNow: 1, rpNow: null, rsNow: null, expRank: null, medianRank: null, expRs: null, pRank1: null, pTop4: null,
       pTop8: null, remaining: null, rsNeededRank1: null, rsNeededRank4: null, rsNeededRank8: null }],
     (t) => (t === 1 ? { breakages: [{}] } : t === 3 ? { breakages: [{}, {}] } : undefined),
@@ -218,11 +176,6 @@ test("ratingRows joins rating range, rank, points and breakages, and sorts by br
   expect(rows[0]).toEqual({ teamNumber: 1, teamName: "A", opr: 50, low: 37.2, high: 62.8, rankNow: null, points: { value: 9, low: 8, high: 10, official: false }, breakages: 1 });
   expect([rows[1].low, rows[1].high, rows[1].rankNow, rows[1].breakages]).toEqual([30, 30, 1, 0]);
   expect(sortRows(rows, (r) => r.breakages, "desc").map((r) => r.teamNumber)).toEqual([3, 1, 2]);
-});
-
-test("sharesByTeam gathers each team's split points", () => {
-  const split = (teamNumber: number, points: number) => ({ matchUuid: "m", label: "", alliance: "red", teamNumber, allianceScore: 0, points });
-  expect([...sharesByTeam([split(1, 10), split(2, 5), split(1, 20)])]).toEqual([[1, [10, 20]], [2, [5]]]);
 });
 
 test("heat cells shade by the measure and list the square's figures", () => {
@@ -239,10 +192,10 @@ test("popPlace keeps a square's pop-up on the picture", () => {
   expect(popPlace(2, 3, 6, 6).lean).toBe("middle");
 });
 
-test("scoutingFirst takes the scouted figure, else the model's marked as such, else nothing", () => {
-  expect(scoutingFirst(30, 50)).toEqual({ value: 30, model: false });
-  expect(scoutingFirst(0, 50)).toEqual({ value: 0, model: false });
-  expect(scoutingFirst(null, 50)).toEqual({ value: 50, model: true });
+test("scoutingFirst takes the scouted figure, else the official share marked as such, else nothing", () => {
+  expect(scoutingFirst(30, 50)).toEqual({ value: 30, official: false });
+  expect(scoutingFirst(0, 50)).toEqual({ value: 0, official: false });
+  expect(scoutingFirst(null, 50)).toEqual({ value: 50, official: true });
   expect(scoutingFirst(undefined, NaN)).toBeNull();
 });
 
@@ -254,9 +207,15 @@ test("scoutedMatchPoints finds a match by type and number", () => {
   expect(scoutedMatchPoints(undefined, { level: "qual", number: 2 })).toBeNull();
 });
 
-test("scoutedTotal adds an alliance's scouted figures only when every robot was scouted", () => {
-  expect(scoutedTotal([{ matches: 2, points: 30, pointsLow: 20, pointsHigh: 40 }, { matches: 1, points: 10 }])).toEqual({ value: 40, low: 30, high: 50 });
-  expect(scoutedTotal([{ matches: 2, points: 30 }, { matches: 0, points: 0 }])).toBeNull();
-  expect(scoutedTotal([{ matches: 2, points: 30 }, undefined])).toBeNull();
-  expect(scoutedTotal([])).toBeNull();
+test("robotsOf gives each robot's points: scouted first, else the official share, else nothing", () => {
+  const off = (value: number) => ({ value, official: true });
+  const scouted = (t: number) => (t === 2 ? 41.5 : null);
+  const official = (t: number) => (t === 1 ? 60 : t === 2 ? 30 : null);
+  expect(robotsOf(fc(), scouted, official).map((r) => [r.team, r.side, r.points])).toEqual([[1, "red", off(60)], [2, "red", { value: 41.5, official: false }], [3, "blue", null], [4, "blue", null]]);
+  expect(robotsOf(fc()).every((r) => r.points === null)).toBe(true);
+});
+
+test("ratingRows keeps a team with no OPR yet, with no range", () => {
+  const [row] = ratingRows([{ teamNumber: 7, teamName: "G", opr: null, oprSe: null, hiveRating: 60 }], [], () => undefined, () => null);
+  expect([row.opr, row.low, row.high]).toEqual([null, null, null]);
 });

@@ -3,31 +3,31 @@ import { clockTime } from "../../teams";
 import { breakageLine, pitLines } from "../../teamsView";
 import type { Ctx } from "../StrategyApp";
 import {
-  likely, one, partnersFor, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, splitsByMatch, teamCells, tipsPerMatch,
+  likely, one, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, teamCells, tipsPerMatch,
   whole, winChance,
   type Measure,
 } from "../logic";
 import { Dropdown } from "../../components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { CyclesCard } from "../CyclesCard";
-import { PartnersTable } from "./AllianceScreen";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];
 
-// One team: its rating and how it moved, what the scouts saw, where it plays, its matches and its best partners.
+// One team: its OPR (from this event's official scores) and how it moved, what the scouts saw, where it plays, and
+// its matches.
 export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTeam(team: number): void }) {
   const { model, labels, scale } = ctx;
   const [measure, setMeasure] = useState<Measure>(ctx.settings.measure);
-  const rating = model.ratings.find((r) => r.teamNumber === team);
-  const range = rating && likely(rating.opr, rating.oprSe);
+  const row = model.teams.find((r) => r.teamNumber === team);
+  const opr = row?.opr ?? null;
+  const range = opr == null ? null : likely(opr, row!.oprSe);
   const proj = model.projections.find((p) => p.teamNumber === team);
   const profile = ctx.profile(team);
   const points = ctx.points(team);
   const history = model.history.filter((h) => h.teamNumber === team);
   const map = ctx.maps.state === "ok" ? ctx.maps.data.find((m) => m.teamNumber === team) : undefined;
-  const splits = ctx.splits.state === "ok" ? splitsByMatch(ctx.splits.data) : null;
   const matches = model.forecasts.filter((f) => sideOf(f, team));
-  const teams = [...model.ratings].sort((a, b) => a.teamNumber - b.teamNumber);
+  const teams = [...model.teams].sort((a, b) => a.teamNumber - b.teamNumber);
   const [now] = useState(() => Date.now());
 
   // A breakage button brought us here: show the Breakages card.
@@ -48,19 +48,18 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               items={teams.map((r) => ({ value: String(r.teamNumber), label: String(r.teamNumber), sub: r.teamName }))} />
           )}>
             <Tiles tiles={[
-              ["rating", rating ? <RangeBar value={rating.opr} low={range?.low ?? rating.opr} high={range?.high ?? rating.opr} max={scale.rating}
-                title={range ? `${rangeText(range.low, range.high)} likely` : "No likely range yet"} /> : "–"],
+              ["OPR", opr != null ? <RangeBar value={opr} low={range?.low ?? opr} high={range?.high ?? opr} max={scale.rating}
+                title={range ? `${rangeText(range.low, range.high)} likely` : "Too few matches for a likely range"} /> : "–"],
               ["points / match", points ? <RangeBar value={points.value} low={points.low} high={points.high} max={scale.points} title={pointsTitle(points)} grey={points.official} /> : "–"],
-              ["tips / match", one(tipsPerMatch(rating?.hiveRating ?? null))],
+              ["tips / match", one(tipsPerMatch(row?.hiveRating ?? null))],
               ["real rank", whole(proj?.rankNow)],
               ["times scouted", profile ? String(profile.matches) : "–"],
               ["pit report", profile ? (profile.pits.length ? "Yes" : "No") : "–"],
               ["breakages", profile ? <button type="button" className="tile-link" onClick={() => ctx.openBreakages(team)}>{profile.breakages.length}</button> : "–"],
             ]} />
-            {rating && (rating.priorWeight ?? 0) > 0.5 && rating.priorNote && <p className="caption">{rating.priorNote}</p>}
           </Card>
 
-          <Card title="Rating">
+          <Card title="OPR">
             <RatingChart points={history} />
           </Card>
 
@@ -113,13 +112,12 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           <CyclesCard ctx={ctx} team={team} />
 
           <Card title="Matches">
-            {ctx.splits.state === "failed" && <Waiting load={ctx.splits} what="the point splits" retry={ctx.retrySplits} />}
             {matches.length ? (
               <div className="table-wrap">
                 <table className="stable">
                   <thead>
                     <tr><th>Match</th><th>With</th><th>Against</th><th className="num">Win</th><th className="num">Result</th>
-                      <th className="num" title="Scouted points in the match; in italics: the model's share by rating where nobody scouted">Pts</th></tr>
+                      <th className="num" title="Scouted points in the match; in italics: the official share (the alliance's score less its scouted partner, or half) where nobody scouted">Pts</th></tr>
                   </thead>
                   <tbody>
                     {matches.map((f) => {
@@ -134,7 +132,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
                           <td>{opp.map((t) => <TeamName key={t} team={t} onOpen={ctx.openTeam} />)}</td>
                           <td className="num">{pct(winChance(f, side))}</td>
                           <td className="num">{f.played && mine != null && theirs != null ? `${mine > theirs ? "Won" : mine < theirs ? "Lost" : "Tied"} ${mine}–${theirs}` : "–"}</td>
-                          <td className="num"><PtsFig pts={scoutingFirst(scoutedMatchPoints(profile?.matchPoints, f), splits?.get(f.matchUuid)?.get(team))} /></td>
+                          <td className="num"><PtsFig pts={scoutingFirst(scoutedMatchPoints(profile?.matchPoints, f), ctx.officialShare(f.matchUuid, team))} /></td>
                         </tr>
                       );
                     })}
@@ -144,9 +142,6 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             ) : <p>No matches yet for this team.</p>}
           </Card>
 
-          <Card title="Best partners">
-            <PartnersTable ctx={ctx} picks={partnersFor(model.picks, team)} />
-          </Card>
         </div>
       </div>
     </div>

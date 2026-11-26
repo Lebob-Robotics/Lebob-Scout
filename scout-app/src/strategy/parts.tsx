@@ -1,5 +1,5 @@
 // Pieces the strategy screens share: cards, loading, tables that sort, range bars, heatmaps, auto paths and the rating chart.
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { ReactNode } from "react";
 import type { StartDot } from "../api";
 import { FieldPicture } from "../components/FieldPicture";
@@ -7,7 +7,8 @@ import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
 import { wallPoint } from "../startWall";
 import { shade } from "../teamsView";
 import { MAPS_NOT_READY } from "./api";
-import { bar, historyChart, keepShut, nextSort, one, popPlace, readShut, sortRows } from "./logic";
+import { hitIndex, matchName, ratingChart } from "./chart";
+import { bar, keepShut, likely, nextSort, one, popPlace, rangeText, readShut, sortRows } from "./logic";
 import type { Cell, Pts, Sort, SortValue } from "./logic";
 import { PATH_COLOURS, asDrawn, averagedAutos, shotMarks, type Auto, type AutoPath } from "./autos";
 import type { HistoryPoint } from "./types";
@@ -253,30 +254,78 @@ export function Switch<K extends string>({ value, options, onChange, label }: { 
   );
 }
 
-// The rating after each match, with its ± one standard error band.
+// Our OPR after each played match: the line over its ± one standard error band (clipped to the plot), round ticks with
+// light grid lines, and match labels that never crowd. One surface covers the plot: hovering, tapping or dragging
+// anywhere picks the nearest match and shows its figures, so the target is the whole chart at any width. One pop-up
+// at a time; a tap elsewhere closes it.
 export function RatingChart({ points }: { points: HistoryPoint[] }) {
-  const W = 320, H = 140;
-  const c = historyChart(points, W, H);
-  if (!c) return <p className="caption">No rating history yet.</p>;
+  const W = 320, H = 170;
+  const c = ratingChart(points, W, H);
+  const id = `chart${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const [open, setOpen] = useState<number | null>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (open == null) return;
+    const close = (e: PointerEvent) => { if (!wrap.current?.contains(e.target as Node)) setOpen(null); };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [open]);
+  if (!c) return <p className="caption">No played matches yet.</p>;
+  const dot = open != null ? c.dots[open] : null;
+  // The nearest match to a pointer: its x in the chart's own units, then the strip it falls in.
+  const at = (e: ReactPointerEvent<SVGRectElement>) => {
+    const svg = e.currentTarget.ownerSVGElement!, m = svg.getScreenCTM();
+    const x = m ? new DOMPoint(e.clientX, e.clientY).matrixTransform(m.inverse()).x : 0;
+    return hitIndex(c.hits, x);
+  };
+  const range = dot && likely(dot.point.opr, dot.point.oprSe);
+  const lean = dot ? (dot.x < W * 0.3 ? "right" : dot.x > W * 0.7 ? "left" : "middle") : "middle";
   return (
-    <svg className="rating-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Rating after each match, with one standard error either side">
-      <path className="band" d={c.band} />
-      <path className="line" d={c.line} />
-      {c.dots.map((d, i) => <circle key={i} cx={d.x} cy={d.y} r="2.5" />)}
-      <text x="26" y="12" className="axis to-right">{one(c.yMax)}</text>
-      <text x="26" y={H - 20} className="axis to-right">{one(c.yMin)}</text>
-      <text x="30" y={H - 4} className="axis">Q{c.xMin}</text>
-      <text x={W - 8} y={H - 4} className="axis to-right">Q{c.xMax}</text>
-    </svg>
+    <div ref={wrap} className="rating-chart-wrap">
+      <svg className="rating-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="OPR after each played match, with one standard error either side"
+        onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
+        <defs><clipPath id={id}><rect x={c.plot.x} y={c.plot.y} width={c.plot.w} height={c.plot.h} /></clipPath></defs>
+        {c.ticks.map((t) => (
+          <g key={t.label} className="tick">
+            <line x1={c.plot.x} x2={c.plot.x + c.plot.w} y1={t.y} y2={t.y} />
+            <text x={c.plot.x - 5} y={t.y}>{t.label}</text>
+          </g>
+        ))}
+        <g clipPath={`url(#${id})`}>
+          <path className="band" d={c.band} />
+          <path className="line" d={c.line} />
+        </g>
+        {c.dots.map((d, i) => <circle key={i} className={open === i ? "dot on" : "dot"} cx={d.x} cy={d.y} r={open === i ? 4.5 : 3} />)}
+        {c.labels.map((l) => <text key={l.text} className="axis" x={l.x} y={H - 6}>{l.text}</text>)}
+        <rect className="hit" x={c.plot.x} y={c.plot.y} width={c.plot.w} height={c.plot.h}
+          onPointerMove={(e) => { if (e.pointerType === "mouse" || e.buttons) setOpen(at(e)); }}
+          onPointerDown={(e) => {
+            if (e.pointerType === "mouse") return;
+            const i = at(e);
+            setOpen(open === i ? null : i);
+          }} />
+      </svg>
+      {dot && (
+        <div className={`heat-pop chart-pop ${dot.y < H * 0.4 ? "below" : "above"} lean-${lean}`} style={{ left: `${(dot.x / W) * 100}%`, top: `${(dot.y / H) * 100}%` }} role="status">
+          <b>{matchName(dot.point)}</b>
+          <dl>
+            <div><dt>OPR after</dt><dd>{one(dot.point.opr)}</dd></div>
+            <div><dt>Likely</dt><dd>{range ? rangeText(range.low, range.high) : "–"}</dd></div>
+            {dot.point.ratingRank != null && <div><dt>OPR rank</dt><dd>{dot.point.ratingRank}</dd></div>}
+          </dl>
+        </div>
+      )}
+    </div>
   );
 }
 
-// A scouting-first figure: plain when our scouts saw it; grey, tagged "model", when it is the model's share by rating.
+// A scouting-first figure: plain when our scouts saw it; in italics, tagged "official", when it is the official
+// share (the alliance's score less its scouted partner, or half).
 export function PtsFig({ pts, tag = true, round = false }: { pts: Pts | null; tag?: boolean; round?: boolean }) {
   if (!pts) return <>–</>;
   const text = round ? String(Math.round(pts.value)) : one(pts.value);
-  if (!pts.model) return <span className="fig" title="Scouted">{text}</span>;
-  return <span className="fig model" title="Model: by rating, not scouted">{text}{tag && <small> model</small>}</span>;
+  if (!pts.official) return <span className="fig" title="Scouted">{text}</span>;
+  return <span className="fig model" title="Official share: the alliance's score less its scouted partner, or half. Not scouted">{text}{tag && <small> official</small>}</span>;
 }
 
 export const Tiles = ({ tiles }: { tiles: [string, ReactNode][] }) => (

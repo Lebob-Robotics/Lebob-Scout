@@ -13,11 +13,13 @@ export type Settings = {
   measure: HeatMeasure; // the Team tab heatmap's first measure
   refreshMinutes: number; // reload the figures every this many minutes; 0 is never
   clock: Clock; // scout note and breakage times on the event's clock or this device's
+  alliances: number; // playoff alliances, for the Alliance tab's play-out
 };
 export const REFRESH_CHOICES = [0, 2, 5, 10];
+export const ALLIANCE_CHOICES = [4, 6, 8];
 export const SETTINGS_KEY = "lsa:strategy-settings";
 export const defaultSettings = (ourTeam: number): Settings => ({
-  ourTeam, heatStyle: "squares", autoStyle: "averaged", measure: "teleop", refreshMinutes: 0, clock: "event",
+  ourTeam, heatStyle: "squares", autoStyle: "averaged", measure: "teleop", refreshMinutes: 0, clock: "event", alliances: 4,
 });
 
 type Store = { getItem(k: string): string | null; setItem(k: string, v: string): void };
@@ -39,6 +41,7 @@ export function readSettings(defaults: Settings, store: () => Store = local): Se
     measure: oneOf(kept.measure, ["auto", "teleop", "pickedUp"] as const, defaults.measure),
     refreshMinutes: oneOf(kept.refreshMinutes, REFRESH_CHOICES, defaults.refreshMinutes),
     clock: oneOf(kept.clock, ["event", "device"] as const, defaults.clock),
+    alliances: oneOf(kept.alliances, ALLIANCE_CHOICES, defaults.alliances),
   };
 }
 export function keepSettings(s: Settings, store: () => Store = local): void {

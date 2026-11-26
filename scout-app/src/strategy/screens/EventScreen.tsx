@@ -2,15 +2,16 @@ import type { Ctx } from "../StrategyApp";
 import { nextOurs, one, pct, playedCount, pointsTitle, rangeText, ratingRows, sideOf, whole, winChance, type RatingRow } from "../logic";
 import { BreakButton, BreakIcon, Card, RangeBar, SortTable, TeamName, Waiting, type Col } from "../parts";
 
-// Home: every team's rating and likely range, points per match, real rank, and breakages.
+// Home: our status, then every team's OPR and likely range, points per match, real rank, and breakages.
 export function EventScreen({ ctx }: { ctx: Ctx }) {
   const { model, scale } = ctx;
-  const rows = ratingRows(model.ratings, model.projections, ctx.profile, ctx.points);
+  const rows = ratingRows(model.teams, model.projections, ctx.profile, ctx.points);
   const cols: Col<RatingRow>[] = [
     { key: "team", label: "Team", value: (r) => r.teamNumber, natural: "asc", show: (r) => <TeamName team={r.teamNumber} name={r.teamName} onOpen={ctx.openTeam} /> },
     {
-      key: "opr", label: "Rating", value: (r) => r.opr, title: "Points a team adds to its alliance per match, with its likely (80%) range",
-      show: (r) => <RangeBar value={r.opr} low={r.low} high={r.high} max={scale.rating} title={`${rangeText(r.low, r.high)} likely`} />,
+      key: "opr", label: "OPR", value: (r) => r.opr, title: "Points a team adds to its alliance per match, fitted on this event's official scores, with its likely (80%) range",
+      show: (r) => (r.opr == null ? "–" : <RangeBar value={r.opr} low={r.low ?? r.opr} high={r.high ?? r.opr} max={scale.rating}
+        title={r.low != null && r.high != null && r.low !== r.high ? `${rangeText(r.low, r.high)} likely` : "Too few matches for a likely range"} />),
     },
     {
       key: "points", label: "Points / match", value: (r) => r.points?.value, title: "Scouted points per match, lowest to highest match. Grey: official points share, not scouted",
@@ -26,11 +27,11 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
   return (
     <div className="strategy-screen">
       <Status ctx={ctx} />
-      <Card title="Ratings">
+      <Card title="Teams">
         {ctx.scouting.state !== "ok" && <Waiting load={ctx.scouting} what="the scouting figures" retry={ctx.retryScouting} />}
         {rows.length ? (
-          <SortTable label="Ratings" rows={rows} cols={cols} initial={{ key: "opr", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
-        ) : <p>No ratings yet for this event.</p>}
+          <SortTable label="Teams" rows={rows} cols={cols} initial={{ key: "opr", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
+        ) : <p>No teams yet for this event.</p>}
       </Card>
     </div>
   );
@@ -39,7 +40,7 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
 // Where the event stands for us: matches played, our rank, our next match and its win chance.
 function Status({ ctx }: { ctx: Ctx }) {
   const { model, ourTeam, labels } = ctx;
-  const { played, total } = playedCount(model.forecasts, model.matches);
+  const { played, total } = playedCount(model.forecasts, []);
   const us = model.projections.find((p) => p.teamNumber === ourTeam);
   const next = nextOurs(model.forecasts, ourTeam);
   const side = next && sideOf(next, ourTeam);

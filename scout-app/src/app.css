@@ -63,7 +63,6 @@
   --warn: #9a5b00;
   --accent-text: #5c5300;
   --intake-text: #0f766e;
-  --pixel-rule: repeating-linear-gradient(90deg, var(--accent) 0 8px, #1a1b1e 8px 16px);
   --bar-track: #e3e3db;
   --bar-band: var(--accent);
   --bar-mark: #1a1b1e;
@@ -607,7 +606,7 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
   background: var(--bg); color: var(--fg-dark); font: 500 .75rem/1.35 var(--font-mono); pointer-events: none; white-space: nowrap;
   box-shadow: 0 4px 14px rgb(0 0 0 / .45);
 }
-.heat-pop b { display: block; margin-bottom: 2px; color: var(--accent); }
+.heat-pop b { display: block; margin-bottom: 2px; color: var(--accent-text); }
 .heat-pop dl div { display: flex; justify-content: space-between; gap: .75rem; }
 .heat-pop dt { color: var(--muted); }
 .heat-pop.above { --y: calc(-100% - 10px); }
@@ -646,7 +645,12 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .rating-chart .line { fill: none; stroke: var(--chart-line); stroke-width: 2; }
 .rating-chart circle { fill: var(--chart-line); }
 .rating-chart .axis { fill: var(--muted); font: 500 9px var(--font-mono); }
-.rating-chart .axis.to-right { text-anchor: end; }
+.rating-chart .axis { text-anchor: middle; }
+.rating-chart-wrap { position: relative; max-width: 40rem; }
+.rating-chart .tick line { stroke: var(--line); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.rating-chart .tick text { fill: var(--muted); font: 500 9px var(--font-mono); text-anchor: end; dominant-baseline: central; }
+.rating-chart .dot.on { stroke: var(--panel); stroke-width: 2; vector-effect: non-scaling-stroke; }
+.rating-chart .hit { fill: transparent; cursor: pointer; touch-action: pan-y; }
 
 /* On a phone the team column and the bars stay narrow, so the figures beside them still show. */
 @media (max-width: 599px) {
@@ -761,3 +765,10 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .map-overlay .route-end { fill: currentColor; stroke: #1a1b1e; stroke-width: 1; vector-effect: non-scaling-stroke; pointer-events: none; }
 .map-overlay .route-label { fill: currentColor; stroke: #1a1b1e; stroke-width: .8; font: 600 3.2px var(--font-mono); pointer-events: none; }
 .cycle-lines polyline { fill: none; stroke: #e5e6e0; stroke-opacity: .5; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+
+/* Alliance tab: the prediction as plain lines. */
+.pred-facts dd small { display: block; margin-top: 2px; color: var(--fg); font-size: .8125rem; }
+
+/* Alliance tab: our row and our alliance stand out. */
+.stable tr.ours td { background: var(--hover); }
+.stable tr.ours td:first-child { box-shadow: inset 3px 0 0 var(--accent-text); }

@@ -16,6 +16,8 @@ export type Forecast = {
   redBonus: [number | null, number | null, number | null]; blueBonus: [number | null, number | null, number | null];
   redActual: number | null; blueActual: number | null; preHit: boolean | null;
   prePRed: number | null; prePBlue: number | null; preRedScore: number | null; preBlueScore: number | null;
+  // Scouting forecasts only: robots with no strength (no figures then), and sides that lean on an official share.
+  missing?: number[]; officialRed?: boolean; officialBlue?: boolean;
 };
 export type Projection = {
   teamNumber: number; teamName: string; rankNow: number | null; rpNow: number | null; rsNow: number | null; expRank: number | null;

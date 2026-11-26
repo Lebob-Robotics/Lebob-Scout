@@ -3,7 +3,7 @@ import type { EventRow } from "../../api";
 import { Dropdown } from "../../components/Dropdown";
 import { useTheme, type ThemeChoice } from "../../theme";
 import { Card } from "../parts";
-import { REFRESH_CHOICES, parseTeam, type Settings } from "../settings";
+import { ALLIANCE_CHOICES, REFRESH_CHOICES, parseTeam, type Settings } from "../settings";
 import type { Load } from "../useLoad";
 
 // A row of buttons, one pressed: the scout app's Settings style.
@@ -60,7 +60,9 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
               }} />
             </div>
             {!typed && <p className="save-note error" role="alert">Type a whole team number.</p>}
-            <p className="caption">Used for our next match, our partners and the "us" tag.</p>
+            <p className="caption">Used for our next match, the play-out and the "us" tag.</p>
+            <Seg label="Playoff alliances" value={settings.alliances} onChange={(v) => onChange({ alliances: v })}
+              options={ALLIANCE_CHOICES.map((n): [number, string] => [n, String(n)])} />
           </Card>
 
           <Card title="Data">
