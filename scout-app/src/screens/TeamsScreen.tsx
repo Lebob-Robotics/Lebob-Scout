@@ -115,10 +115,7 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
         <>
           {failed && <p className="save-note error" role="alert">Couldn't refresh. Showing the last figures.</p>}
           <section className="card">
-            <div className="teams-head">
-              <h2>Scouting status</h2>
-              <button type="button" onClick={reload} disabled={busy}>{busy ? "Refreshing…" : "Refresh"}</button>
-            </div>
+            <h2>Scouting status</h2>
             <dl className="tiles">
               <div><dt>teams</dt><dd>{data.teams.length}</dd></div>
               <div><dt>need scouting</dt><dd>{data.needScouting}</dd></div>

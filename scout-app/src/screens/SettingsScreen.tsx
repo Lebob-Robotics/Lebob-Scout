@@ -10,7 +10,7 @@ const THEMES: [ThemeChoice, string][] = [["auto", "Auto"], ["light", "Light"], [
 
 
 // The old site's Settings tab, for what still lives on the phone. The schedule, team names and the scout's name come from Foundry.
-export function SettingsScreen({ api, userName, online, waiting, lastError, storeOk, onEventChange, onSendNow }: {
+export function SettingsScreen({ api, userName, online, waiting, lastError, storeOk, onEventChange, onSendNow, onRefresh }: {
   api: Api;
   userName: string | null;
   online: boolean;
@@ -19,6 +19,7 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
   storeOk: boolean;
   onEventChange(): void;
   onSendNow(): void;
+  onRefresh(): void; // fresh figures for every tab, and a try at sending what waits
 }) {
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -27,6 +28,12 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
   const [motion, setMotion] = useState(() => document.documentElement.dataset.motion !== "off");
   const [notes, setNotes] = useState(notesOn);
   const [theme, setTheme] = useTheme();
+  const [refreshedAt, setRefreshedAt] = useState<string | null>(null);
+  const refresh = () => {
+    onRefresh();
+    setTries((t) => t + 1);
+    setRefreshedAt(new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }));
+  };
 
   useEffect(() => {
     let live = true;
@@ -87,6 +94,8 @@ export function SettingsScreen({ api, userName, online, waiting, lastError, stor
         </dl>
         {lastError && waiting > 0 && <p className="caption keep">Last try: {lastError}</p>}
         <button type="button" disabled={!waiting} onClick={onSendNow}>Send waiting reports now</button>
+        <button type="button" disabled={!online} onClick={refresh}>Refresh</button>
+        <p className="caption">{refreshedAt ? `Refreshed at ${refreshedAt}. ` : ""}Refresh gets the latest event list and figures for every tab, and sends any waiting reports.</p>
         <p className="caption">Reports save on this phone first and send by themselves when there is signal.</p>
       </div>
 

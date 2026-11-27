@@ -87,6 +87,9 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
   const online = useOnline();
   // Settings changes the remembered event: a tick re-reads it.
   const [, setEventTick] = useState(0);
+  // Settings' Refresh: every tab's figures load again (with queue.saved, it is each screen's `refresh`).
+  const [refreshTick, setRefreshTick] = useState(0);
+  const fresh = queue.saved + refreshTick;
   const event = rememberedEvent();
   const eventUuid = event?.eventUuid;
 
@@ -269,7 +272,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       </FinalScreen>
     );
   } else if (screen === "reports" && eventUuid) {
-    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} waitingLabels={store.pending().map(pendingLabel)} lastError={queue.lastError} refresh={queue.saved} onNew={() => { setFrom("reports"); setScoutTarget(null); setScreen("setup"); }} onCorrecting={setCorrecting} />;
+    body = <ReportsScreen api={api} eventUuid={eventUuid} userId={user?.id ?? ""} waiting={queue.waiting} waitingLabels={store.pending().map(pendingLabel)} lastError={queue.lastError} refresh={fresh} onNew={() => { setFrom("reports"); setScoutTarget(null); setScreen("setup"); }} onCorrecting={setCorrecting} />;
   } else if (screen === "teams" && eventUuid) {
     body = null; // kept below
   } else if (screen === "settings") {
@@ -283,13 +286,18 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
         storeOk={store.ok}
         onEventChange={() => setEventTick((n) => n + 1)}
         onSendNow={queue.queued}
+        onRefresh={() => {
+          setRefreshTick((n) => n + 1);
+          queue.queued();
+          if (eventUuid) api.teamsTab(eventUuid).catch(() => {}); // so the Teams tab is quick when opened next
+        }}
       />
     );
   } else if (screen === "pit" && event) {
-    body = <PitScreen key={`pit-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingPits} refresh={queue.saved}
+    body = <PitScreen key={`pit-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingPits} refresh={fresh}
       initialTeam={formTeam.team} whoAmI={whoAmI} onSave={(pit) => queueReport({ kind: "pit", pit })} />;
   } else if (screen === "breakage" && event) {
-    body = <BreakageScreen key={`breakage-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingBreakages} refresh={queue.saved}
+    body = <BreakageScreen key={`breakage-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingBreakages} refresh={fresh}
       initialTeam={formTeam.team} whoAmI={whoAmI} onSave={(breakage) => queueReport({ kind: "breakage", breakage })} />;
   } else {
     body = <SetupScreen api={api} initial={scoutTarget ?? undefined} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
@@ -318,7 +326,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
           eventUuid={eventUuid}
           userId={user?.id ?? ""}
           waiting={queue.waiting}
-          refresh={queue.saved}
+          refresh={fresh}
           onScout={(t) => { teamsY.current = window.scrollY; setFrom("teams"); setScoutTarget(t); setScreen("setup"); }}
           onPit={(team) => openForm("pit", team)}
           onBreakage={(team) => openForm("breakage", team)}

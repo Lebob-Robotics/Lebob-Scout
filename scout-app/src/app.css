@@ -288,7 +288,6 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .tag { padding: 2px 6px; border: 1px solid var(--muted); border-radius: var(--radius); color: var(--fg); }
 
 /* Teams tab: a column of cards; figures in Mono. */
-.teams-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .card { display: grid; gap: .75rem; padding: 1rem; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); min-width: 0; }
 .card h2 { font: 500 .8125rem/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: .05em; color: var(--label); }
 
@@ -800,7 +799,6 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 
 /* Layout and settings (titles to cards, notes switch, unsent warning) */
 .card .new { justify-self: start; }
-.card .teams-head h2 { margin: 0; }
 .header .unsent { position: relative; margin-left: auto; flex: 0 0 auto; display: flex; }
 .warn-btn { display: grid; place-items: center; min-width: 44px; min-height: 44px; margin: -8px -10px -8px 0; padding: 0; border: 0; background: none; color: var(--warn); }
 .unsent-note {
