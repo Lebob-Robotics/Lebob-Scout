@@ -1,5 +1,5 @@
 import type { Ctx } from "../StrategyApp";
-import { nextOurs, one, pct, playedCount, pointsTitle, rangeText, ratingRows, sideOf, whole, winChance, type RatingRow } from "../logic";
+import { PUBLIC_PAGE, nextOurs, one, pct, playedCount, pointsTitle, rangeText, ratingRows, sideOf, whole, winChance, type RatingRow } from "../logic";
 import { BreakButton, BreakIcon, Card, RangeBar, SortTable, TeamName, Waiting, type Col } from "../parts";
 
 // Home: our status, then every team's OPR and likely range, points per match, real rank, and breakages.
@@ -20,7 +20,7 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
     { key: "rank", label: "Real rank", num: true, natural: "asc", value: (r) => r.rankNow, show: (r) => whole(r.rankNow), title: "Rank now" },
     {
       key: "breakages", label: <BreakIcon />, title: "Breakages", num: true, value: (r) => r.breakages,
-      show: (r) => (r.breakages > 0 ? <BreakButton count={r.breakages} onOpen={() => ctx.openBreakages(r.teamNumber)} /> : ""),
+      show: (r) => (r.breakages <= 0 ? "" : PUBLIC_PAGE ? String(r.breakages) : <BreakButton count={r.breakages} onOpen={() => ctx.openBreakages(r.teamNumber)} />),
     },
   ];
 

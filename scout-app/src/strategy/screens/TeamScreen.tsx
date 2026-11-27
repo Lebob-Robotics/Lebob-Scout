@@ -3,6 +3,7 @@ import { clockTime } from "../../shared/teams";
 import { breakageLine, pitLines } from "../../shared/teamsView";
 import type { Ctx } from "../StrategyApp";
 import {
+  PUBLIC_PAGE,
   likely, one, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, teamCells, tipsPerMatch,
   whole, winChance,
   type Measure,
@@ -58,8 +59,9 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               ["tips / match", one(tipsPerMatch(row?.hiveRating ?? null))],
               ["real rank", whole(proj?.rankNow)],
               ["times scouted", profile ? String(profile.matches) : "–"],
-              ["pit report", profile ? (profile.pits.length ? "Yes" : "No") : "–"],
-              ["breakages", profile ? <button type="button" className="tile-link" onClick={() => ctx.openBreakages(team)}>{profile.breakages.length}</button> : "–"],
+              ...(PUBLIC_PAGE ? [] : [["pit report", profile ? (profile.pits.length ? "Yes" : "No") : "–"]] as [string, string][]),
+              ["breakages", !profile ? "–" : PUBLIC_PAGE ? String(profile.breakages.length)
+                : <button type="button" className="tile-link" onClick={() => ctx.openBreakages(team)}>{profile.breakages.length}</button>],
             ]} />
           </Card>
 
@@ -69,7 +71,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
 
           <Card title="Scouting">
             {scouted(() => (!profile || !profile.matches ? <p>Nothing scouted yet.</p> : <Tiles tiles={[...scoutTiles(profile), ...scoutMoreTiles(profile)]} />))}
-            {profile && profile.pits.length > 0 && (
+            {!PUBLIC_PAGE && profile && profile.pits.length > 0 && (
               <div className="team-notes">
                 <h3>Pit</h3>
                 {profile.pits.map((p) => <div key={p.pitReportId} className="note-block">{pitLines(p).map((l, i) => <p key={i}>{l}</p>)}</div>)}
@@ -95,6 +97,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             </Card>
           )}
 
+          {!PUBLIC_PAGE && (
           <Card title="Breakages" id="breakages" openKey={ctx.breakageAsk}>
             {scouted(() => (!profile?.breakages.length ? <p>No breakages reported.</p> : (
               <ul className="note-list">
@@ -105,6 +108,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               </ul>
             )))}
           </Card>
+          )}
         </div>
 
         <div className="col">

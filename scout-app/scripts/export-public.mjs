@@ -63,28 +63,35 @@ async function pool(items, n, f) {
 // out (match notes, pit report notes and issues, breakage descriptions): the public page shows no scouts and no notes.
 const NAME_KEYS = new Set(["scoutName", "scoutUserId", "scout", "reporter"]);
 const NOTE_KEYS = new Set(["notes", "autoNotes", "knownIssues", "symptoms", "evidence", "fix", "actionBefore", "cause"]);
+// Qualitative scouting is left out too: driver and speed ratings, fouls and breakdowns. Pit reports (and their
+// photos) are dropped whole, and each breakage keeps only that it happened, so the page can still count them.
+const QUALITATIVE_KEYS = new Set(["driverSkill", "robotSpeed", "minorFouls", "majorFouls", "brokeDownMatches", "brokeDown"]);
 function scrub(v) {
   if (Array.isArray(v)) return v.map(scrub);
   if (v && typeof v === "object") {
     return Object.fromEntries(Object.entries(v)
-      .filter(([k, x]) => !(NOTE_KEYS.has(k) && typeof x === "string"))
+      .filter(([k, x]) => !(NOTE_KEYS.has(k) && typeof x === "string") && !QUALITATIVE_KEYS.has(k))
       .map(([k, x]) => [k, NAME_KEYS.has(k) && typeof x === "string" ? "" : scrub(x)]));
   }
   return v;
 }
 
 fs.mkdirSync(path.join(OUT, "photos"), { recursive: true });
-// Only these events go on the public page (event codes; PUBLIC_EVENTS=AUPEQ,AUCMP to change). Default: the WA Qualifier.
-const PUBLIC_EVENTS = new Set((process.env.PUBLIC_EVENTS ?? "AUPEQ").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
+// Only these events go on the public page (event codes, comma-separated in PUBLIC_EVENTS): by default the WA
+// Qualifier and the Australia Championship. An event with no schedule yet (no matches) is left out until it has one.
+const PUBLIC_EVENTS = new Set((process.env.PUBLIC_EVENTS ?? "AUPEQ,AUCMP").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
 const events = (await search("Event", eq("ourEvent", true)))
   .filter((e) => PUBLIC_EVENTS.has(String(e.eventCode).toUpperCase()))
   .map((e) => ({ eventUuid: e.eventUuid, eventCode: e.eventCode, eventName: e.eventName, dateStart: e.dateStart, dateEnd: e.dateEnd }))
   .sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)));
 let photos = 0;
+const published = [];
 for (const ev of events) {
   const e = ev.eventUuid;
   console.log(`${ev.eventCode} (${e})`);
   const matches = await search("Match", eq("eventUuid", e));
+  if (!matches.length) { console.log("  no schedule yet: left out"); continue; }
+  published.push(ev);
   const presences = await inList("Presence", "matchUuid", matches.map((m) => m.matchUuid));
   const [ratings, projections] = await Promise.all([search("EventRating", eq("eventUuid", e)), search("RankProjection", eq("eventUuid", e))]);
   const [teamsTab, fieldMaps, pointSplits, teamCycles] = await Promise.all(
@@ -92,7 +99,7 @@ for (const ev of events) {
   const mm = await pool(matches, 4, (m) => query("matchMaps", { eventUuid: e, matchUuid: m.matchUuid }));
   const matchMaps = Object.fromEntries(matches.map((m, i) => [m.matchUuid, mm[i]]).filter(([, v]) => v));
   // Pit photos: each pit report's attachments, downloaded once.
-  const pitIds = [...new Set((teamsTab?.teams ?? []).flatMap((t) => (t.pits ?? []).map((p) => p.pitReportId)))];
+  const pitIds = []; // pit reports and their photos are not published (see QUALITATIVE_KEYS)
   const pits = pitIds.length ? await inList("PitSurvey", "pitReportId", pitIds) : [];
   const pitImages = {};
   for (const p of pits) {
@@ -111,10 +118,13 @@ for (const ev of events) {
   const data = scrub({ matches, presences, ratings, projections, teamsTab, fieldMaps, pointSplits, teamCycles, matchMaps, pitImages });
   if (data.teamsTab) {
     data.teamsTab.scouts = [];
-    data.teamsTab.teams = data.teamsTab.teams.map((t) => ({ ...t, notes: [] }));
+    data.teamsTab.teams = data.teamsTab.teams.map((t) => ({
+      ...t, notes: [], pits: [],
+      breakages: (t.breakages ?? []).map((b) => ({ breakageId: b.breakageId, teamNumber: b.teamNumber, createdAt: b.createdAt })),
+    }));
   }
   fs.writeFileSync(path.join(OUT, `${e}.json`), JSON.stringify(data));
   console.log(`  ${matches.length} matches, ${presences.length} slots, ${data.teamsTab?.teams?.length ?? 0} teams, ${Object.keys(matchMaps).length} match maps`);
 }
-fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify({ exportedAt: new Date().toISOString(), events }));
-console.log(`${events.length} events, ${photos} new photos -> ${OUT}`);
+fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify({ exportedAt: new Date().toISOString(), events: published }));
+console.log(`${published.length} events, ${photos} new photos -> ${OUT}`);

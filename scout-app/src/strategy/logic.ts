@@ -221,26 +221,31 @@ export function playedCount(fs: Forecast[], matches: { actualTime: string | null
 
 const oneFig = (x: number) => String(Math.round(x * 10) / 10);
 const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : oneFig(x) + unit);
+// The public strategy page (build mode "public") shows no qualitative scouting: no driver or speed ratings, fouls or
+// breakdowns, pit reports or breakage details.
+export const PUBLIC_PAGE = import.meta.env.MODE === "public";
+
 // The Teams tab's figures for a team, as its profile tiles show them. Cycles and cycle time are on the Cycles card,
 // from teamCycles.
-export const scoutTiles = (t: TeamProfile): [string, string][] => [
+export const scoutTiles = (t: TeamProfile, publicPage = PUBLIC_PAGE): [string, string][] => [
   ["points / match", String(Math.round(t.points))],
   ["auto pts", oneFig(t.autoPoints)],
   ["teleop pts", oneFig(t.teleopPoints)],
   ["park pts", oneFig(t.parkPoints)],
-  ["driver 1-5", maybe(t.driverSkill)],
-  ["speed 1-5", maybe(t.robotSpeed)],
+  ...(publicPage ? [] : [["driver 1-5", maybe(t.driverSkill)], ["speed 1-5", maybe(t.robotSpeed)]] as [string, string][]),
   ["matches", String(t.matches)],
 ];
 
 // The scouting card's other figures: how often it left its start, parked, fouled and broke down.
-export const scoutMoreTiles = (t: TeamProfile): [string, string][] => [
+export const scoutMoreTiles = (t: TeamProfile, publicPage = PUBLIC_PAGE): [string, string][] => [
   ["left start in auto", pct(t.leaveRate)],
   ["parked in auto", pct(t.autoParkRate)],
   ["parked at end", pct(t.teleopParkRate)],
-  ["minor fouls / match", one(t.minorFouls)],
-  ["major fouls / match", one(t.majorFouls)],
-  ["broke down", `${t.brokeDownMatches} of ${t.matches}`],
+  ...(publicPage ? [] : [
+    ["minor fouls / match", one(t.minorFouls)],
+    ["major fouls / match", one(t.majorFouls)],
+    ["broke down", `${t.brokeDownMatches} of ${t.matches}`],
+  ] as [string, string][]),
 ];
 
 // Each card's open or shut state, kept on this device. Storage may be missing or refuse: then cards start open.
