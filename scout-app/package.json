@@ -9,7 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run --passWithNoTests",
-    "build:public": "tsc -b && vite build --config vite.public.config.ts",
+    "build:public": "tsc -b && vite build --config vite.public.config.ts --mode public",
     "export:public": "node scripts/export-public.mjs"
   },
   "dependencies": {

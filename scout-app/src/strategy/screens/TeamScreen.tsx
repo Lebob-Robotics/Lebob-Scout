@@ -78,19 +78,22 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             )}
           </Card>
 
-          <Card title="Scout notes">
-            {scouted(() => (!profile?.notes.length ? <p>No scout notes yet.</p> : (
-              <ul className="note-list">
-                {profile.notes.map((n, i) => (
-                  <li key={i} className="note-block">
-                    <p>{[n.label, n.scoutName, clockTime(n.createdAt, now, ctx.timeZone)].filter(Boolean).join(" · ")}</p>
-                    {n.autoNotes && <p>Auto: {n.autoNotes}</p>}
-                    {n.notes && <p>{n.notes}</p>}
-                  </li>
-                ))}
-              </ul>
-            )))}
-          </Card>
+          {/* The public strategy page (build mode "public", lebob.com.au/strategy) shows no scout notes at all. */}
+          {import.meta.env.MODE !== "public" && (
+            <Card title="Scout notes">
+              {scouted(() => (!profile?.notes.length ? <p>No scout notes yet.</p> : (
+                <ul className="note-list">
+                  {profile.notes.map((n, i) => (
+                    <li key={i} className="note-block">
+                      <p>{[n.label, n.scoutName, clockTime(n.createdAt, now, ctx.timeZone)].filter(Boolean).join(" · ")}</p>
+                      {n.autoNotes && <p>Auto: {n.autoNotes}</p>}
+                      {n.notes && <p>{n.notes}</p>}
+                    </li>
+                  ))}
+                </ul>
+              )))}
+            </Card>
+          )}
 
           <Card title="Breakages" id="breakages" openKey={ctx.breakageAsk}>
             {scouted(() => (!profile?.breakages.length ? <p>No breakages reported.</p> : (
