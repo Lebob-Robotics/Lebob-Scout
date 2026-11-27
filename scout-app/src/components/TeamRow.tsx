@@ -2,7 +2,7 @@ import type { TeamProfile } from "../api";
 import { CURRENT_FIELD_KEY } from "../field";
 import { clockTime } from "../teams";
 import { breakageLine, chips, pitLines, reportLine } from "../teamsView";
-import { ProfileMap } from "./ProfileMap";
+import { ProfileMap, type Measure } from "./ProfileMap";
 
 const one = (x: number) => String(Math.round(x * 10) / 10);
 const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) + unit);
@@ -10,12 +10,14 @@ const maybe = (x: number | undefined, unit = "") => (x == null ? "–" : one(x) 
 // One team: a summary row with its chips, and when open its next match, profile tiles, report lines, pit reports,
 // breakages, and buttons to add a pit report or a breakage for it.
 // `opening` is the report being loaded for correction; `failed` the one that couldn't be.
-export function TeamRow({ team: t, now, timeZone, open, onToggle, opening, failed, onReport, onPit, onBreakage }: {
+export function TeamRow({ team: t, now, timeZone, open, onToggle, measure, onMeasure, opening, failed, onReport, onPit, onBreakage }: {
   team: TeamProfile;
   now: number; // read times against this day
   timeZone?: string; // the event's, when known: times show on its clock
   open: boolean;
   onToggle(open: boolean): void;
+  measure: Measure; // what the map shows, kept by the Teams screen
+  onMeasure(m: Measure): void;
   opening: string | null;
   failed: string | null;
   onReport(observationId: string): void;
@@ -34,6 +36,7 @@ export function TeamRow({ team: t, now, timeZone, open, onToggle, opening, faile
     ["speed 1-5", maybe(t.robotSpeed)],
     ["matches", String(t.matches)],
   ];
+  const nextAt = t.nextTime ? clockTime(t.nextTime, now, timeZone) : "";
 
   return (
     <details className="team" open={open} onToggle={(e) => { if (e.currentTarget.open !== open) onToggle(e.currentTarget.open); }}>
@@ -43,11 +46,11 @@ export function TeamRow({ team: t, now, timeZone, open, onToggle, opening, faile
         <span className="chips">{chips(t).map((c) => <span key={c.text} className={`chip ${c.tone}`}>{c.text}</span>)}</span>
       </summary>
       <div className="team-body">
-        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{t.nextTime ? ` at ${clockTime(t.nextTime, now, timeZone)}` : ""}.</p>}
+        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{nextAt ? ` at ${nextAt}` : ""}.</p>}
         {t.matches ? (
           <>
             <dl className="tiles">{tiles.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-            <ProfileMap fieldKey={CURRENT_FIELD_KEY} squares={t.squares} starts={t.starts} />
+            <ProfileMap fieldKey={CURRENT_FIELD_KEY} squares={t.squares} starts={t.starts} measure={measure} onMeasure={onMeasure} />
             <ul className="report-list">
               {t.reports.map((r) => (
                 <li key={r.observationId}>

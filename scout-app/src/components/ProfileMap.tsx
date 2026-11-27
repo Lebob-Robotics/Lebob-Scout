@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { SquareTotal, StartDot } from "../api";
 import { FIELDS, squareName } from "../field";
 import { wallPoint } from "../startWall";
@@ -8,10 +7,14 @@ import { FieldPicture } from "./FieldPicture";
 const EDGE = 0.02; // dots sit just inside the grid area's edge, as on the set-up screen
 const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 
+export type Measure = "scored" | "pickedUp";
+
 // Where a team scores or picks up in teleop, and where it started each match. Never turned, never dimmed:
-// red's wall is on the left whatever alliance the team played. A picture to read, not a control.
-export function ProfileMap({ fieldKey, squares, starts }: { fieldKey: string; squares: SquareTotal[]; starts: StartDot[] }) {
-  const [measure, setMeasure] = useState<"scored" | "pickedUp">("scored");
+// red's wall is on the left whatever alliance the team played. A picture to read, not a control. The Scored / Picked up
+// switch is kept by the caller, so it survives the map being taken off screen and drawn again.
+export function ProfileMap({ fieldKey, squares, starts, measure, onMeasure }: {
+  fieldKey: string; squares: SquareTotal[]; starts: StartDot[]; measure: Measure; onMeasure(m: Measure): void;
+}) {
   if (!squares.length && !starts.length) return null;
   const field = FIELDS[fieldKey];
   const w = 100 / field.cols, h = 100 / field.rows;
@@ -33,8 +36,8 @@ export function ProfileMap({ fieldKey, squares, starts }: { fieldKey: string; sq
   return (
     <div className="profile-map">
       <div className="map-switch">
-        <button type="button" aria-pressed={measure === "scored"} onClick={() => setMeasure("scored")}>Scored</button>
-        <button type="button" aria-pressed={measure === "pickedUp"} onClick={() => setMeasure("pickedUp")}>Picked up</button>
+        <button type="button" aria-pressed={measure === "scored"} onClick={() => onMeasure("scored")}>Scored</button>
+        <button type="button" aria-pressed={measure === "pickedUp"} onClick={() => onMeasure("pickedUp")}>Picked up</button>
       </div>
       <div className="field">
         <FieldPicture fieldKey={fieldKey} flipped={false} />

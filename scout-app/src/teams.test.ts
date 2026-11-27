@@ -91,6 +91,23 @@ test("clockTime reads a moment on the event's clock when given its zone", () => 
   expect(clockTime("2026-12-05T13:30:00Z", at, "Australia/Sydney")).toBe("Sun 12:30 am");
 });
 
+test("clockTime gives nothing for an empty or unreadable time, with or without a zone", () => {
+  const at = Date.parse("2026-12-04T22:00:00Z");
+  expect(clockTime("", now)).toBe("");
+  expect(clockTime("", at, "Australia/Sydney")).toBe("");
+  expect(clockTime("not a time", at, "Australia/Sydney")).toBe("");
+});
+
+test("clockTime reads a time with no zone as UTC, as the old site wrote them", () => {
+  const at = Date.parse("2026-12-04T22:00:00Z");
+  expect(clockTime("2026-12-04T22:00:00", at, "Australia/Sydney")).toBe("9:00 am");
+});
+
+test("scoutLine leaves off \"last\" when none of the scout's reports has a time", () => {
+  expect(scoutLine({ ...scout, lastAt: "" }, "u2", now)).toBe("Alice · 3 match reports");
+  expect(scoutLine({ ...scout, lastAt: "" }, "u2", now, "Australia/Sydney")).toBe("Alice · 3 match reports");
+});
+
 test("noteLine says whose clock the times are on", () => {
   expect(noteLine("Australia Championship", "times", "Australia/Sydney"))
     .toBe("Australia Championship · A match counts as played once it is scouted or its start time passes. · Times are Sydney time.");

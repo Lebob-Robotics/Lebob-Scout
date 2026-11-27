@@ -105,6 +105,14 @@ export function StartPad({ fieldKey, flipped, alliance, value, onChange, onFlip 
                 onKeyDown={step}
                 onPointerDown={(e) => {
                   if (!e.isPrimary) return;
+                  // A finger on the pad while a number box still has the keyboard up is a scout scrolling down to it, or
+                  // the page about to move: set-up scrolls the pad into place once the typing ends. So that touch only
+                  // puts the keyboard away (which sets the scroll off) and never moves the dot.
+                  const typing = document.activeElement;
+                  if (e.pointerType !== "mouse" && typing instanceof HTMLInputElement) {
+                    typing.blur();
+                    return;
+                  }
                   e.currentTarget.setPointerCapture(e.pointerId);
                   dragging.current = true;
                   pick(e, true);

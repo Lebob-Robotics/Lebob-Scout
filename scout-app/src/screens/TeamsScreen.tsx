@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { Api, TeamsTab } from "../api";
 import { CoverageGrid } from "../components/CoverageGrid";
 import { TeamRow } from "../components/TeamRow";
@@ -14,7 +14,8 @@ const LIMIT_MS = 20_000;
 const FILTERS: [Filter, string][] = [["all", "All"], ["need", "Needs scouting"], ["mine", "Scouted by me"]];
 
 // Loads on opening and whenever `refresh` changes; a reload keeps the last figures on screen.
-// The search, filter, open rows and the gaps switch live here, so a refresh or a correction leaves them as they were.
+// The search, filter, open rows, each map's Scored / Picked up switch and the gaps switch live here, so a refresh, a
+// correction or a trip through set-up leaves them as they were.
 // onScout opens set-up for a robot tapped in the coverage grid.
 // hidden: kept by App, out of sight, while a match started from the grid runs; it renders nothing but keeps its state.
 // onPit and onBreakage open those forms for a team.
@@ -48,6 +49,8 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
   const [open, setOpen] = useState<ReadonlySet<number>>(new Set());
+  // Teams whose map shows pick-ups; every other map shows pieces scored.
+  const [pickedUp, setPickedUp] = useState<ReadonlySet<number>>(new Set());
   const [gapsOnly, setGapsOnly] = useState(false);
   // The report line being opened, or the one that couldn't be; then the report open for correction.
   const [pick, setPick] = useState<{ id: string; failed: boolean } | null>(null);
@@ -72,9 +75,9 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
   const event = rememberedEvent();
   const retry = <button type="button" onClick={reload}>Retry</button>;
 
-  const toggle = (n: number, isOpen: boolean) => setOpen((o) => {
+  const toggle = (set: Dispatch<SetStateAction<ReadonlySet<number>>>, n: number, on: boolean) => set((o) => {
     const next = new Set(o);
-    if (isOpen) next.add(n); else next.delete(n);
+    if (on) next.add(n); else next.delete(n);
     return next;
   });
   const openReport = (id: string) => {
@@ -142,7 +145,9 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
                     now={last.at}
                     timeZone={data.timeZone}
                     open={open.has(t.teamNumber)}
-                    onToggle={(o) => toggle(t.teamNumber, o)}
+                    onToggle={(o) => toggle(setOpen, t.teamNumber, o)}
+                    measure={pickedUp.has(t.teamNumber) ? "pickedUp" : "scored"}
+                    onMeasure={(m) => toggle(setPickedUp, t.teamNumber, m === "pickedUp")}
                     opening={pick && !pick.failed ? pick.id : null}
                     failed={pick?.failed ? pick.id : null}
                     onReport={openReport}

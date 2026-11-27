@@ -81,7 +81,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               <ul className="note-list">
                 {profile.notes.map((n, i) => (
                   <li key={i} className="note-block">
-                    <p>{[n.label, n.scoutName, n.createdAt && clockTime(n.createdAt, now, ctx.timeZone)].filter(Boolean).join(" · ")}</p>
+                    <p>{[n.label, n.scoutName, clockTime(n.createdAt, now, ctx.timeZone)].filter(Boolean).join(" · ")}</p>
                     {n.autoNotes && <p>Auto: {n.autoNotes}</p>}
                     {n.notes && <p>{n.notes}</p>}
                   </li>
@@ -93,7 +93,10 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           <Card title="Breakages" id="breakages" openKey={ctx.breakageAsk}>
             {scouted(() => (!profile?.breakages.length ? <p>No breakages reported.</p> : (
               <ul className="note-list">
-                {profile.breakages.map((b) => <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{b.createdAt && <p>{clockTime(b.createdAt, now, ctx.timeZone)}</p>}</li>)}
+                {profile.breakages.map((b) => {
+                  const at = clockTime(b.createdAt, now, ctx.timeZone);
+                  return <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{at && <p>{at}</p>}</li>;
+                })}
               </ul>
             )))}
           </Card>
