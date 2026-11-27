@@ -1,5 +1,5 @@
 import { test, expect } from "vitest";
-import { MATCH_MAX, TEAM_MAX, firstEvent, numbered, onEvent, pickEvent, pickMatch, whole, withEvent } from "./schedule";
+import { MATCH_MAX, TEAM_MAX, firstEvent, numbered, onEvent, order, pickEvent, pickMatch, whole, withEvent } from "./schedule";
 import type { EventRow, MatchRow } from "./api";
 
 const ev = (code: string, a: string, b: string): EventRow => ({ eventUuid: code, eventCode: code, eventName: code, dateStart: a, dateEnd: b });
@@ -16,6 +16,10 @@ test("pickMatch", () => {
   expect(pickMatch([m(1, "qualification", true), m(1, "playoff", false)])!.matchUuid).toBe("playoff1");
   expect(pickMatch([m(1, "qualification", true), m(2, "qualification", true)])!.matchUuid).toBe("qualification2");
   expect(pickMatch([])).toBeNull();
+});
+test("order lists qualifications first, then playoffs, each by number, whatever order Foundry returned them in", () => {
+  const ms = [m(3, "playoff", false), m(2, "playoff", false), m(2, "qualification", true), m(1, "playoff", false), m(1, "qualification", true)];
+  expect([...ms].sort(order).map((x) => x.matchUuid)).toEqual(["qualification1", "qualification2", "playoff1", "playoff2", "playoff3"]);
 });
 test("firstEvent", () => {
   const past = ev("past", "2026-11-14", "2026-11-15"), now = ev("now", "2026-11-24", "2026-11-26"), next = ev("next", "2026-12-10", "2026-12-11");

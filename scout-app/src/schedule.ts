@@ -48,7 +48,8 @@ export function numbered(matches: MatchRow[]): MatchRow[] {
   return matches.map((m) => renumbered.get(m.matchUuid) ?? m);
 }
 
-const order = (a: MatchRow, b: MatchRow) =>
+// Qualifications first, then playoffs, each by number: the order the match picker lists them in.
+export const order = (a: MatchRow, b: MatchRow) =>
   Number(a.matchType === "playoff") - Number(b.matchType === "playoff") || a.matchNumber - b.matchNumber;
 
 // Hand-typed numbers: whole, from 1 up to the cap. Foundry refuses a team number past its integer range for good.

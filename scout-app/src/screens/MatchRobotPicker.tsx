@@ -2,7 +2,7 @@ import { useEffect, useEffectEvent, useState } from "react";
 import type { Api, MatchRow, PresenceRow } from "../api";
 import { Dropdown } from "../components/Dropdown";
 import type { Target } from "../observation";
-import { MATCH_MAX, TEAM_MAX, pickMatch, whole } from "../schedule";
+import { MATCH_MAX, TEAM_MAX, order, pickMatch, whole } from "../schedule";
 import { READ_LIMIT_MS, withTimeout } from "../sync";
 
 type Typed = { matchType: Target["matchType"]; matchNumber: string; teamNumber: string; alliance: Target["alliance"] | null };
@@ -133,7 +133,7 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
             label="Match"
             mono
             value={match.matchUuid}
-            items={matches.map((m) => ({ value: m.matchUuid, label: matchLabel(m) }))}
+            items={[...matches].sort(order).map((m) => ({ value: m.matchUuid, label: matchLabel(m) }))}
             onChange={(v) => { setMatchUuid(v); setPresences(null); onChange(null); }}
           />
           <span className="label">Robot</span>
