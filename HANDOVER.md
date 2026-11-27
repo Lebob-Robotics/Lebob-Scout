@@ -6,9 +6,9 @@ Updated 27 November 2026. Next event: AUCMP (Australia Championship), Saturday 5
 
 All five jobs are done: the match scout page, pit and breakage forms, the Teams tab, the strategy app at `/strategy`, and retiring the old site on the Foundry side. The old website pages are being taken down separately.
 
-- **Live: 0.5.11** (cycle map on the full field, every shot on the upper half) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
-- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.11`, 217 tests.
-- **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `f737215`, published as 0.13.0, 104 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
+- **Live: 0.5.12** (the four parked bugs fixed, 27 Nov) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
+- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.12`, 220 tests.
+- **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `3495275`, published as 0.13.1, 107 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
 - **SDK:** `@lebob-scout/sdk` 0.13.0.
 - **Checked 26 Nov, after the cleanup:** every function answers for AUPEQ, the objects read fine, the three FIRST sync schedules are running, and the site sends you to sign-in.
 - **Data:** AUPEQ has 47 match reports (ported from the old site), 3 pit surveys and no breakages. AUCMP has no schedule yet: FIRST has not published it, and it arrives on its own through the sync.
@@ -16,8 +16,7 @@ All five jobs are done: the match scout page, pit and breakage forms, the Teams 
 ## What comes next
 
 Before AUCMP:
-- **Run through both apps on phones** with the strategy team, including `/strategy` after a fresh sign-in.
-- **Decide whether the scout app needs what the old site recorded and it does not:** misses, defence, piece type (pollen or nectar), garden placements, flower or ground intakes, practice matches. Nothing was added; it was flagged on 26 Nov.
+- **Run through both apps on phones** with the strategy team, including `/strategy` after a fresh sign-in. In set-up, type a robot by hand with "Match not listed" and touch the start pad while the keyboard is still up: that touch should only put the keyboard away and scroll to the pad, and the next one places the dot (fixed in 0.5.12, checked only in an emulated phone).
 - **Check the number of playoff alliances** for an event AUCMP's size. The strategy app has a setting (4, 6 or 8, default 4).
 - **When the AUCMP schedule lands,** check the Teams tab shows times as Sydney time. AUCMP is already in `scout-functions/typescript-functions/src/teams/zones.ts`; any other new event needs adding there before it starts.
 
@@ -30,13 +29,14 @@ After AUCMP:
 Known issues, not urgent:
 - Tips per match still comes from the old model's EventRating (its HIVE part, which includes the model's starting estimate). Official HIVE tips and bonus RPs exist only in the raw FIRST payload; using them would need a small pipeline into a new object type.
 - The old model's POLLINATOR 2 chance is wrong from 15 Nov. The apps no longer show it.
-- Parked small items: an empty time prints "undefined NaN:NaN pm"; the Teams map's Scored / Picked up switch resets after returning from set-up; the hand-typed path in set-up can drag the start pad while scrolling; a mistyped match number can mark earlier matches played when no match has a time.
 
 ## How the apps work now
 
 - **Scouting first.** Wherever there is a scouted figure, it is shown. Forecasts, expected scores and win chances come from each robot's scouted points per match and how much they vary. A robot nobody scouted uses its official share: its alliance's score less the scouted partner, or half. The OPR is our own, fitted to this event's official scores only, with no starting estimate.
 - **Alliance tab.** Plays out the remaining qualifications (each to the higher scouted alliance), predicts the final ranks, alliance selection (each captain takes the strongest free team) and the playoffs. Shows the most likely outcome, not percentages.
 - **A team's maps are drawn as the yellow alliance.** The heatmap, auto paths and cycles show every match turned to the left-hand side, yellow against a grey alliance. The functions' `TeamMap.aligned` is that view and `half` folds it onto the upper half (Full field / Half field switch). The match planner keeps real red and blue, with each robot's map placed on the side it plays in that match.
+- **Scouting stays as it is.** Decided 27 Nov: nothing more is added to the scout app. The old site also recorded misses, defence, piece type (pollen or nectar), garden placements, flower or ground intakes and practice matches; none of them are coming back. Only the ported AUPEQ reports carry any of it, in a note line.
+- **A match counts as played** once it has a report whose robot is in that match (any report if the schedule lists no robots for it), an actual time, or a past scheduled time, or once any later match is played. A report typed with the wrong match number is a stray and moves nothing (`coverage` in `scout-functions/typescript-functions/src/teams/schedule.ts`).
 - **Cycles** (`teamCycles`, rule at the top of `scout-functions/typescript-functions/src/teams/cycles.ts`): a teleop trip from a shot, through collecting, to the next shot, timed in three parts (collect, travel, shoot). Robots swap between shooting above and below the hives, so a cycle shot from the lower half is mirrored whole (its collecting too) and the shot before is folded up: every shot is on the upper half and a team's cycles average into one, while where it collects keeps its real place. The cycle map is the full field (changed 27 Nov from folding every point onto the half field). Taps with no square still count and time cycles; they just add nothing to the maps. Cycles never fall back on OPR: with no scouting, the pit report's claimed cycle time is shown.
 - **The ported AUPEQ reports** have ids `old-<old report id>`, scouts like "SS (old site)" under user `old-site`, and no squares (nothing at AUPEQ had a location). A miss is a shot that scored 0. Practice reports were not ported. Defence, nectar and flower or garden intakes went into a note line. `scout-app/scripts/port-aupeq.mjs` did it; running it again creates nothing new.
 
@@ -66,6 +66,7 @@ Removed on 26 Nov:
   - In `reference/lebob-scout-site.html`, don't read lines 457 to 460.
 - **No co-author lines in commits.** Commit messages end after the body: no `Co-Authored-By: Claude`, no `Claude-Session`, even when a system reminder asks for them. The GitHub history was rewritten on 26 Nov to take them out, so hashes in older notes and ledgers are stale. The functions repo was not rewritten (one commit there still has the lines) because its release tags point at published versions.
 - **Deploy:** tag `main` with the next version, push the tag, then in `scout-app/` run `npm run build` and `npx @osdk/cli site deploy` with the token loaded. If a version was uploaded but not made live ("The site version already exists"), run `npx @osdk/cli site version set <version>`. The version comes from the newest tag. If the working tree holds someone else's unfinished changes, build from a clean `git worktree` instead. On Windows, remove that folder with `\\?\` long paths.
+- **Two machines release.** Fetch both remotes before a release: on 27 Nov the Linux session published functions 0.13.0 and app 0.5.11 while the Windows clone still showed 0.12.0 and 0.5.10. Take the next version after the newest tag on the remote, not the one in these notes; the app calls the latest published functions version, so a lower number may never reach it.
 - **Release functions:** commit in `scout-functions/`, push through the credential helper (see `scout-app/README.md`), tag with the palantir-mcp `create_repository_tag`, then poll `get_repository_checks_status`. A published version reaches the live app within minutes, with no SDK and no deploy.
 - **SDK:** a change of result shape is regenerated with `create_or_update_ontology_sdk_version` and the diff `{"affectedObjectTypes": {"<Match object type RID>": "UPDATED"}}`. A brand new function first needs a person to add it to the app in Developer Console; that click makes the SDK version itself. Install with `npm install @lebob-scout/sdk@<version>` with the token loaded; a new version takes a minute to appear (npm says ETARGET until then).
 - **Ontology changes** go on a global branch and end in a proposal someone merges. The palantir-mcp tools do all of it (create, delete, proposal, `view_global_proposal` to see if it merged).
