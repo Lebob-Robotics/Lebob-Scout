@@ -6,8 +6,8 @@ Updated 27 November 2026. Next event: AUCMP (Australia Championship), Saturday 5
 
 All five jobs are done: the match scout page, pit and breakage forms, the Teams tab, the strategy app at `/strategy`, and retiring the old site on the Foundry side. The old website pages are being taken down separately.
 
-- **Live: 0.5.12** (the four parked bugs fixed, 27 Nov) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
-- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.12`, 220 tests.
+- **Live: 0.5.13** (match picker sorted: quals, then playoffs, by number) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
+- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.13`, 220 tests.
 - **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `3495275`, published as 0.13.1, 107 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
 - **SDK:** `@lebob-scout/sdk` 0.13.0.
 - **Checked 26 Nov, after the cleanup:** every function answers for AUPEQ, the objects read fine, the three FIRST sync schedules are running, and the site sends you to sign-in.
