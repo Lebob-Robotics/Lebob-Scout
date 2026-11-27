@@ -6,8 +6,8 @@ Updated 27 November 2026. Next event: AUCMP (Australia Championship), Saturday 5
 
 All five jobs are done: the match scout page, pit and breakage forms, the Teams tab, the strategy app at `/strategy`, and retiring the old site on the Foundry side. The old website pages are being taken down separately.
 
-- **Live: 0.5.15** (cycle map loops and arrows, plain routes; autos averaged into one path) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
-- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.15`, 220 tests.
+- **Live: 0.5.16** (cycle map all plain: averaged cycle no longer yellow) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
+- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.16`, 220 tests.
 - **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `3495275`, published as 0.13.1, 107 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
 - **SDK:** `@lebob-scout/sdk` 0.13.0.
 - **Checked 26 Nov, after the cleanup:** every function answers for AUPEQ, the objects read fine, the three FIRST sync schedules are running, and the site sends you to sign-in.
@@ -33,7 +33,7 @@ Known issues, not urgent:
 ## How the apps work now
 
 - **OPR waits for 3 matches a team** (`OPR_MIN_MATCHES` in `strategy/opr.ts`): until every scheduled team has played 3 scored matches the OPR column, Match page OPR and OPR chart stay empty, and the Event tab sorts by points per match.
-- **Cycle map and autos (0.5.15):** a trip back to where it started is drawn as a loop (`loopLine` in `strategy/cycles.ts`), every route and the averaged cycle end in an arrow at the shot, routes are one plain grey (the averaged cycle stays yellow). The Averaged setting averages every auto into one path (`averagedAutos` in `strategy/autos.ts`); As drawn shows each.
+- **Cycle map and autos (0.5.15):** a trip back to where it started is drawn as a loop (`loopLine` in `strategy/cycles.ts`), every route and the averaged cycle end in an arrow at the shot, routes are one plain grey and the averaged cycle a thicker plain line (0.5.16). The Averaged setting averages every auto into one path (`averagedAutos` in `strategy/autos.ts`); As drawn shows each.
 - **Scouting first.** Wherever there is a scouted figure, it is shown. Forecasts, expected scores and win chances come from each robot's scouted points per match and how much they vary. A robot nobody scouted uses its official share: its alliance's score less the scouted partner, or half. The OPR is our own, fitted to this event's official scores only, with no starting estimate.
 - **Alliance tab.** Plays out the remaining qualifications (each to the higher scouted alliance), predicts the final ranks, alliance selection (each captain takes the strongest free team) and the playoffs. Shows the most likely outcome, not percentages.
 - **A team's maps are drawn as the yellow alliance.** The heatmap, auto paths and cycles show every match turned to the left-hand side, yellow against a grey alliance. The functions' `TeamMap.aligned` is that view and `half` folds it onto the upper half (Full field / Half field switch). The match planner keeps real red and blue, with each robot's map placed on the side it plays in that match.

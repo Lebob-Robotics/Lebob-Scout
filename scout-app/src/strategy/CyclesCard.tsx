@@ -65,7 +65,7 @@ function TimeBar({ parts }: { parts: Part[] }) {
   );
 }
 
-// The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold yellow, labelled with
+// The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold, labelled with
 // the average time and how many cycles), over the routes the team uses most (plain, thicker for more of its cycles;
 // hover or tap one for where it goes). Every line ends in an arrow at its shot; a trip back to where it started is a
 // loop (loopLine). With "As drawn", every cycle as a thin line. Every cycle arrives flipped so its
