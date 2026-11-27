@@ -534,6 +534,8 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
    title's tap area reaches past the text without moving it. */
 .scard { align-content: start; }
 .scard.shut { padding-block: .6rem; }
+/* Shut with a picker kept (Team, Forecast): the title centred against it. */
+.scard.shut .card-head { align-items: center; }
 .card-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .5rem .75rem; }
 .card-toggle {
   display: block; min-height: 0; margin: -.4rem 0; padding: .4rem 0; border: 0; background: none;
@@ -604,25 +606,26 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .stable.schedule td { padding-inline: .25rem; }
 .stable.schedule td:first-child { padding-left: .5rem; padding-right: .5rem; }
 
-/* Field diagrams (strategy): only the grid area, square, with rounded corners, laid out as tiles like the site's stat
-   tiles; no numbers, a square's figures pop up on hover or tap. Drawn on a dark field in both looks. */
-.heat { display: grid; gap: .5rem; min-width: 0; }
+/* Field diagrams (strategy): only the grid area, square, a plain grid of squares with the whole field's corners
+   rounded (--field-r, which the picture, the shading over it and the edge ring share); no numbers, a square's figures
+   pop up on hover or tap. Drawn on a dark field in both looks. */
+.heat { --field-r: 12px; display: grid; gap: .5rem; min-width: 0; }
 .heat-stage { min-width: 0; }
 .heat .field.bare { width: 100%; max-width: 34rem; margin-inline: auto; aspect-ratio: 1; }
 .heat .field.bare.half { max-width: 52rem; aspect-ratio: 2; }
-.heat.small { max-width: 16rem; }
-.field-clip { position: absolute; inset: 0; overflow: hidden; border-radius: 12px; background: #17181b; }
-.heat.small .field-clip { border-radius: 8px; }
-.field-clip::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08); pointer-events: none; }
+.heat.small { --field-r: 8px; max-width: 16rem; }
+.field-clip { position: absolute; inset: 0; overflow: hidden; border-radius: var(--field-r); background: #26272c; }
 .field-clip .field-picture { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
 /* Half field: the picture is twice the frame's height, so the frame shows its upper half (rows 1 to 3). */
 .field.bare.half .field-clip .field-picture { height: 200%; }
-.field-picture.bare .floor { fill: #17181b; }
-.field-picture.bare .tiles rect { fill: #26272c; }
+.field-picture.bare .floor { fill: #26272c; }
 .field-picture.bare text { fill: #e5e6e0; fill-opacity: .7; font: 500 4.2px var(--font-mono); letter-spacing: .04em; }
-.field.bare .map-overlay, .field.bare .path-overlay { inset: 0; width: 100%; height: 100%; }
+.field-picture.bare .grid-lines, .field.bare .map-overlay .grid-lines { fill: none; stroke: #17181b; stroke-width: 1px; vector-effect: non-scaling-stroke; pointer-events: none; }
+.field.bare .map-overlay, .field.bare .path-overlay { inset: 0; width: 100%; height: 100%; clip-path: inset(0 round var(--field-r)); }
 .field.bare .map-overlay rect { stroke: none; }
-.field.bare .map-overlay rect.on { stroke: var(--fg-dark); stroke-width: .6; }
+.field.bare .map-overlay rect.square-on { fill: none; stroke: var(--fg-dark); stroke-width: 2px; vector-effect: non-scaling-stroke; pointer-events: none; }
+/* A faint ring round the field, over the shading. */
+.field.bare::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--field-r); box-shadow: inset 0 0 0 1px rgb(255 255 255 / .08); pointer-events: none; }
 
 /* Full screen: a small button in the field's bottom-right corner (an empty square in every view, as on a video
    player); open, the diagram covers the page, as large as fits, with its title and Close above it. */
@@ -633,7 +636,7 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 }
 .heat.small .full-btn { right: 5px; bottom: 5px; width: 28px; height: 28px; border-radius: 6px; }
 .heat.full {
-  position: fixed; inset: 0; z-index: 100; max-width: none; display: flex; flex-direction: column; gap: .75rem;
+  --field-r: 16px; position: fixed; inset: 0; z-index: 100; max-width: none; display: flex; flex-direction: column; gap: .75rem;
   padding: max(.75rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); background: var(--bg);
 }
 .full-bar { display: flex; flex: none; align-items: center; justify-content: space-between; gap: 1rem; }
@@ -642,12 +645,10 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .heat.full .heat-stage { flex: 1 1 auto; min-height: 0; container-type: size; display: grid; place-items: center; }
 .heat.full .field.bare { width: min(100cqw, 100cqh); max-width: none; margin: 0; }
 .heat.full .field.bare.half { width: min(100cqw, 200cqh); }
-.heat.full .field-clip { border-radius: 16px; }
 .heat.full .path-legend { flex: none; justify-content: center; }
 
 .map-overlay.both { --c: var(--warn); }
 .heat .map-overlay rect { cursor: pointer; }
-.heat .map-overlay rect.on { stroke: var(--fg-dark); stroke-width: .8; }
 .heat-pop {
   position: absolute; z-index: 3; min-width: 9rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: var(--radius);
   background: var(--bg); color: var(--fg-dark); font: 500 .75rem/1.35 var(--font-sans); font-variant-numeric: tabular-nums; pointer-events: none; white-space: nowrap;

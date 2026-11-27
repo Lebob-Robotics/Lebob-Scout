@@ -3,7 +3,7 @@ import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEv
 import type { ReactNode, RefObject } from "react";
 import type { StartDot } from "../shared/api";
 import { FieldPicture } from "../shared/components/FieldPicture";
-import { CURRENT_FIELD_KEY, FIELDS, TILE, squareName } from "../shared/field";
+import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../shared/field";
 import { wallPoint } from "../shared/startWall";
 import { shade } from "../shared/teamsView";
 import { MAPS_NOT_READY } from "./api";
@@ -162,7 +162,7 @@ const FullIcon = () => (
   </svg>
 );
 
-// Every field diagram's frame: the bare field picture (only the grid area, rounded, tiled) with `children` drawn on
+// Every field diagram's frame: the bare field picture (only the grid area, its corners rounded) with `children` drawn on
 // it, a full screen button in its bottom-right corner, and `after` under it (a legend). Full screen shows the diagram as
 // large as the screen allows, with `title` and a Close button above it. `half` shows only the upper half (rows 1 to
 // 3); `tracked` draws the left-hand alliance yellow against a grey one. `box` is the frame's element, for a caller
@@ -196,7 +196,7 @@ export function FieldFrame({ title, small = false, half = false, tracked = false
   );
 }
 
-// A heatmap on the field: red's wall on the left, a shaded tile per square (or, smooth, soft spots that blend into
+// A heatmap on the field: red's wall on the left, a shade per square (or, smooth, soft spots that blend into
 // each other), start spots as dots. No numbers: hovering a square with a mouse, or tapping it, shows its figures in a
 // pop-up; tapping anywhere else closes it. `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
 // `overlay` is drawn over the shading in the same 0 to 100 frame (the cycle routes); `children` sit on the field (a
@@ -220,8 +220,6 @@ export function HeatField({ cells, tone, starts = [], label, title, small = fals
   }, [open]);
 
   const w = 100 / field.cols, h = 100 / field.rows;
-  // The shaded tiles lie exactly on the picture's tiles.
-  const gap = w * TILE.gap, round = w * TILE.radius;
   const rows = half ? field.rows / 2 : field.rows;
   const max = Math.max(0, ...[...cells.values()].map((c) => c.value));
   const at = (i: number) => ({ col: i % field.cols, row: Math.floor(i / field.cols) });
@@ -230,12 +228,21 @@ export function HeatField({ cells, tone, starts = [], label, title, small = fals
     const { col, row } = at(i);
     const here = open?.col === col && open.row === row;
     return (
-      <rect key={i} className={here ? "on" : undefined} x={col * w + gap} y={row * h + gap} width={w - 2 * gap} height={h - 2 * gap} rx={round}
-        fillOpacity={smooth ? 0 : shade(value(col, row), max)}
+      <rect key={i} x={col * w} y={row * h} width={w} height={h} fillOpacity={smooth ? 0 : shade(value(col, row), max)}
         onPointerEnter={(e) => { if (e.pointerType === "mouse") setOpen({ col, row }); }}
         onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(here ? null : { col, row }); }} />
     );
   });
+  // The grid's lines over the shading, only along the edges of shaded squares: elsewhere the picture's own lines show,
+  // under the field's places, so no line crosses a flower or a garden. Then the open square's outline.
+  const shaded = (col: number, row: number) => !smooth && value(col, row) > 0;
+  const lines = Array.from({ length: field.cols * rows }, (_, i) => {
+    const { col, row } = at(i);
+    return [
+      col > 0 && (shaded(col - 1, row) || shaded(col, row)) ? `M${col * w} ${row * h}v${h}` : "",
+      row > 0 && (shaded(col, row - 1) || shaded(col, row)) ? `M${col * w} ${row * h}h${w}` : "",
+    ].join("");
+  }).join("");
   const pop = open && popPlace(open.col, open.row, field.cols, rows);
   const name = open && squareName(open.col, open.row);
   const cell = name ? cells.get(name) : undefined;
@@ -247,7 +254,7 @@ export function HeatField({ cells, tone, starts = [], label, title, small = fals
           <>
             <defs>
               <radialGradient id={`${gid}g`}><stop offset="0" className="hs-in" /><stop offset="1" className="hs-out" /></radialGradient>
-              <clipPath id={`${gid}c`}><rect width="100" height={rows * h} rx={round} /></clipPath>
+              <clipPath id={`${gid}c`}><rect width="100" height={rows * h} /></clipPath>
             </defs>
             <g clipPath={`url(#${gid}c)`} className="heat-soft">
               {Array.from({ length: field.cols * rows }, (_, i) => {
@@ -259,6 +266,8 @@ export function HeatField({ cells, tone, starts = [], label, title, small = fals
           </>
         )}
         {squares}
+        {lines && <path className="grid-lines" d={lines} />}
+        {open && <rect className="square-on" x={open.col * w} y={open.row * h} width={w} height={h} />}
         {overlay}
         {!half && starts.map((s, i) => {
           const p = wallPoint(s.wallPos, tracked || s.alliance !== "blue" ? "red" : "blue");

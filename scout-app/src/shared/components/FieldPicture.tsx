@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { TILE } from "../field";
 
 // The two alliances' colours and names on the picture. The scout app draws real red and blue. The strategy app's
 // team maps draw "tracked": every match is turned to the left-hand (red) side, so that side is the tracked alliance,
@@ -14,16 +13,20 @@ type Side = "left" | "right";
 // The grid area: x 40 to 280 of the 320 by 240 picture, six squares a side. The bare picture is only this part.
 const GRID = { x: 40, size: 240, squares: 6 };
 
+// The grid's inner lines, as a path in the picture's units.
+const cell = GRID.size / GRID.squares;
+const GRID_LINES = Array.from({ length: GRID.squares - 1 }, (_, i) => (i + 1) * cell)
+  .map((k) => `M${GRID.x + k} 0V${GRID.size}M${GRID.x} ${k}H${GRID.x + GRID.size}`).join("");
+
 // One picture per field. Next season adds an entry. `bare` (the strategy app) leaves out the alliance areas, rounds
-// every place and lays the floor out as a grid of tiles.
+// every place and draws the grid's lines on the floor.
 const PICTURES: Record<string, (c: Look, own: Side | null, bare: boolean) => ReactNode> = {
   "ftc-2026": (c, own, bare) => {
     // A place on `side`: solid dark when it is the robot's own, else its usual see-through fill.
     const fill = (side: Side, usual: string) => (own === side ? DARK[side] : usual);
     const r = bare ? 3 : 0;
-    const cell = GRID.size / GRID.squares, gap = cell * TILE.gap;
-    // Bare: places against a wall stand off it by a tile gap, so their outline shows whole on the cropped, rounded field.
-    const w = bare ? gap : 0;
+    // Bare: places against a wall stand off it a little, so their outline shows whole on the cropped, rounded field.
+    const w = bare ? 1.5 : 0;
     return (
     <>
       {!bare && <>
@@ -35,14 +38,7 @@ const PICTURES: Record<string, (c: Look, own: Side | null, bare: boolean) => Rea
         <text className="area-label" x="300" y="88">{c.rightName}<tspan x="300" dy="6">ALLIANCE</tspan><tspan x="300" dy="6">AREA</tspan></text>
       </>}
       <rect className="floor" x="40" width="240" height="240" fill={bare ? undefined : "#3d4046"} />
-      {bare && (
-        <g className="tiles">
-          {Array.from({ length: GRID.squares ** 2 }, (_, i) => (
-            <rect key={i} x={GRID.x + (i % GRID.squares) * cell + gap} y={Math.floor(i / GRID.squares) * cell + gap}
-              width={cell - 2 * gap} height={cell - 2 * gap} rx={cell * TILE.radius} />
-          ))}
-        </g>
-      )}
+      {bare && <path className="grid-lines" d={GRID_LINES} />}
 
       <rect x={40 + w} y="42" width={24 - w} height="38" rx={r} fill={fill("left", `${c.left}55`)} stroke={c.left} />
       <text x="52" y="59">LOADING<tspan x="52" dy="6">ZONE</tspan></text>
@@ -72,7 +68,7 @@ const PICTURES: Record<string, (c: Look, own: Side | null, bare: boolean) => Rea
 
 // An unknown key draws only the field outline. `tracked` draws the tracked alliance (left) yellow and the other grey.
 // `scoring` is the scouted robot's alliance: its own scoring places are filled dark, so the scout sees where it scores.
-// `bare` draws only the grid area (square, no alliance areas), in the strategy app's tiled look.
+// `bare` draws only the grid area (square, no alliance areas), in the strategy app's look.
 export function FieldPicture({ fieldKey, flipped, tracked = false, scoring, bare = false }: {
   fieldKey: string; flipped: boolean; tracked?: boolean; scoring?: "red" | "blue" | null; bare?: boolean;
 }) {

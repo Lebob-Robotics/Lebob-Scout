@@ -12,10 +12,6 @@ export type Field = {
 
 export const CURRENT_FIELD_KEY = "ftc-2026";
 
-// The strategy app's tiled field: each square drawn as a tile inset by `gap` with corners rounded by `radius`, both as
-// shares of a square's side. The bare field picture and the heatmaps over it use the same tiles.
-export const TILE = { gap: 0.0375, radius: 0.125 };
-
 export const FIELDS: Record<string, Field> = {
   [CURRENT_FIELD_KEY]: {
     key: CURRENT_FIELD_KEY,
