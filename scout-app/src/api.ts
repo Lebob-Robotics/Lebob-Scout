@@ -118,11 +118,11 @@ export const toEventRow = (e: Pick<Event.Props, "eventUuid" | "eventCode" | "eve
   eventUuid: e.eventUuid, eventCode: e.eventCode ?? "", eventName: e.eventName ?? "",
   dateStart: (e.dateStart ?? "").slice(0, 10), dateEnd: (e.dateEnd ?? "").slice(0, 10),
 });
-const toMatchRow = (m: Match.Props): MatchRow => ({
+export const toMatchRow = (m: Match.Props): MatchRow => ({
   matchUuid: m.matchUuid, matchNumber: m.matchNumber ?? 0, matchType: m.matchType as MatchType,
   scheduledTime: m.scheduledTime ?? null, actualTime: m.actualTime ?? null,
 });
-const toPresenceRow = (p: Presence.Props): PresenceRow => ({
+export const toPresenceRow = (p: Presence.Props): PresenceRow => ({
   presenceUuid: p.presenceUuid, matchUuid: p.matchUuid ?? "", teamUuid: p.teamUuid ?? "",
   teamNumber: p.teamNumber ?? 0, alliance: p.alliance as Alliance, station: p.station ?? 0,
 });
