@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { averageCycle, averageLabel, centre, crossedSquares, alignCycle, foldNote, cycleCells, cycleTime, cyclesFigure, onMap, roundedLine, routeLabel, routeLines, routeWidth, timeParts } from "./cycles";
+import { arrowHead, loopLine, averageCycle, averageLabel, centre, crossedSquares, alignCycle, foldNote, cycleCells, cycleTime, cyclesFigure, onMap, roundedLine, routeLabel, routeLines, routeWidth, timeParts } from "./cycles";
 import type { TeamCycles } from "./types";
 
 const team = (t: Partial<TeamCycles> = {}): TeamCycles => ({ teamNumber: 1, matches: 2, cyclesPerMatch: 4.5, squares: [], routes: [], cycles: [], average: [], ...t });
@@ -89,4 +89,30 @@ test("the averaged cycle's label and the fold note", () => {
   expect(foldNote(0.4)).toBe("The yellow alliance's side. Each cycle is flipped so its shot is on the upper half (shot from the lower half: 40%).");
   expect(foldNote(0)).toBe("The yellow alliance's side. Each cycle is flipped so its shot is on the upper half (shot from the lower half: 0%).");
   expect(foldNote(undefined)).toBe("The yellow alliance's side. Each cycle is flipped so its shot is on the upper half.");
+});
+
+test("loopLine draws a trip back to its start as a loop, and leaves other trips alone", () => {
+  // Shoot C1, collect D1 next to it, shoot C1: out and back on the same line.
+  const loop = loopLine([centre("C1"), centre("D1"), centre("C1")]);
+  expect(loop.length).toBeGreaterThan(20);
+  expect(loop[0]).toEqual(centre("C1"));
+  expect(loop[loop.length - 1].x).toBeCloseTo(2.5, 1);
+  // The way out and the way back sit on opposite sides of the C1 to D1 line (y = 0.5).
+  const out = loop[Math.round(loop.length * 0.25)], back = loop[Math.round(loop.length * 0.75)];
+  expect(Math.sign(out.y - 0.5)).toBe(-Math.sign(back.y - 0.5));
+  // A trip that never leaves its square is a small circle.
+  const still = loopLine([centre("C1"), centre("C1")]);
+  expect(Math.max(...still.map((p) => p.y)) - Math.min(...still.map((p) => p.y))).toBeCloseTo(0.6, 1);
+  // A trip that ends somewhere else is drawn as it is.
+  const open = [centre("C1"), centre("E4"), centre("B2")];
+  expect(loopLine(open)).toEqual(open);
+});
+
+test("arrowHead points the way the line arrives", () => {
+  const head = arrowHead([[0, 50], [50, 50], [100, 50]], 4)!;
+  expect(head[0]).toEqual([100, 50]);
+  expect(head[1][0]).toBeCloseTo(96, 0);
+  expect(head[2][0]).toBeCloseTo(96, 0);
+  expect(Math.abs(head[1][1] - head[2][1])).toBeGreaterThan(3);
+  expect(arrowHead([[1, 1]])).toBeNull();
 });

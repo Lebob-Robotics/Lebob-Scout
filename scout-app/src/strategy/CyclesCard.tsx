@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { CURRENT_FIELD_KEY, FIELDS } from "../field";
 import type { Ctx } from "./StrategyApp";
-import { PATH_COLOURS } from "./autos";
 import {
-  averageLabel, cycleCells, cycleTime, cyclesFigure, foldNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,
+  arrowHead, averageLabel, cycleCells, cycleTime, cyclesFigure, foldNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,
 } from "./cycles";
 import { one, popPlace } from "./logic";
 import { Card, HeatField, RangeBar, Switch, Tiles, Waiting } from "./parts";
@@ -12,6 +11,9 @@ import type { CycleRoute, TeamCycles } from "./types";
 const MEASURES: [CycleMeasure, string][] = [["passes", "Crossed"], ["intakes", "Collect"], ["shots", "Shoot"]];
 const TONE: Record<CycleMeasure, "cross" | "pickedUp" | "scored"> = { passes: "cross", intakes: "pickedUp", shots: "scored" };
 const PART_NAMES: Record<Part["name"], string> = { collect: "Collect", travel: "Travel", shoot: "Shoot" };
+// Routes are all one plain colour: thickness says how often each is used, the pop-up says where it goes.
+const ROUTE_COLOUR = "#d4d4d8";
+const poly = (pts: [number, number][]) => pts.map((q) => q.join(",")).join(" ");
 
 // The cycle time: scouted, or (in italics, tagged) what the pit report claims.
 export function CycleTimeFig({ time }: { time: CycleTime | null }) {
@@ -63,9 +65,10 @@ function TimeBar({ parts }: { parts: Part[] }) {
   );
 }
 
-// The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold, labelled with the
-// average time and how many cycles), over the routes the team uses most (fainter, thicker for more of its cycles;
-// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Every cycle arrives flipped so its
+// The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold yellow, labelled with
+// the average time and how many cycles), over the routes the team uses most (plain, thicker for more of its cycles;
+// hover or tap one for where it goes). Every line ends in an arrow at its shot; a trip back to where it started is a
+// loop (loopLine). With "As drawn", every cycle as a thin line. Every cycle arrives flipped so its
 // shot is on the upper half (see alignCycle); where it collects can be anywhere, so the map is the full field.
 function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: CycleMeasure; smooth: boolean; drawn: boolean }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
@@ -78,9 +81,10 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
 
-  const routes = c.routes.map((r, i) => ({ r, line: roundedLine(r.points), colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
+  const routes = c.routes.map((r) => ({ r, line: roundedLine(r.points) }));
   const average = roundedLine(c.average ?? []);
   const avgMid = average[Math.floor(average.length / 2)] ?? [0, 0];
+  const avgHead = arrowHead(average, 3.2);
   const overlay = drawn ? (
     <g className="cycle-lines">
       {c.cycles.map((row, i) => (
@@ -92,28 +96,28 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   ) : (
     <>
     <g className="routes faint">
-      {routes.map(({ r, line, colour }, i) => {
-        const pts = line.map((q) => q.join(",")).join(" ");
-        const end = line[line.length - 1];
+      {routes.map(({ r, line }, i) => {
+        const pts = poly(line);
+        const head = arrowHead(line, 2);
         const width = Math.max(1.5, routeWidth(r.share) * 0.6);
         const show = (e: { pointerType: string }) => { if (e.pointerType === "mouse") setOpen(i); };
         return (
-          <g key={i} className={open === i ? "route on" : "route"} style={{ color: colour }}
+          <g key={i} className={open === i ? "route on" : "route"} style={{ color: ROUTE_COLOUR }}
             onPointerEnter={show} onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}
             onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(open === i ? null : i); }}>
             <polyline className="route-hit" points={pts} />
             <polyline className="route-halo" points={pts} strokeWidth={width + 3} />
             <polyline className="route-line" points={pts} strokeWidth={width} />
-            <circle className="route-end" cx={end[0]} cy={end[1]} r="1.6" />
+            {head && <polygon className="route-end" points={poly(head)} />}
           </g>
         );
       })}
     </g>
     {average.length > 1 && (
       <g className="avg-cycle">
-        <polyline className="avg-halo" points={average.map((q) => q.join(",")).join(" ")} />
-        <polyline className="avg-line" points={average.map((q) => q.join(",")).join(" ")} />
-        <circle cx={average[average.length - 1][0]} cy={average[average.length - 1][1]} r="2.6" />
+        <polyline className="avg-halo" points={poly(average)} />
+        <polyline className="avg-line" points={poly(average)} />
+        {avgHead && <polygon points={poly(avgHead)} />}
         <text className="avg-label" x={avgMid[0]} y={avgMid[1] - 3.5}>{averageLabel(c)}</text>
       </g>
     )}

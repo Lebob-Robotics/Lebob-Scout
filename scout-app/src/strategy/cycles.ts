@@ -17,8 +17,49 @@ export const cycleCells = (squares: CycleSquare[], m: CycleMeasure): Map<string,
 
 // A point in squares (0 to 6) as a point on the heatmap overlay (0 to 100).
 export const onMap = (p: CyclePoint): Pt => [r1((p.x * 100) / FIELD.cols), r1((p.y * 100) / FIELD.rows)];
-// A route or cycle line, rounded for drawing.
-export const roundedLine = (points: CyclePoint[]): Pt[] => chaikin(points.map(onMap), 2).map(([x, y]): Pt => [r1(x), r1(y)]);
+// A route or cycle line, rounded for drawing. A trip that comes back to where it started is drawn as a loop (loopLine).
+export const roundedLine = (points: CyclePoint[]): Pt[] => chaikin(loopLine(points).map(onMap), 2).map(([x, y]): Pt => [r1(x), r1(y)]);
+
+// A trip that ends back where it started (shoot, collect nearby, shoot from the same spot) is an out-and-back whose two
+// legs lie on top of each other. Drawn as a loop instead: the line is resampled and the way out pushed to one side and
+// the way back to the other (by sin 2πs along it), so it reads as a lap. A trip that never leaves its square is a small
+// circle below the shot. In squares; anything else is returned as it is.
+export const LOOP_CLOSE = 0.75;
+export function loopLine(points: CyclePoint[]): CyclePoint[] {
+  if (points.length < 2) return points;
+  const a = points[0], b = points[points.length - 1];
+  if (Math.hypot(a.x - b.x, a.y - b.y) > LOOP_CLOSE) return points;
+  const dist = (p: CyclePoint) => Math.hypot(p.x - a.x, p.y - a.y);
+  const far = points.reduce((f, p) => (dist(p) > dist(f) ? p : f), a);
+  const len = dist(far);
+  const n = 24;
+  if (len < 0.3) {
+    const r = 0.3, cx = a.x, cy = a.y + r;
+    return Array.from({ length: n + 1 }, (_, i) => {
+      const t = -Math.PI / 2 + (2 * Math.PI * i) / n;
+      return { x: r2(cx + r * Math.cos(t)), y: r2(cy + r * Math.sin(t)) };
+    });
+  }
+  const nx = -(far.y - a.y) / len, ny = (far.x - a.x) / len;
+  const w = Math.max(0.2, Math.min(0.45, len * 0.3));
+  const line = resample(points.map((p): Pt => [p.x, p.y]), n + 1);
+  return line.map(([x, y], i) => {
+    const o = Math.sin((2 * Math.PI * i) / n) * w;
+    return { x: r2(x + nx * o), y: r2(y + ny * o) };
+  });
+}
+
+// An arrowhead at the end of a drawn line (map units), pointing the way the line arrives: three corners for a polygon.
+export function arrowHead(line: Pt[], size = 2.4): Pt[] | null {
+  if (line.length < 2) return null;
+  const tip = line[line.length - 1];
+  let k = line.length - 2;
+  while (k > 0 && Math.hypot(tip[0] - line[k][0], tip[1] - line[k][1]) < size) k--;
+  const dx = tip[0] - line[k][0], dy = tip[1] - line[k][1], d = Math.hypot(dx, dy);
+  if (!d) return null;
+  const ux = dx / d, uy = dy / d, bx = tip[0] - ux * size, by = tip[1] - uy * size, h = size * 0.55;
+  return [tip, [r1(bx - uy * h), r1(by + ux * h)], [r1(bx + uy * h), r1(by - ux * h)]];
+}
 
 // The team's cycles per match with its lowest and highest match; null when nobody scouted a cycle.
 export function cyclesFigure(c: TeamCycles | undefined): { value: number; low: number; high: number } | null {

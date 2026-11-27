@@ -29,7 +29,7 @@ test("the dev data: the same route run on both sides is close, a different start
   expect(other).toBeGreaterThan(SAME_AUTO * 2);
 });
 
-test("averagedAutos merges similar autos into one rounded path with averaged shots, on the side most ran", () => {
+test("averagedAutos averages every auto into one rounded path, with each square's shots averaged over all of them", () => {
   const autos = averagedAutos([
     path("Q1", "red", "4,22 16,26 30,38 40,46|38,44", [{ square: "C3", count: 2 }]),
     path("Q2", "blue", "96,74 84,70 70,60 62,52", [{ square: "D4", count: 1 }]), // C3 turned is D4
@@ -37,19 +37,17 @@ test("averagedAutos merges similar autos into one rounded path with averaged sho
     path("Q4", "red", "6,70 30,80 50,90"),
     path("Q5", "blue", "", [{ square: "E5", count: 1 }]),
   ]);
-  expect(autos.map((a) => a.labels)).toEqual([["Q1", "Q2", "Q3"], ["Q4"], ["Q5"]]);
-  const merged = autos[0];
-  expect(merged.alliance).toBe("red");
-  expect(merged.lines).toHaveLength(1);
-  expect(merged.lines[0][0][0]).toBeCloseTo(4.7, 0);
-  expect(merged.lines[0].length).toBeGreaterThan(24); // rounded
-  expect(merged.dots).toEqual([]);
-  expect(merged.shots).toEqual([{ square: "B2", count: 0.3 }, { square: "C3", count: 2 }]);
-  expect(autos[1].lines).toEqual([[[6, 70], [30, 80], [50, 90]]]); // a one-off stays as drawn
-  expect(autos[2]).toEqual({ labels: ["Q5"], alliance: "blue", lines: [], dots: [], shots: [{ square: "E5", count: 1 }] });
+  expect(autos).toHaveLength(1);
+  const [one] = autos;
+  expect(one.labels).toEqual(["Q1", "Q2", "Q3", "Q4", "Q5"]);
+  expect(one.alliance).toBe("red");
+  expect(one.lines).toHaveLength(1);
+  expect(one.lines[0].length).toBeGreaterThan(24); // rounded
+  // C3: 2 + 1 (Q2 turned) + 3 over five autos; B2: 1 over five; E5 from blue Q5 turned is B2.
+  expect(one.shots).toEqual([{ square: "B2", count: 0.4 }, { square: "C3", count: 1.2 }]);
 });
 
-test("a group mostly run on blue is drawn on blue's side, its shots turned with it", () => {
+test("averagedAutos draws the one path on the side most autos ran on, and leaves a single auto as drawn", () => {
   const autos = averagedAutos([
     path("Q1", "blue", "96,74 84,70 70,60 62,52", [{ square: "D4", count: 2 }]),
     path("Q2", "blue", "96,76 84,72 70,62 62,54", [{ square: "D4", count: 2 }]),
@@ -59,6 +57,7 @@ test("a group mostly run on blue is drawn on blue's side, its shots turned with 
   expect(autos[0].alliance).toBe("blue");
   expect(autos[0].lines[0][0][0]).toBeGreaterThan(90);
   expect(autos[0].shots).toEqual([{ square: "D4", count: 2 }]);
+  expect(averagedAutos([path("Q1", "red", "4,22 16,26")])).toEqual(asDrawn([path("Q1", "red", "4,22 16,26")]));
 });
 
 test("asDrawn keeps every path, its spots and only real shots", () => {

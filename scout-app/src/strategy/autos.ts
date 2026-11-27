@@ -1,4 +1,4 @@
-// A team's autos for the Auto paths card: as drawn, or with similar ones merged into one averaged, rounded path.
+// A team's autos for the Auto paths card: as drawn, or all averaged into one rounded path.
 // Points are the scout app's: 0 to 100 across the grid area, red's wall on the left, as stored (see autoPath.ts).
 import { splitPath } from "../autoPath";
 import { CURRENT_FIELD_KEY, FIELDS, flipSquare, isSquare, squareName } from "../field";
@@ -9,7 +9,7 @@ export type AutoPath = { label: string; alliance: string; points: string; shots?
 // One auto, or several merged: `labels` names its matches; `lines` are drive paths, `dots` the spots a scout marked.
 export type Auto = { labels: string[]; alliance: "red" | "blue"; lines: Pt[][]; dots: Pt[]; shots: Shot[] };
 
-// Two autos are the same routine when their resampled points are this far apart on average, or less (0 to 100
+// (Kept for reference and its test; no longer used to group autos.) Two autos are the same routine when their resampled points are this far apart on average, or less (0 to 100
 // units; a grid square is 16.7). Tuned on the dev data: the same route run twice sits about 2 apart, a different
 // start or route 20 or more.
 export const SAME_AUTO = 8;
@@ -79,43 +79,27 @@ export function chaikin(pts: Pt[], rounds = 2): Pt[] {
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
 
-// Similar autos merged. Each drawn path is joined into one line, turned into red's frame if blue, and resampled;
-// it joins the first group whose average is within SAME_AUTO of it, or starts a new one. A group of two or more
-// becomes one rounded average path with each square's shots averaged over its autos, drawn on the side most of its
-// autos ran on. An auto with no drawn line, or one like no other, stays as drawn.
-export function averagedAutos(paths: AutoPath[], threshold = SAME_AUTO, n = RESAMPLE): Auto[] {
+// Every auto averaged into one (the "Averaged" setting). Each drawn path is joined into one line, turned into red's
+// frame if blue, resampled and averaged point by point into one rounded path; each square's shots are averaged over
+// all the autos, including ones scouted with no line. It is drawn on the side most of the autos ran on. A single auto
+// is left as drawn.
+export function averagedAutos(paths: AutoPath[], n = RESAMPLE): Auto[] {
   const drawn = asDrawn(paths);
-  const groups: { members: number[]; lines: Pt[][]; mean: Pt[] }[] = [];
-  const solo = new Map<number, Auto>();
-  drawn.forEach((a, i) => {
-    const joined = a.lines.flat();
-    if (joined.length < 2) { solo.set(i, a); return; }
-    const line = resample(a.alliance === "blue" ? joined.map(turn) : joined, n);
-    let best: (typeof groups)[number] | undefined, bestD = threshold;
-    for (const g of groups) {
-      const d = meanDistance(line, g.mean);
-      if (d <= bestD) { best = g; bestD = d; }
-    }
-    if (best) { best.members.push(i); best.lines.push(line); best.mean = averagePath(best.lines); }
-    else groups.push({ members: [i], lines: [line], mean: line });
-  });
-
-  const out: { first: number; auto: Auto }[] = [...solo].map(([i, a]) => ({ first: i, auto: a }));
-  for (const g of groups) {
-    if (g.members.length === 1) { out.push({ first: g.members[0], auto: drawn[g.members[0]] }); continue; }
-    const members = g.members.map((i) => drawn[i]);
-    const blue = members.filter((a) => a.alliance === "blue").length > members.length / 2;
-    const total = new Map<string, number>();
-    members.forEach((a) => a.shots.forEach((s) => {
-      const sq = a.alliance === "blue" ? flipSquare(s.square, FIELD) : s.square;
-      total.set(sq, (total.get(sq) ?? 0) + s.count);
-    }));
-    const shots = [...total].sort(([a], [b]) => a.localeCompare(b))
-      .map(([sq, c]) => ({ square: blue ? flipSquare(sq, FIELD) : sq, count: r1(c / members.length) }));
-    const line = chaikin(g.mean).map((p) => (blue ? turn(p) : p)).map(([x, y]): Pt => [r1(x), r1(y)]);
-    out.push({ first: g.members[0], auto: { labels: members.map((a) => a.labels[0]), alliance: blue ? "blue" : "red", lines: [line], dots: [], shots } });
-  }
-  return out.sort((a, b) => a.first - b.first).map((x) => x.auto);
+  if (drawn.length < 2) return drawn;
+  const lines = drawn
+    .map((a) => ({ a, joined: a.lines.flat() }))
+    .filter(({ joined }) => joined.length >= 2)
+    .map(({ a, joined }) => resample(a.alliance === "blue" ? joined.map(turn) : joined, n));
+  const blue = drawn.filter((a) => a.alliance === "blue").length > drawn.length / 2;
+  const total = new Map<string, number>();
+  drawn.forEach((a) => a.shots.forEach((s) => {
+    const sq = a.alliance === "blue" ? flipSquare(s.square, FIELD) : s.square;
+    total.set(sq, (total.get(sq) ?? 0) + s.count);
+  }));
+  const shots = [...total].sort(([a], [b]) => a.localeCompare(b))
+    .map(([sq, c]) => ({ square: blue ? flipSquare(sq, FIELD) : sq, count: r1(c / drawn.length) }));
+  const line = lines.length ? chaikin(averagePath(lines)).map((p) => (blue ? turn(p) : p)).map(([x, y]): Pt => [r1(x), r1(y)]) : [];
+  return [{ labels: drawn.map((a) => a.labels[0]), alliance: blue ? "blue" : "red", lines: line.length ? [line] : [], dots: [], shots }];
 }
 
 // Where each auto's shots are marked: at the square's centre, autos sharing a square set side by side, each sized by
