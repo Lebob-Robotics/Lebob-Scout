@@ -1,32 +1,95 @@
 import { useState, type ReactNode } from "react";
 import { Dropdown } from "../../shared/components/Dropdown";
 import type { Ctx } from "../StrategyApp";
-import { defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, teamCells, type Side } from "../logic";
+import { buildMatchMaps, defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, teamCells, type Side } from "../logic";
 import { CycleTimeFig } from "../CyclesCard";
 import { cycleTime, cyclesFigure } from "../cycles";
 import { Card, HeatField, PtsFig, Switch, TeamName, Waiting } from "../parts";
-import { useLoad } from "../useLoad";
+import { useLoad, type Load } from "../useLoad";
+import { CUSTOM, SLOT_NAMES, customGame, fourText, placeTeam, startTeams, swapSides, type Four } from "../custom";
+import { scoutForecasts } from "../scouted";
 import type { Forecast, MatchMaps } from "../types";
 
 type Scope = "scored" | "pickedUp";
 const SCOPES: [Scope, string][] = [["scored", "Scored"], ["pickedUp", "Picked up"]];
 const scopeName = (s: Scope) => SCOPES.find(([k]) => k === s)![1];
 
-// The planner: pick a match (our next one first) and see how it should go and where the robots will be.
-export function MatchScreen({ ctx, matchUuid, onMatch }: { ctx: Ctx; matchUuid: string | null; onMatch(m: string): void }) {
+// The planner: pick a match (our next one first) and see how it should go and where the robots will be. The picker's
+// first entry is a custom match: any four teams the strategist chooses, forecast the same way (see custom.ts). It
+// starts from the match on screen and keeps its teams while the event stays open.
+export function MatchScreen({ ctx, matchUuid, onMatch, custom, onCustom }: {
+  ctx: Ctx; matchUuid: string | null; onMatch(m: string): void; custom: Four | null; onCustom(t: Four): void;
+}) {
   const { model, labels } = ctx;
-  const f = model.forecasts.find((x) => x.matchUuid === matchUuid) ?? defaultMatch(model.forecasts, ctx.ourTeam);
-  if (!f) return <div className="strategy-screen"><p>No forecasts yet for this event.</p></div>;
+  const isCustom = matchUuid === CUSTOM && custom != null;
+  const f = isCustom ? null : model.forecasts.find((x) => x.matchUuid === matchUuid) ?? defaultMatch(model.forecasts, ctx.ourTeam);
+  const teams = model.teams.map((r) => r.teamNumber);
+  if (!f && !isCustom) return <div className="strategy-screen"><p>No forecasts yet for this event.</p></div>;
+  const pick = (v: string) => {
+    if (v === CUSTOM && !custom) {
+      const start = startTeams(f, teams, ctx.ourTeam);
+      if (!start) return;
+      onCustom(start);
+    }
+    onMatch(v);
+  };
   const picker = (
-    <Dropdown label="Match" value={f.matchUuid} onChange={onMatch}
-      items={model.forecasts.map((x) => ({ value: x.matchUuid, label: labels.get(x.matchUuid) ?? "", sub: `${x.red.join(" ")} v ${x.blue.join(" ")}${x.played ? " (played)" : ""}` }))} />
+    <Dropdown label="Match" value={isCustom ? CUSTOM : f!.matchUuid} onChange={pick}
+      items={[
+        ...(teams.length >= 4 ? [{ value: CUSTOM, label: "Custom", sub: custom ? fourText(custom) : "Pick any four teams" }] : []),
+        ...model.forecasts.map((x) => ({ value: x.matchUuid, label: labels.get(x.matchUuid) ?? "", sub: `${x.red.join(" ")} v ${x.blue.join(" ")}${x.played ? " (played)" : ""}` })),
+      ]} />
   );
-  return <div className="strategy-screen"><Plan key={f.matchUuid} ctx={ctx} f={f} picker={picker} /></div>;
+  return (
+    <div className="strategy-screen">
+      {isCustom ? <CustomPlan key={CUSTOM} ctx={ctx} teams={custom} onTeams={onCustom} picker={picker} /> : <RealPlan key={f!.matchUuid} ctx={ctx} f={f!} picker={picker} />}
+    </div>
+  );
 }
 
-function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) {
-  const [scope, setScope] = useState<Scope>("scored");
+// A scheduled match: its maps come from the matchMaps function.
+function RealPlan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) {
   const [maps, retryMaps] = useLoad(f.matchUuid, () => ctx.api.matchMaps(ctx.eventUuid, f.matchUuid), ctx.tick);
+  return <Plan ctx={ctx} f={f} label={ctx.labels.get(f.matchUuid) ?? ""} picker={picker} maps={maps} retryMaps={retryMaps} />;
+}
+
+// A custom match: forecast from the same strengths as every scheduled match, and its maps built here from each
+// team's map (the same sums as the matchMaps function), so it needs nothing new from Foundry.
+function CustomPlan({ ctx, teams, onTeams, picker }: { ctx: Ctx; teams: Four; onTeams(t: Four): void; picker: ReactNode }) {
+  const name = (t: number) => ctx.model.teams.find((r) => r.teamNumber === t)?.teamName ?? "";
+  const [f] = scoutForecasts([customGame(teams)], ctx.strengths, ctx.bonusRates, name);
+  const maps: Load<MatchMaps> = ctx.maps.state === "ok"
+    ? { state: "ok", data: buildMatchMaps(CUSTOM, "Custom", f.red, f.blue, ctx.maps.data) }
+    : ctx.maps;
+  return <Plan ctx={ctx} f={f} label="Custom" picker={picker} maps={maps} retryMaps={ctx.retryMaps} builder={<CustomTeams ctx={ctx} teams={teams} onTeams={onTeams} />} />;
+}
+
+// The custom match's four robots: a picker each, in its alliance's colour, and Swap sides between the pairs.
+function CustomTeams({ ctx, teams, onTeams }: { ctx: Ctx; teams: Four; onTeams(t: Four): void }) {
+  const items = [...ctx.model.teams].sort((a, b) => a.teamNumber - b.teamNumber)
+    .map((r) => ({ value: String(r.teamNumber), label: String(r.teamNumber), sub: r.teamName }));
+  const slot = (i: number) => (
+    <div className={`slot-pick ${i < 2 ? "red" : "blue"}`}>
+      <span className="label">{SLOT_NAMES[i]}</span>
+      <Dropdown label={SLOT_NAMES[i]} value={String(teams[i])} items={items} onChange={(v) => onTeams(placeTeam(teams, i, Number(v)))} />
+    </div>
+  );
+  return (
+    <>
+      <div className="custom-teams" role="group" aria-label="Custom match teams">
+        <div className="custom-side">{slot(0)}{slot(1)}</div>
+        <button type="button" className="custom-swap" onClick={() => onTeams(swapSides(teams))}><span aria-hidden="true">⇄</span> Swap sides</button>
+        <div className="custom-side">{slot(2)}{slot(3)}</div>
+      </div>
+      <p className="caption">A made-up match, forecast as a qualification from each robot's scouted points per match (or its official share where nobody scouted it). Picking a team already in the match swaps the two.</p>
+    </>
+  );
+}
+
+function Plan({ ctx, f, label, picker, maps, retryMaps, builder }: {
+  ctx: Ctx; f: Forecast; label: string; picker: ReactNode; maps: Load<MatchMaps>; retryMaps(): void; builder?: ReactNode;
+}) {
+  const [scope, setScope] = useState<Scope>("scored");
   const smooth = ctx.settings.heatStyle === "smooth";
   const won = favouriteWon(f);
   const range = (lo: number | null, hi: number | null) => (lo == null || hi == null ? "" : `${Math.round(lo)}–${Math.round(hi)}`);
@@ -46,6 +109,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
   return (
     <>
       <Card title="Forecast" keepControl control={picker}>
+        {builder}
         {missing.length > 0 && (
           <p className="save-note">Not enough data: {missing.join(" and ")} {missing.length === 1 ? "has" : "have"} no scouting and no official score yet.</p>
         )}
@@ -64,7 +128,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
       </Card>
 
       <div className="cols">
-        {(["red", "blue"] as const).map((side) => <AllianceCol key={side} ctx={ctx} f={f} side={side} maps={maps.state === "ok" ? maps.data : null} scope={scope} />)}
+        {(["red", "blue"] as const).map((side) => <AllianceCol key={side} ctx={ctx} f={f} label={label} side={side} maps={maps.state === "ok" ? maps.data : null} scope={scope} />)}
       </div>
 
       <Card title="Where they play" control={maps.state === "ok" && <Switch label="Measure" value={scope} options={SCOPES} onChange={setScope} />}>
@@ -74,14 +138,14 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
               <div key={side} className="map-cell">
                 <h3><span className={`ally ${side}`}>{side === "red" ? "Red alliance" : "Blue alliance"}</span></h3>
                 <HeatField cells={teamCells(maps.data[side].squares, scope)} tone={scope} smooth={smooth}
-                  title={`${ctx.labels.get(f.matchUuid)} · ${side === "red" ? "Red" : "Blue"} alliance · ${scopeName(scope)}`}
+                  title={`${label} · ${side === "red" ? "Red" : "Blue"} alliance · ${scopeName(scope)}`}
                   label={`${side} alliance's robots added together: ${scope === "scored" ? "scoring" : "pick-ups"} per match`} />
               </div>
             ))}
             <div className="map-cell">
               <h3 title="Squares both alliances use, scoring and picking up, by the smaller of the two">Where they will meet</h3>
               <HeatField cells={overlapCells(maps.data.overlap)} tone="both" smooth={smooth} label="Squares both alliances use"
-                title={`${ctx.labels.get(f.matchUuid)} · Where they will meet`} />
+                title={`${label} · Where they will meet`} />
             </div>
           </div>
         )}
@@ -108,7 +172,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
 }
 
 // One alliance's robots: rating, what the scouts saw, and a small map each with its start spots.
-function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; side: Side; maps: MatchMaps | null; scope: Scope }) {
+function AllianceCol({ ctx, f, label, side, maps, scope }: { ctx: Ctx; f: Forecast; label: string; side: Side; maps: MatchMaps | null; scope: Scope }) {
   const teams = side === "red" ? f.red : f.blue;
   const names = side === "red" ? f.redNames : f.blueNames;
   return (
@@ -135,7 +199,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
             </dl>
             {map?.matches || p?.starts.length ? (
               <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={(p?.starts ?? []).map((s) => ({ ...s, alliance: side }))} smooth={ctx.settings.heatStyle === "smooth"}
-                title={`${ctx.labels.get(f.matchUuid)} · ${team} · ${scopeName(scope)}`}
+                title={`${label} · ${team} · ${scopeName(scope)}`}
                 label={`${team} ${scope === "scored" ? "scoring" : "pick-ups"} per match, and start spots`} />
             ) : <p className="caption keep">Not scouted yet.</p>}
           </div>

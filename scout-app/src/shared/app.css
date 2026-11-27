@@ -675,6 +675,18 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .swatch { width: 14px; height: 4px; border-radius: 2px; }
 .path-legend .ally { font-size: .6875rem; }
 
+/* Custom match (Match tab): Red 1 and Red 2, Swap sides, Blue 1 and Blue 2 in a row on a wide screen, the pairs on
+   their own rows on a phone; each picker edged and tinted in its alliance's colour, as the alliance blocks. */
+.custom-teams { display: flex; flex-wrap: wrap; align-items: flex-end; gap: .5rem .75rem; }
+.custom-side { display: grid; flex: 1 1 18rem; grid-template-columns: 1fr 1fr; gap: .5rem; min-width: 0; }
+.slot-pick { display: grid; gap: .3rem; min-width: 0; }
+.slot-pick.red { --c: var(--alliance-red); }
+.slot-pick.blue { --c: var(--alliance-blue); }
+.slot-pick .dd-btn { border-color: var(--c); background: color-mix(in srgb, var(--c) var(--ally-mix), var(--panel)); }
+.slot-pick .dd-btn::after { border-color: var(--fg); }
+.custom-swap { flex: none; white-space: nowrap; }
+@media (max-width: 599px) { .custom-swap { flex: 1 1 100%; } }
+
 /* Match planner: a robot per block in each alliance's card. */
 .robot { display: grid; gap: .4rem; padding-top: .75rem; border-top: 1px solid var(--border); }
 .robot-name { display: flex; align-items: center; gap: .5rem; }

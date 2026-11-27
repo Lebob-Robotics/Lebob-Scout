@@ -3,6 +3,7 @@ import type { EventRow, TeamProfile, TeamsTab } from "../shared/api";
 import mark from "./assets/strategy-mark.png";
 import { firstEvent } from "../shared/schedule";
 import type { StrategyApi } from "./api";
+import type { Four } from "./custom";
 import { keepShut, likely, matchLabels, orderForecasts, pointsFigure, scaleMax } from "./logic";
 import type { Figure, OprRow } from "./logic";
 import { fitOpr, oprHistory, oprReady, type Played } from "./opr";
@@ -152,6 +153,8 @@ function EventView({ api, eventUuid, tab, go, tick, settings, onSettings }: {
 }) {
   const [team, setTeam] = useState<number | null>(null);
   const [matchUuid, setMatchUuid] = useState<string | null>(null);
+  // The Match tab's custom match: its four teams, kept while this event is open.
+  const [custom, setCustom] = useState<Four | null>(null);
   const [breakageAsk, setBreakageAsk] = useState(0);
   const handledAsk = useRef(0);
   const [model, retryModel] = useLoad(eventUuid, async (): Promise<Read> => {
@@ -206,7 +209,7 @@ function EventView({ api, eventUuid, tab, go, tick, settings, onSettings }: {
     <>
       {tab === "event" && <EventScreen ctx={ctx} />}
       {tab === "team" && (shownTeam == null ? <p>No teams yet for this event.</p> : <TeamScreen ctx={ctx} team={shownTeam} onTeam={setTeam} />)}
-      {tab === "match" && <MatchScreen ctx={ctx} matchUuid={matchUuid} onMatch={setMatchUuid} />}
+      {tab === "match" && <MatchScreen ctx={ctx} matchUuid={matchUuid} onMatch={setMatchUuid} custom={custom} onCustom={setCustom} />}
       {tab === "schedule" && <MatchesScreen ctx={ctx} />}
       {tab === "alliance" && <AllianceScreen ctx={ctx} />}
     </>
