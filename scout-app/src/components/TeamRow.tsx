@@ -77,7 +77,7 @@ export function TeamRow({ team: t, now, timeZone, open, onToggle, measure, onMea
         {t.breakages.length > 0 && (
           <section className="team-notes">
             <h3>Breakages</h3>
-            <ul>{t.breakages.map((b) => <li key={b.breakageId}>{breakageLine(b)}</li>)}</ul>
+            <ul>{t.breakages.map((b) => <li key={b.breakageId}>{breakageLine(b)}{b.notes && <p className="breakage-notes">{b.notes}</p>}</li>)}</ul>
           </section>
         )}
         <div className="pair">

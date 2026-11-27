@@ -493,6 +493,7 @@ label, .label, legend { font-size: .875rem; font-weight: 500; line-height: 1.3; 
 .team-notes { display: grid; gap: .5rem; margin-top: .75rem; }
 .team-notes h3 { font: 600 .875rem/1.3 var(--font-sans); color: var(--muted); }
 .team-notes ul { display: grid; gap: .4rem; padding-left: 1.1rem; }
+.breakage-notes { margin-top: 2px; color: var(--fg); font-size: .9375rem; overflow-wrap: anywhere; }
 .note-block { padding: .5rem .75rem; border-left: 3px solid var(--border); }
 .note-block p:first-child { color: var(--fg-dark); font-weight: 600; }
 .team-body > .pair { margin-top: .75rem; }

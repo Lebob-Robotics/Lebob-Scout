@@ -97,7 +97,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               <ul className="note-list">
                 {profile.breakages.map((b) => {
                   const at = clockTime(b.createdAt, now, ctx.timeZone);
-                  return <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{at && <p>{at}</p>}</li>;
+                  return <li key={b.breakageId} className="note-block"><p>{breakageLine(b)}</p>{b.notes && <p>{b.notes}</p>}{at && <p>{at}</p>}</li>;
                 })}
               </ul>
             )))}

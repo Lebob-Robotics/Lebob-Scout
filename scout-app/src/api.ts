@@ -262,10 +262,8 @@ const apply = (action: { applyAction: unknown }, params: Params) =>
   (action.applyAction as (p: Params) => Promise<unknown>).call(action, params);
 
 const orNull = <T>(v: T | null | undefined): T | null => v ?? null;
-// The SDK has no PitSurvey.images or BreakageReport.notes until it is regenerated after the ontology change, so they
-// are read through these two casts. Drop them once the SDK has the properties.
-const imagesOf = (o: object): Attachment[] => (o as { images?: Attachment[] }).images ?? [];
-const notesOf = (o: object): string | null => (o as { notes?: string | null }).notes ?? null;
+// A pit report's saved photos; none on one saved before photos existed.
+const imagesOf = (o: Partial<PitSurvey.Props>): Attachment[] => o.images ?? [];
 
 // `images` are the attachment ids of the saved photos (see imagesOf).
 export const toPitReport = (o: Partial<PitSurvey.Props>, images: string[] = []): PitReport => ({
@@ -279,5 +277,5 @@ export const toBreakageReport = (o: Partial<BreakageReport.Props>): BreakageRepo
   breakageId: o.breakageId ?? "", eventCode: o.eventCode ?? "", teamNumber: o.teamNumber ?? 0, teamUuid: orNull(o.teamUuid),
   reporter: o.reporter ?? "", createdAt: o.createdAt ?? "", matchKey: orNull(o.matchKey),
   mechanism: orNull(o.mechanism), component: orNull(o.component),
-  failureType: orNull(o.failureType), severity: orNull(o.severity), notes: notesOf(o),
+  failureType: orNull(o.failureType), severity: orNull(o.severity), notes: orNull(o.notes),
 });
