@@ -65,8 +65,8 @@ function TimeBar({ parts }: { parts: Part[] }) {
 
 // The cycle map: the chosen measure shaded per square, and on top the one averaged cycle (bold, labelled with the
 // average time and how many cycles), over the routes the team uses most (fainter, thicker for more of its cycles;
-// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Every cycle arrives folded onto
-// the upper half (see foldCycle), so the map is always the half field.
+// hover or tap one for where it goes). With "As drawn", every cycle as a thin line. Every cycle arrives flipped so its
+// shot is on the upper half (see alignCycle); where it collects can be anywhere, so the map is the full field.
 function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: CycleMeasure; smooth: boolean; drawn: boolean }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
   const [open, setOpen] = useState<number | null>(null);
@@ -122,22 +122,20 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   const pick = open != null ? routes[open] : null;
   return (
     <div ref={wrap}>
-      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} half tracked
-        label={`Cycle map, folded onto the upper half: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
+      <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} tracked
+        label={`Cycle map, every shot on the upper half: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
         {pick && <RoutePop route={pick.r} at={pick.line[Math.floor(pick.line.length / 2)]} cols={field.cols} rows={field.rows} />}
       </HeatField>
     </div>
   );
 }
 
-// A route's pop-up at its middle point, on the half field: the picture shows rows 1 to 3, so heights are measured
-// against half the field.
+// A route's pop-up at its middle point, on the full field.
 function RoutePop({ route, at, cols, rows }: { route: CycleRoute; at: [number, number]; cols: number; rows: number }) {
-  const shown = rows / 2, squareH = 100 / rows;
-  const col = Math.min(cols - 1, Math.floor((at[0] / 100) * cols)), row = Math.min(shown - 1, Math.floor(at[1] / squareH));
-  const p = popPlace(col, row, cols, shown);
+  const col = Math.min(cols - 1, Math.floor((at[0] / 100) * cols)), row = Math.min(rows - 1, Math.floor((at[1] / 100) * rows));
+  const p = popPlace(col, row, cols, rows);
   return (
-    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${12.5 + at[0] * 0.75}%`, top: `${(at[1] / (shown * squareH)) * 100}%` }} role="status">
+    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${12.5 + at[0] * 0.75}%`, top: `${at[1]}%` }} role="status">
       <b>Route</b>
       <dl>{routeLines(route).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </div>

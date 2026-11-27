@@ -6,7 +6,7 @@ import { createDevApi } from "../devApi";
 import { DEV_TEAMS_TAB } from "../devTeamsTab";
 import { MAPS_NOT_READY, type StrategyApi } from "./api";
 import { resample } from "./autos";
-import { averageCycle, centre, crossedSquares, foldCycle } from "./cycles";
+import { alignCycle, averageCycle, centre, crossedSquares } from "./cycles";
 import { buildMatchMaps, foldHalf } from "./logic";
 import { isPlayed, label, type Game } from "./scouted";
 import type { CycleRoute, CycleRow, CycleSquare, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
@@ -117,8 +117,8 @@ function devCycles(teamNumber: number, trips: Trip[]): TeamCycles {
   const labels = [...new Set(trips.map((t) => t.label))];
   const matches = labels.length;
   const counts = labels.map((l) => trips.filter((t) => t.label === l).length);
-  // Every square and point of every cycle is folded onto the upper half first, as the functions do.
-  const rows: CycleRow[] = trips.map((t) => foldCycle({
+  // Every cycle is flipped so its shot is on the upper half first, as the functions do.
+  const rows: CycleRow[] = trips.map((t) => alignCycle({
     label: t.label, ...(t.from ? { from: t.from } : {}), via: t.via, to: t.to, pieces: t.pieces,
     points: [...(t.from ? [centre(t.from)] : []), ...t.via.map(centre), centre(t.to)],
     ...(t.from ? { seconds: r1(t.collect + t.travel + t.shoot), collectSeconds: r1(t.collect) } : {}),

@@ -50,17 +50,14 @@ test("the dev cycles: times add up, routes share the timed cycles, and they fail
   await expect(createDevStrategyApi({ failMaps: true }).teamCycles(E)).rejects.toThrow(MAPS_NOT_READY);
 });
 
-test("the dev cycles are folded onto the upper half, with one averaged cycle; the dev half maps stay in rows 1 to 3", async () => {
+test("the dev cycles shoot from the upper half, with one averaged cycle; the dev half maps stay in rows 1 to 3", async () => {
   const api = createDevStrategyApi();
   const [cycles, maps] = await Promise.all([api.teamCycles(E), api.fieldMaps(E)]);
   cycles.forEach((c) => {
     c.cycles.forEach((r) => {
-      [r.from, ...r.via, r.to].filter(Boolean).forEach((sq) => expect(Number(sq!.slice(1))).toBeLessThanOrEqual(3));
-      r.points.forEach((p) => expect(p.y).toBeLessThanOrEqual(3));
+      [r.from, r.to].filter(Boolean).forEach((sq) => expect(Number(sq!.slice(1))).toBeLessThanOrEqual(3));
+      expect(r.points[r.points.length - 1]!.y).toBeLessThanOrEqual(3);
     });
-    c.squares.forEach((s) => expect(Number(s.square.slice(1))).toBeLessThanOrEqual(3));
-    c.routes.forEach((r) => r.points.forEach((p) => expect(p.y).toBeLessThanOrEqual(3)));
-    c.average.forEach((p) => expect(p.y).toBeLessThanOrEqual(3));
     expect(c.average.length === 12 || (c.average.length === 0 && c.seconds == null)).toBe(true);
     expect(c.mirroredShare! >= 0 && c.mirroredShare! <= 1).toBe(true);
   });

@@ -69,20 +69,19 @@ export function crossedSquares(points: CyclePoint[]): string[] {
 // A square's centre, in squares.
 export const centre = (square: string): CyclePoint => ({ x: square.charCodeAt(0) - 65 + 0.5, y: Number(square.slice(1)) - 0.5 });
 
-// A cycle folded onto the upper half, as the functions fold it: every square (the shot before, where it collected,
-// the shot) in rows 4 to 6 onto its mirror in rows 1 to 3, and every point's y to min(y, 6 − y). Robots swap sides
-// from one cycle to the next, so mirroring a whole cycle by its own shot is not enough: it starts at the shot before.
-// `mirrored` still says whether the cycle's own shot was from the lower half.
-const foldSq = (sq: string) => {
-  const row = Number(sq.slice(1));
-  return row > FIELD.rows / 2 ? `${sq[0]}${FIELD.rows + 1 - row}` : sq;
-};
-export function foldCycle<T extends Pick2<CycleRow, "from" | "via" | "to" | "points">>(c: T): T & { mirrored: boolean } {
-  return {
-    ...c, ...(c.from ? { from: foldSq(c.from) } : {}), via: [...new Set(c.via.map(foldSq))], to: foldSq(c.to),
-    points: c.points.map((p) => ({ x: p.x, y: r2(Math.min(p.y, FIELD.rows - p.y)) })),
-    mirrored: Number(c.to.slice(1)) > FIELD.rows / 2,
-  };
+// A cycle put on the upper half by its shot, as the functions do: a cycle shot from the lower half (rows 4 to 6) is
+// mirrored whole across the middle line, its collecting too, so every shot is on the upper half while where it
+// collects keeps its real place relative to the shot (anywhere on the full field). The shot before (`from`, the first
+// point) is a shot, so it is folded onto the upper half too. `mirrored` says whether the cycle was mirrored.
+const lowerSq = (sq: string) => Number(sq.slice(1)) > FIELD.rows / 2;
+const mirrorSq = (sq: string) => `${sq[0]}${FIELD.rows + 1 - Number(sq.slice(1))}`;
+const foldSq = (sq: string) => (lowerSq(sq) ? mirrorSq(sq) : sq);
+export function alignCycle<T extends Pick2<CycleRow, "from" | "via" | "to" | "points">>(c: T): T & { mirrored: boolean } {
+  const mirrored = !!c.to && lowerSq(c.to);
+  const sq = (s: string) => (mirrored ? mirrorSq(s) : s);
+  const points = c.points.map((p) => ({ x: p.x, y: mirrored ? r2(FIELD.rows - p.y) : p.y }));
+  if (c.from && points.length) points[0] = { x: points[0].x, y: r2(Math.min(points[0].y, FIELD.rows - points[0].y)) };
+  return { ...c, ...(c.from ? { from: foldSq(c.from) } : {}), via: [...new Set(c.via.map(sq))], to: c.to && sq(c.to), points, mirrored };
 }
 type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
 const r2 = (x: number) => Math.round(x * 100) / 100;
@@ -105,6 +104,6 @@ export function averageLabel(c: Pick2<TeamCycles, "seconds" | "cycles">): string
   return [c.seconds != null && `${r1(c.seconds)}s`, `${n} cycle${n === 1 ? "" : "s"}`].filter(Boolean).join(" · ");
 }
 
-// The note under the cycle map: it is folded, and how many of the cycles were shot from the lower half.
+// The note under the cycle map: every shot is put on the upper half, and how many cycles were shot from the lower half.
 export const foldNote = (share: number | undefined) =>
-  `The yellow alliance's side. Every cycle is folded onto the upper half${share != null ? ` (shots from the lower half: ${Math.round(share * 100)}%)` : ""}.`;
+  `The yellow alliance's side. Each cycle is flipped so its shot is on the upper half${share != null ? ` (shot from the lower half: ${Math.round(share * 100)}%)` : ""}.`;
