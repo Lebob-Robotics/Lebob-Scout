@@ -6,8 +6,8 @@ Updated 27 November 2026. Next event: AUCMP (Australia Championship), Saturday 5
 
 All five jobs are done: the match scout page, pit and breakage forms, the Teams tab, the strategy app at `/strategy`, and retiring the old site on the Foundry side. The old website pages are being taken down separately.
 
-- **Live: 0.5.13** (match picker sorted: quals, then playoffs, by number) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
-- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.13`, 220 tests.
+- **Live: 0.5.14** (OPR hidden until every team has played 3 scored matches) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
+- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.14`, 220 tests.
 - **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `3495275`, published as 0.13.1, 107 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
 - **SDK:** `@lebob-scout/sdk` 0.13.0.
 - **Checked 26 Nov, after the cleanup:** every function answers for AUPEQ, the objects read fine, the three FIRST sync schedules are running, and the site sends you to sign-in.
@@ -32,6 +32,7 @@ Known issues, not urgent:
 
 ## How the apps work now
 
+- **OPR waits for 3 matches a team** (`OPR_MIN_MATCHES` in `strategy/opr.ts`): until every scheduled team has played 3 scored matches the OPR column, Match page OPR and OPR chart stay empty, and the Event tab sorts by points per match.
 - **Scouting first.** Wherever there is a scouted figure, it is shown. Forecasts, expected scores and win chances come from each robot's scouted points per match and how much they vary. A robot nobody scouted uses its official share: its alliance's score less the scouted partner, or half. The OPR is our own, fitted to this event's official scores only, with no starting estimate.
 - **Alliance tab.** Plays out the remaining qualifications (each to the higher scouted alliance), predicts the final ranks, alliance selection (each captain takes the strongest free team) and the playoffs. Shows the most likely outcome, not percentages.
 - **A team's maps are drawn as the yellow alliance.** The heatmap, auto paths and cycles show every match turned to the left-hand side, yellow against a grey alliance. The functions' `TeamMap.aligned` is that view and `half` folds it onto the upper half (Full field / Half field switch). The match planner keeps real red and blue, with each robot's map placed on the side it plays in that match.
