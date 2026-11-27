@@ -3,8 +3,8 @@
 //   FOUNDRY_TOKEN=... node scripts/export-public.mjs <out dir>
 // Writes <out>/data/index.json (our events and when this ran), <out>/data/<eventUuid>.json (the raw Match, Presence,
 // EventRating and RankProjection objects, and the teamsTab, fieldMaps, pointSplits, teamCycles and matchMaps
-// results) and <out>/data/photos/<attachment rid> (pit photos). Every scout's name and user id is blanked: the page
-// is public. Read-only: nothing is written to Foundry. Node 18+, no dependencies.
+// results) and <out>/data/photos/<attachment rid> (pit photos). Every scout's name and user id is blanked and every scout note left out: the
+// page is public. Read-only: nothing is written to Foundry. Node 18+, no dependencies.
 import fs from "node:fs";
 import path from "node:path";
 
@@ -59,11 +59,17 @@ async function pool(items, n, f) {
   return out;
 }
 
-// Scout names and ids, anywhere in a result, become empty: the public page shows no scouts.
+// Scout names and ids, anywhere in a result, become empty, and everything scouts wrote in their own words is left
+// out (match notes, pit report notes and issues, breakage descriptions): the public page shows no scouts and no notes.
 const NAME_KEYS = new Set(["scoutName", "scoutUserId", "scout", "reporter"]);
+const NOTE_KEYS = new Set(["notes", "autoNotes", "knownIssues", "symptoms", "evidence", "fix", "actionBefore", "cause"]);
 function scrub(v) {
   if (Array.isArray(v)) return v.map(scrub);
-  if (v && typeof v === "object") return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, NAME_KEYS.has(k) && typeof x === "string" ? "" : scrub(x)]));
+  if (v && typeof v === "object") {
+    return Object.fromEntries(Object.entries(v)
+      .filter(([k, x]) => !(NOTE_KEYS.has(k) && typeof x === "string"))
+      .map(([k, x]) => [k, NAME_KEYS.has(k) && typeof x === "string" ? "" : scrub(x)]));
+  }
   return v;
 }
 
@@ -100,7 +106,10 @@ for (const ev of events) {
     }
   }
   const data = scrub({ matches, presences, ratings, projections, teamsTab, fieldMaps, pointSplits, teamCycles, matchMaps, pitImages });
-  if (data.teamsTab) data.teamsTab.scouts = [];
+  if (data.teamsTab) {
+    data.teamsTab.scouts = [];
+    data.teamsTab.teams = data.teamsTab.teams.map((t) => ({ ...t, notes: [] }));
+  }
   fs.writeFileSync(path.join(OUT, `${e}.json`), JSON.stringify(data));
   console.log(`  ${matches.length} matches, ${presences.length} slots, ${data.teamsTab?.teams?.length ?? 0} teams, ${Object.keys(matchMaps).length} match maps`);
 }
