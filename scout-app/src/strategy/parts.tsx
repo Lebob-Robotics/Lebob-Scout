@@ -1,9 +1,9 @@
 // Pieces the strategy screens share: cards, loading, tables that sort, range bars, heatmaps, auto paths and the rating chart.
 import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-import type { ReactNode } from "react";
+import type { ReactNode, RefObject } from "react";
 import type { StartDot } from "../shared/api";
 import { FieldPicture } from "../shared/components/FieldPicture";
-import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../shared/field";
+import { CURRENT_FIELD_KEY, FIELDS, TILE, squareName } from "../shared/field";
 import { wallPoint } from "../shared/startWall";
 import { shade } from "../shared/teamsView";
 import { MAPS_NOT_READY } from "./api";
@@ -14,10 +14,12 @@ import { PATH_COLOURS, asDrawn, averagedAutos, onOurSide, shotMarks, type Auto, 
 import type { HistoryPoint } from "./types";
 import type { Load } from "./useLoad";
 
-// A card that folds shut from its title row. Open unless this device shut it last time. A change of `openKey`
-// opens it (the Event table's breakage button uses this). `control` sits at the right of the title row.
-export function Card({ title, id, control, openKey, className, tone, children }: {
-  title: string; id?: string; control?: ReactNode; openKey?: number; className?: string; tone?: "red" | "blue"; children: ReactNode;
+// A card that folds shut from its title, which sits at the top left as on the scout app's cards. Open unless this
+// device shut it last time; shut, it is a thin bar with only its title. A change of `openKey` opens it (the Event
+// table's breakage button uses this). `control` sits at the right of the title row and hides while the card is shut,
+// unless `keepControl` (a picker that drives the whole screen).
+export function Card({ title, id, control, keepControl = false, openKey, className, tone, children }: {
+  title: string; id?: string; control?: ReactNode; keepControl?: boolean; openKey?: number; className?: string; tone?: "red" | "blue"; children: ReactNode;
 }) {
   const [shut, setShut] = useState(() => readShut(title));
   const [seen, setSeen] = useState(openKey);
@@ -29,8 +31,12 @@ export function Card({ title, id, control, openKey, className, tone, children }:
   return (
     <section className={["card", "scard", shut && "shut", className].filter(Boolean).join(" ")} id={id}>
       <div className="card-head">
-        <h2><button type="button" className="card-toggle" aria-expanded={!shut} onClick={toggle}><span className="chev" aria-hidden="true" />{tone ? <span className={`ally ${tone}`}>{title}</span> : title}</button></h2>
-        {control && <div className="card-control">{control}</div>}
+        <h2>
+          <button type="button" className="card-toggle" aria-expanded={!shut} title={shut ? "Open" : "Fold"} onClick={toggle}>
+            {tone ? <span className={`ally ${tone}`}>{title}</span> : title}
+          </button>
+        </h2>
+        {control && (!shut || keepControl) && <div className="card-control">{control}</div>}
       </div>
       {!shut && children}
     </section>
@@ -118,19 +124,88 @@ export const BreakIcon = () => (
   </svg>
 );
 
-const EDGE = 0.02;
+// Start spots sit this share of the field in from its walls, so a dot shows whole inside the rounded field.
+const EDGE = 0.04;
 const inset = (c: number) => (EDGE + c * (1 - 2 * EDGE)) * 100;
 
-// A heatmap on the field picture: red's wall on the left, a shade per square (or, smooth, soft spots that blend into
+// Full screen for a field diagram: the frame covers the page (and takes the browser's own fullscreen where it has
+// one, as the scout app's start pad does). Esc, the browser's own exit, or Close shuts it; the page under it doesn't
+// scroll meanwhile.
+function useFullScreen(box: RefObject<HTMLDivElement | null>) {
+  const [full, setFull] = useState(false);
+  const open = () => {
+    setFull(true);
+    box.current?.requestFullscreen?.().catch(() => {});
+  };
+  const close = () => setFull(false);
+  useEffect(() => {
+    if (!full) return;
+    const left = () => { if (!document.fullscreenElement) setFull(false); };
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setFull(false); };
+    const html = document.documentElement, was = html.style.overflow;
+    html.style.overflow = "hidden";
+    document.addEventListener("fullscreenchange", left);
+    window.addEventListener("keydown", esc);
+    return () => {
+      html.style.overflow = was;
+      document.removeEventListener("fullscreenchange", left);
+      window.removeEventListener("keydown", esc);
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    };
+  }, [full]);
+  return { full, open, close };
+}
+
+const FullIcon = () => (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M2 6V2h4M10 2h4v4M14 10v4h-4M6 14H2v-4" />
+  </svg>
+);
+
+// Every field diagram's frame: the bare field picture (only the grid area, rounded, tiled) with `children` drawn on
+// it, a full screen button in its bottom-right corner, and `after` under it (a legend). Full screen shows the diagram as
+// large as the screen allows, with `title` and a Close button above it. `half` shows only the upper half (rows 1 to
+// 3); `tracked` draws the left-hand alliance yellow against a grey one. `box` is the frame's element, for a caller
+// that closes its pop-ups on a tap outside.
+export function FieldFrame({ title, small = false, half = false, tracked = false, box, after, children }: {
+  title: string; small?: boolean; half?: boolean; tracked?: boolean; box?: RefObject<HTMLDivElement | null>; after?: ReactNode; children: ReactNode;
+}) {
+  const own = useRef<HTMLDivElement>(null);
+  const ref = box ?? own;
+  const { full, open, close } = useFullScreen(ref);
+  return (
+    <div ref={ref} className={["heat", small && "small", full && "full"].filter(Boolean).join(" ")}
+      role={full ? "dialog" : undefined} aria-modal={full || undefined} aria-label={full ? title : undefined}>
+      {full && (
+        <div className="full-bar">
+          <b>{title}</b>
+          <button type="button" className="primary" onClick={close}>✕ Close</button>
+        </div>
+      )}
+      <div className="heat-stage">
+        <div className={half ? "field bare half" : "field bare"}>
+          <div className="field-clip"><FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} tracked={tracked} bare /></div>
+          {children}
+          {!full && (
+            <button type="button" className="full-btn" title="Full screen" aria-label={`Full screen: ${title}`} onClick={open}><FullIcon /></button>
+          )}
+        </div>
+      </div>
+      {after}
+    </div>
+  );
+}
+
+// A heatmap on the field: red's wall on the left, a shaded tile per square (or, smooth, soft spots that blend into
 // each other), start spots as dots. No numbers: hovering a square with a mouse, or tapping it, shows its figures in a
 // pop-up; tapping anywhere else closes it. `tone` picks the colour: scoring yellow, pick-ups teal, the overlap orange.
 // `overlay` is drawn over the shading in the same 0 to 100 frame (the cycle routes); `children` sit on the field (a
 // route's pop-up); `hidePop` hides the square's pop-up while another one shows. `half` shows only the upper half of
-// the field (rows 1 to 3), for a map folded onto it.
+// the field (rows 1 to 3), for a map folded onto it. `title` heads it in full screen (else `label`).
 // `tracked`: a team's own map with every match turned to the left-hand side, drawn as the yellow (tracked) alliance
 // against a grey one; start spots then sit on that side too.
-export function HeatField({ cells, tone, starts = [], label, small = false, smooth = false, overlay, children, hidePop = false, half = false, tracked = false }: {
-  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both" | "cross"; starts?: StartDot[]; label: string; small?: boolean; smooth?: boolean;
+export function HeatField({ cells, tone, starts = [], label, title, small = false, smooth = false, overlay, children, hidePop = false, half = false, tracked = false }: {
+  cells: Map<string, Cell>; tone: "scored" | "pickedUp" | "both" | "cross"; starts?: StartDot[]; label: string; title?: string; small?: boolean; smooth?: boolean;
   overlay?: ReactNode; children?: ReactNode; hidePop?: boolean; half?: boolean; tracked?: boolean;
 }) {
   const field = FIELDS[CURRENT_FIELD_KEY];
@@ -145,6 +220,8 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
   }, [open]);
 
   const w = 100 / field.cols, h = 100 / field.rows;
+  // The shaded tiles lie exactly on the picture's tiles.
+  const gap = w * TILE.gap, round = w * TILE.radius;
   const rows = half ? field.rows / 2 : field.rows;
   const max = Math.max(0, ...[...cells.values()].map((c) => c.value));
   const at = (i: number) => ({ col: i % field.cols, row: Math.floor(i / field.cols) });
@@ -153,7 +230,8 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
     const { col, row } = at(i);
     const here = open?.col === col && open.row === row;
     return (
-      <rect key={i} className={here ? "on" : undefined} x={col * w} y={row * h} width={w} height={h} fillOpacity={smooth ? 0 : shade(value(col, row), max)}
+      <rect key={i} className={here ? "on" : undefined} x={col * w + gap} y={row * h + gap} width={w - 2 * gap} height={h - 2 * gap} rx={round}
+        fillOpacity={smooth ? 0 : shade(value(col, row), max)}
         onPointerEnter={(e) => { if (e.pointerType === "mouse") setOpen({ col, row }); }}
         onPointerDown={(e) => { if (e.pointerType !== "mouse") setOpen(here ? null : { col, row }); }} />
     );
@@ -162,42 +240,39 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
   const name = open && squareName(open.col, open.row);
   const cell = name ? cells.get(name) : undefined;
   return (
-    <div ref={wrap} className={small ? "heat small" : "heat"}>
-      <div className={half ? "field half" : "field"}>
-        <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} tracked={tracked} />
-        <svg className={`map-overlay ${tone}`} viewBox={`0 0 100 ${rows * h}`} role="img" aria-label={label}
-          onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
-          {smooth && (
-            <>
-              <defs>
-                <radialGradient id={`${gid}g`}><stop offset="0" className="hs-in" /><stop offset="1" className="hs-out" /></radialGradient>
-                <clipPath id={`${gid}c`}><rect width="100" height={rows * h} /></clipPath>
-              </defs>
-              <g clipPath={`url(#${gid}c)`} className="heat-soft">
-                {Array.from({ length: field.cols * rows }, (_, i) => {
-                  const { col, row } = at(i);
-                  const v = value(col, row);
-                  return v > 0 && <circle key={i} cx={(col + 0.5) * w} cy={(row + 0.5) * h} r={w * 1.3} fill={`url(#${gid}g)`} opacity={Math.min(1, shade(v, max) * 1.15)} />;
-                })}
-              </g>
-            </>
-          )}
-          {squares}
-          {overlay}
-          {!half && starts.map((s, i) => {
-            const p = wallPoint(s.wallPos, tracked || s.alliance !== "blue" ? "red" : "blue");
-            return <circle key={i} className={tracked ? "ours" : s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
-          })}
-        </svg>
-        {pop && !hidePop && (
-          <div className={`heat-pop ${pop.below ? "below" : "above"} lean-${pop.lean}`} style={{ left: `${pop.left}%`, top: `${pop.top}%` }} role="status">
-            <b>{name}</b>
-            {cell ? <dl>{cell.lines.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl> : <span>Nothing here</span>}
-          </div>
+    <FieldFrame box={wrap} title={title ?? label} small={small} half={half} tracked={tracked}>
+      <svg className={`map-overlay ${tone}`} viewBox={`0 0 100 ${rows * h}`} role="img" aria-label={label}
+        onPointerLeave={(e) => { if (e.pointerType === "mouse") setOpen(null); }}>
+        {smooth && (
+          <>
+            <defs>
+              <radialGradient id={`${gid}g`}><stop offset="0" className="hs-in" /><stop offset="1" className="hs-out" /></radialGradient>
+              <clipPath id={`${gid}c`}><rect width="100" height={rows * h} rx={round} /></clipPath>
+            </defs>
+            <g clipPath={`url(#${gid}c)`} className="heat-soft">
+              {Array.from({ length: field.cols * rows }, (_, i) => {
+                const { col, row } = at(i);
+                const v = value(col, row);
+                return v > 0 && <circle key={i} cx={(col + 0.5) * w} cy={(row + 0.5) * h} r={w * 1.3} fill={`url(#${gid}g)`} opacity={Math.min(1, shade(v, max) * 1.15)} />;
+              })}
+            </g>
+          </>
         )}
-        {children}
-      </div>
-    </div>
+        {squares}
+        {overlay}
+        {!half && starts.map((s, i) => {
+          const p = wallPoint(s.wallPos, tracked || s.alliance !== "blue" ? "red" : "blue");
+          return <circle key={i} className={tracked ? "ours" : s.alliance} cx={inset(p.x)} cy={inset(p.y)} r="3.5"><title>{s.label}</title></circle>;
+        })}
+      </svg>
+      {pop && !hidePop && (
+        <div className={`heat-pop ${pop.below ? "below" : "above"} lean-${pop.lean}`} style={{ left: `${pop.left}%`, top: `${pop.top}%` }} role="status">
+          <b>{name}</b>
+          {cell ? <dl>{cell.lines.map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl> : <span>Nothing here</span>}
+        </div>
+      )}
+      {children}
+    </FieldFrame>
   );
 }
 
@@ -207,46 +282,41 @@ export function HeatField({ cells, tone, starts = [], label, small = false, smoo
 // colour: its drive path, the spots a scout marked, and a filled marker on each square it shot from, sized and
 // labelled by the count. Start spots from set-up show as yellow dots on that side.
 const count = (n: number) => String(Math.round(n * 10) / 10);
-export function AutoPaths({ paths, starts = [], averaged }: { paths: AutoPath[]; starts?: StartDot[]; averaged: boolean }) {
+export function AutoPaths({ paths, starts = [], averaged, title }: { paths: AutoPath[]; starts?: StartDot[]; averaged: boolean; title: string }) {
   const autos = (averaged ? averagedAutos(paths) : asDrawn(paths)).map(onOurSide).map((a, i) => ({ ...a, colour: PATH_COLOURS[i % PATH_COLOURS.length] }));
   const marks = shotMarks(autos);
   // Two scouts in one match give two autos with the same label: name each match once, with how many autos merged.
   const name = (a: Auto) => `${[...new Set(a.labels)].join(", ")}${a.labels.length > 1 ? ` x${a.labels.length}` : ""}`;
+  const legend = autos.length > 0 && (
+    <ul className="path-legend">
+      {autos.map((a, i) => <li key={i}><span className="swatch" style={{ background: a.colour }} />{name(a)}</li>)}
+    </ul>
+  );
   return (
-    <>
-      <div className="heat">
-        <div className="field">
-          <FieldPicture fieldKey={CURRENT_FIELD_KEY} flipped={false} tracked />
-          <svg className="path-overlay" viewBox="0 0 100 100" role="img" aria-label={`${autos.length} auto${autos.length === 1 ? "" : "s"}, with shooting squares and start spots`}>
-            {starts.map((s, i) => {
-              const p = wallPoint(s.wallPos, "red");
-              return <circle key={`s${i}`} className="wall ours" cx={inset(p.x)} cy={inset(p.y)} r="3"><title>{`Start ${s.label}`}</title></circle>;
-            })}
-            {autos.map((a, i) => {
-              const first = a.lines[0]?.[0] ?? a.dots[0];
-              return (
-                <g key={i} style={{ color: a.colour }}>
-                  {a.lines.map((l, j) => <polyline key={j} points={l.map((q) => q.join(",")).join(" ")} />)}
-                  {a.dots.map(([x, y], j) => <circle key={`d${j}`} className="pspot" cx={x} cy={y} r="1.6" />)}
-                  {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{name(a)}</title></circle>}
-                </g>
-              );
-            })}
-            {marks.map((m, i) => (
-              <g key={`m${i}`} className="shot" style={{ color: autos[m.auto].colour }}>
-                <circle cx={m.x} cy={m.y} r={m.r}><title>{`${name(autos[m.auto])}: ${count(m.count)} from ${m.square}`}</title></circle>
-                <text x={m.x} y={m.y}>{count(m.count)}</text>
-              </g>
-            ))}
-          </svg>
-        </div>
-      </div>
-      {autos.length > 0 && (
-        <ul className="path-legend">
-          {autos.map((a, i) => <li key={i}><span className="swatch" style={{ background: a.colour }} />{name(a)}</li>)}
-        </ul>
-      )}
-    </>
+    <FieldFrame title={title} tracked after={legend}>
+      <svg className="path-overlay" viewBox="0 0 100 100" role="img" aria-label={`${autos.length} auto${autos.length === 1 ? "" : "s"}, with shooting squares and start spots`}>
+        {starts.map((s, i) => {
+          const p = wallPoint(s.wallPos, "red");
+          return <circle key={`s${i}`} className="wall ours" cx={inset(p.x)} cy={inset(p.y)} r="3"><title>{`Start ${s.label}`}</title></circle>;
+        })}
+        {autos.map((a, i) => {
+          const first = a.lines[0]?.[0] ?? a.dots[0];
+          return (
+            <g key={i} style={{ color: a.colour }}>
+              {a.lines.map((l, j) => <polyline key={j} points={l.map((q) => q.join(",")).join(" ")} />)}
+              {a.dots.map(([x, y], j) => <circle key={`d${j}`} className="pspot" cx={x} cy={y} r="1.6" />)}
+              {first && <circle className="pstart" cx={first[0]} cy={first[1]} r="2.6"><title>{name(a)}</title></circle>}
+            </g>
+          );
+        })}
+        {marks.map((m, i) => (
+          <g key={`m${i}`} className="shot" style={{ color: autos[m.auto].colour }}>
+            <circle cx={m.x} cy={m.y} r={m.r}><title>{`${name(autos[m.auto])}: ${count(m.count)} from ${m.square}`}</title></circle>
+            <text x={m.x} y={m.y}>{count(m.count)}</text>
+          </g>
+        ))}
+      </svg>
+    </FieldFrame>
   );
 }
 

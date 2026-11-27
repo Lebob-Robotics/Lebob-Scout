@@ -6,7 +6,7 @@ import {
   PUBLIC_PAGE,
   likely, one, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, teamCells, tipsPerMatch,
   whole, winChance,
-  type Measure,
+  type Measure, type Side,
 } from "../logic";
 import { Dropdown } from "../../shared/components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
@@ -48,7 +48,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
     <div className="strategy-screen">
       <div className="cols">
         <div className="col">
-          <Card title="Team" control={(
+          <Card title="Team" keepControl control={(
             <Dropdown label="Team" value={String(team)} onChange={(v) => onTeam(Number(v))}
               items={teams.map((r) => ({ value: String(r.teamNumber), label: String(r.teamNumber), sub: r.teamName }))} />
           )}>
@@ -119,6 +119,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
             {ctx.maps.state !== "ok" ? <Waiting load={ctx.maps} what="the heatmaps" retry={ctx.retryMaps} /> : <>
               <HeatField tracked cells={teamCells((half ? map?.half : map?.aligned) ?? [], measure)} tone={measure === "pickedUp" ? "pickedUp" : "scored"}
                 smooth={ctx.settings.heatStyle === "smooth"} half={half}
+                title={`${team} · Heatmap · ${MEASURES.find(([k]) => k === measure)![1]}${half ? " · Half field" : ""}`}
                 label={`${team}: ${MEASURES.find(([k]) => k === measure)![1].toLowerCase()} per match${half ? ", the lower half folded onto the upper half" : ""}`} />
               <p className="caption">{half ? "The yellow alliance's side, the lower half folded onto the upper half." : "Every match turned to the yellow alliance's side."}</p>
             </>}
@@ -126,7 +127,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
 
           <Card title="Auto paths">
             {scouted(() => (!profile?.autoPaths.length && !profile?.starts.length ? <p>No auto paths drawn yet.</p>
-              : <AutoPaths paths={profile.autoPaths} starts={profile.starts} averaged={ctx.settings.autoStyle === "averaged"} />))}
+              : <AutoPaths paths={profile.autoPaths} starts={profile.starts} averaged={ctx.settings.autoStyle === "averaged"} title={`${team} · Auto paths`} />))}
           </Card>
 
           <CyclesCard ctx={ctx} team={team} />
@@ -145,11 +146,15 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
                       const partner = (side === "red" ? f.red : f.blue).filter((t) => t !== team);
                       const opp = side === "red" ? f.blue : f.red;
                       const [mine, theirs] = side === "red" ? [f.redActual, f.blueActual] : [f.blueActual, f.redActual];
+                      // Each side's teams in a block of its colour, as on the Schedule.
+                      const block = (s: Side, ts: number[]) => ts.length > 0 && (
+                        <span className={`ablock ${s}`}>{ts.map((t) => <TeamName key={t} team={t} onOpen={ctx.openTeam} />)}</span>
+                      );
                       return (
-                        <tr key={f.matchUuid} className={`pick row-${side}`} onClick={() => ctx.openMatch(f.matchUuid)}>
+                        <tr key={f.matchUuid} className="pick" onClick={() => ctx.openMatch(f.matchUuid)}>
                           <td>{labels.get(f.matchUuid)}</td>
-                          <td>{partner.map((t) => <TeamName key={t} team={t} onOpen={ctx.openTeam} />)}</td>
-                          <td>{opp.map((t) => <TeamName key={t} team={t} onOpen={ctx.openTeam} />)}</td>
+                          <td>{block(side, partner)}</td>
+                          <td>{block(side === "red" ? "blue" : "red", opp)}</td>
                           <td className="num">{pct(winChance(f, side))}</td>
                           <td className="num">{f.played && mine != null && theirs != null ? `${mine > theirs ? "Won" : mine < theirs ? "Lost" : "Tied"} ${mine}–${theirs}` : "–"}</td>
                           <td className="num"><PtsFig pts={scoutingFirst(scoutedMatchPoints(profile?.matchPoints, f), ctx.officialShare(f.matchUuid, team))} /></td>

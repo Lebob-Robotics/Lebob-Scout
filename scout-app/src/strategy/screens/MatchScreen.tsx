@@ -10,6 +10,7 @@ import type { Forecast, MatchMaps } from "../types";
 
 type Scope = "scored" | "pickedUp";
 const SCOPES: [Scope, string][] = [["scored", "Scored"], ["pickedUp", "Picked up"]];
+const scopeName = (s: Scope) => SCOPES.find(([k]) => k === s)![1];
 
 // The planner: pick a match (our next one first) and see how it should go and where the robots will be.
 export function MatchScreen({ ctx, matchUuid, onMatch }: { ctx: Ctx; matchUuid: string | null; onMatch(m: string): void }) {
@@ -44,7 +45,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
 
   return (
     <>
-      <Card title="Forecast" control={picker}>
+      <Card title="Forecast" keepControl control={picker}>
         {missing.length > 0 && (
           <p className="save-note">Not enough data: {missing.join(" and ")} {missing.length === 1 ? "has" : "have"} no scouting and no official score yet.</p>
         )}
@@ -73,12 +74,14 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
               <div key={side} className="map-cell">
                 <h3><span className={`ally ${side}`}>{side === "red" ? "Red alliance" : "Blue alliance"}</span></h3>
                 <HeatField cells={teamCells(maps.data[side].squares, scope)} tone={scope} smooth={smooth}
+                  title={`${ctx.labels.get(f.matchUuid)} · ${side === "red" ? "Red" : "Blue"} alliance · ${scopeName(scope)}`}
                   label={`${side} alliance's robots added together: ${scope === "scored" ? "scoring" : "pick-ups"} per match`} />
               </div>
             ))}
             <div className="map-cell">
               <h3 title="Squares both alliances use, scoring and picking up, by the smaller of the two">Where they will meet</h3>
-              <HeatField cells={overlapCells(maps.data.overlap)} tone="both" smooth={smooth} label="Squares both alliances use" />
+              <HeatField cells={overlapCells(maps.data.overlap)} tone="both" smooth={smooth} label="Squares both alliances use"
+                title={`${ctx.labels.get(f.matchUuid)} · Where they will meet`} />
             </div>
           </div>
         )}
@@ -92,7 +95,7 @@ function Plan({ ctx, f, picker }: { ctx: Ctx; f: Forecast; picker: ReactNode }) 
                 <thead><tr><th>Robot</th><th className="num" title="Scouted points in the match; in italics: the official share (the alliance's score less its scouted partner, or half) where nobody scouted">Points</th></tr></thead>
                 <tbody>
                   {robots.map((r) => (
-                    <tr key={r.team} className={`row-${r.side}`}><td><TeamName team={r.team} name={r.name} onOpen={ctx.openTeam} /></td><td className="num"><PtsFig pts={r.points} /></td></tr>
+                    <tr key={r.team}><td><span className={`ablock ${r.side}`}><TeamName team={r.team} name={r.name} onOpen={ctx.openTeam} /></span></td><td className="num"><PtsFig pts={r.points} /></td></tr>
                   ))}
                 </tbody>
               </table>
@@ -132,6 +135,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
             </dl>
             {map?.matches || p?.starts.length ? (
               <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={(p?.starts ?? []).map((s) => ({ ...s, alliance: side }))} smooth={ctx.settings.heatStyle === "smooth"}
+                title={`${ctx.labels.get(f.matchUuid)} · ${team} · ${scopeName(scope)}`}
                 label={`${team} ${scope === "scored" ? "scoring" : "pick-ups"} per match, and start spots`} />
             ) : <p className="caption keep">Not scouted yet.</p>}
           </div>

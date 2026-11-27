@@ -125,6 +125,7 @@ function CycleMap({ c, measure, smooth, drawn }: { c: TeamCycles; measure: Cycle
   return (
     <div ref={wrap}>
       <HeatField cells={cycleCells(c.squares, measure)} tone={TONE[measure]} smooth={smooth} overlay={overlay} hidePop={pick != null} tracked
+        title={`${c.teamNumber} · Cycle map · ${MEASURES.find(([m]) => m === measure)![1]}`}
         label={`Cycle map, every shot on the upper half: ${MEASURES.find(([m]) => m === measure)![1].toLowerCase()} per match${drawn ? ", every cycle drawn" : `, the averaged cycle over ${c.routes.length} routes`}`}>
         {pick && <RoutePop route={pick.r} at={pick.line[Math.floor(pick.line.length / 2)]} cols={field.cols} rows={field.rows} />}
       </HeatField>
@@ -137,7 +138,7 @@ function RoutePop({ route, at, cols, rows }: { route: CycleRoute; at: [number, n
   const col = Math.min(cols - 1, Math.floor((at[0] / 100) * cols)), row = Math.min(rows - 1, Math.floor((at[1] / 100) * rows));
   const p = popPlace(col, row, cols, rows);
   return (
-    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${12.5 + at[0] * 0.75}%`, top: `${at[1]}%` }} role="status">
+    <div className={`heat-pop ${p.below ? "below" : "above"} lean-${p.lean}`} style={{ left: `${at[0]}%`, top: `${at[1]}%` }} role="status">
       <b>Route</b>
       <dl>{routeLines(route).map(([k, v]) => <div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl>
     </div>

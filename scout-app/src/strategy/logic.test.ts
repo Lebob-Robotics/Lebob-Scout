@@ -189,9 +189,11 @@ test("heat cells shade by the measure and list the square's figures", () => {
 });
 
 test("popPlace keeps a square's pop-up on the picture", () => {
-  expect(popPlace(0, 0, 6, 6)).toMatchObject({ left: 18.75, below: true, lean: "right" });
+  expect(popPlace(0, 0, 6, 6)).toMatchObject({ below: true, lean: "right" });
+  expect(popPlace(0, 0, 6, 6).left).toBeCloseTo(8.333);
   expect(popPlace(0, 0, 6, 6).top).toBeCloseTo(8.333);
-  expect(popPlace(5, 5, 6, 6)).toMatchObject({ left: 81.25, below: false, lean: "left" });
+  expect(popPlace(5, 5, 6, 6)).toMatchObject({ below: false, lean: "left" });
+  expect(popPlace(5, 5, 6, 6).left).toBeCloseTo(91.667);
   expect(popPlace(2, 3, 6, 6).lean).toBe("middle");
 });
 

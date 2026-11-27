@@ -150,12 +150,12 @@ export const overlapCells = (overlap: SquareOverlap[]): Map<string, Cell> => new
   value: o.both, lines: [["Red use", fig2(o.red)], ["Blue use", fig2(o.blue)], ["Both", fig2(o.both)]],
 }]));
 
-// Where a square's pop-up sits on the field: at the square's centre (as shares of the whole picture, whose grid is the
-// middle 75%), above it unless the square is in the top two rows, and leaning inwards near the side walls so it stays
-// on the picture.
+// Where a square's pop-up sits on the field: at the square's centre (as shares of the bare field picture, which is
+// only the grid), above it unless the square is in the top two rows, and leaning inwards near the side walls so it
+// stays on the picture.
 export function popPlace(col: number, row: number, cols: number, rows: number) {
   return {
-    left: 12.5 + ((col + 0.5) / cols) * 75,
+    left: ((col + 0.5) / cols) * 100,
     top: ((row + 0.5) / rows) * 100,
     below: row < 2,
     lean: col < 2 ? "right" : col >= cols - 2 ? "left" : "middle",
