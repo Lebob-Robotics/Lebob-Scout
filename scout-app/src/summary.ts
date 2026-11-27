@@ -2,7 +2,7 @@ import type { Field } from "./field";
 import type { Tap } from "./taps";
 
 // The final page's figures, as on the old site's summary: pieces scored in auto and in teleop, and intake squares.
-// A tap in the changeover counts as teleop, as it does in the Teams tab.
+// A tap in the transition (between AUTO and TELEOP) counts as teleop, as it does in the Teams tab.
 export function matchSummary(taps: Tap[], field: Field) {
   let autoScored = 0;
   let teleopScored = 0;
@@ -15,6 +15,14 @@ export function matchSummary(taps: Tap[], field: Field) {
   return { autoScored, teleopScored, intakeSquares };
 }
 
-// The header's pill: how many reports are still on this phone, and whether the phone has signal.
-export const queuePill = (online: boolean, waiting: number) =>
-  online ? `${waiting} unsent` : waiting ? `Offline · ${waiting} unsent` : "Offline";
+// What the header's warning sign says when tapped. Nothing waiting means no sign, so no text.
+export function unsentNote(online: boolean, waiting: number, lastError: string | null) {
+  if (waiting <= 0) return "";
+  const what = waiting === 1 ? "1 report hasn't" : `${waiting} reports haven't`;
+  const why = !online
+    ? "This phone has no internet. Reports need internet to send, and send by themselves once it is back online."
+    : lastError
+      ? `They need internet to send. The last try failed: ${lastError}. They try again by themselves.`
+      : "They need internet to send, and are sending now.";
+  return `${what} been sent yet. ${why}`;
+}

@@ -10,6 +10,7 @@ import {
 import { Dropdown } from "../../components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { CyclesCard } from "../CyclesCard";
+import { PitPhotoList } from "../../components/PitPhotos";
 import type { HeatField as FieldView } from "../settings";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];
@@ -72,6 +73,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
               <div className="team-notes">
                 <h3>Pit</h3>
                 {profile.pits.map((p) => <div key={p.pitReportId} className="note-block">{pitLines(p).map((l, i) => <p key={i}>{l}</p>)}</div>)}
+                <PitPhotoList api={ctx.api} pitReportIds={profile.pits.map((p) => p.pitReportId)} />
               </div>
             )}
           </Card>

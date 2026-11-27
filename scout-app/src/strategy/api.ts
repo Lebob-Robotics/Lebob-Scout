@@ -8,7 +8,7 @@ import { numbered } from "../schedule";
 import type { Game } from "./scouted";
 import type { MatchMaps, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 
-export type StrategyApi = Pick2<Api, "ourEvents" | "matches" | "presences" | "teamsTab"> & {
+export type StrategyApi = Pick2<Api, "ourEvents" | "matches" | "presences" | "teamsTab" | "pitPhoto" | "pitPhotoIds"> & {
   // The model's EventRating: only its HIVE figure (TIPS per match) and team names are used.
   ratings(eventUuid: string): Promise<Rating[]>;
   // RankProjection: only the standing now (rank, RP, RS) is used.
@@ -76,6 +76,8 @@ export function createStrategyApi(client: Client, base: Api, functions?: MapFunc
     matches: (e) => base.matches(e),
     presences: (m) => base.presences(m),
     teamsTab: (e) => base.teamsTab(e),
+    pitPhoto: (id) => base.pitPhoto(id),
+    pitPhotoIds: (ids) => base.pitPhotoIds(ids),
     async ratings(e) { return (await all(client(EventRating).where(where(e)).asyncIter())).map(toRating); },
     async projections(e) { return (await all(client(RankProjection).where(where(e)).asyncIter())).map(toProjection); },
     async games(e) {

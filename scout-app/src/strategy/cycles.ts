@@ -1,5 +1,5 @@
-// Sums behind the Cycles card and the Match planner's cycle figures. Cycles come only from our scouting (teamCycles),
-// or, for a team nobody scouted, the cycle time its pit report claims. Never from the rating.
+// Sums behind the Cycles card and the Match planner's cycle figures. Cycles come only from our scouting (teamCycles).
+// Never from the rating, and a team nobody scouted has no cycle time.
 import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
 import { chaikin, resample, type Pt } from "./autos";
 import type { Cell } from "./logic";
@@ -67,13 +67,9 @@ export function cyclesFigure(c: TeamCycles | undefined): { value: number; low: n
   return { value: c.cyclesPerMatch, low: c.cyclesLow ?? c.cyclesPerMatch, high: c.cyclesHigh ?? c.cyclesPerMatch };
 }
 
-// The cycle time: scouted when we have timed cycles, else what the pit report claims, else nothing.
-export type CycleTime = { value: number; source: "scouted" | "pit" };
-export function cycleTime(c: TeamCycles | undefined, pits: { claimedCycleSeconds?: number }[] = []): CycleTime | null {
-  if (c?.seconds != null) return { value: c.seconds, source: "scouted" };
-  const claim = pits.find((p) => p.claimedCycleSeconds != null)?.claimedCycleSeconds;
-  return claim != null ? { value: claim, source: "pit" } : null;
-}
+// The cycle time: scouted when we have timed cycles, else nothing.
+export type CycleTime = { value: number };
+export const cycleTime = (c: TeamCycles | undefined): CycleTime | null => (c?.seconds != null ? { value: c.seconds } : null);
 
 // The stacked bar: collect, travel and shoot, each as a share of the whole (adding up to 100). Null without all three.
 export type Part = { name: "collect" | "travel" | "shoot"; seconds: number; share: number };

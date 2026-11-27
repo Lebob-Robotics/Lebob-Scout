@@ -1,6 +1,6 @@
 import type { Tap } from "./taps";
 import type { Draft, Observation } from "./observation";
-import type { Patch, PresenceRow } from "./api";
+import type { Patch, PitUpload, PresenceRow } from "./api";
 import { buildBreakage, buildPit, emptyBreakageForm, emptyPitForm } from "./pitBreakage";
 import type { BreakageReport, PitReport } from "./pitBreakage";
 import { createStore } from "./storage";
@@ -86,8 +86,8 @@ export function fake(options: {
     },
     async modify(id: string, patch: Patch, _nowMs: number) { api.modified.push([id, patch]); },
     saveThrows: false,
-    async savePit(p: PitReport) {
-      api.calls.push(`savePit ${p.pitReportId}`);
+    async savePit(p: PitReport, uploads: PitUpload[] = []) {
+      api.calls.push(`savePit ${p.pitReportId}${uploads.length ? ` +${uploads.length}` : ""}`);
       if (api.saveThrows) throw new Error("network");
     },
     async saveBreakage(b: BreakageReport) {

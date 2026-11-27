@@ -79,24 +79,23 @@ test("chips add pit ✓ and the breakage count when there are any", () => {
   expect(chips(team()).map((c) => c.text)).not.toContain("pit ✓");
 });
 
-test("pitLines says who and what, can and can't, claims and notes, leaving blanks out", () => {
+test("pitLines says who and what, can and can't, and notes, leaving blanks out", () => {
   expect(pitLines({
     pitReportId: "p", teamNumber: 7, scout: "JK", createdAt: "", archetype: "turret-shooter", drivetrain: "tank-traction",
-    preferredStart: "near-wall", canHive: true, canFlower: true, canDefend: false, claimedCycleSeconds: 9, weightKg: 12.5, knownIssues: "Chain slips",
+    canHive: true, canFlower: true, canFloorIntake: false, notes: "Chain slips",
   })).toEqual([
-    "JK · Turret shooter · Tank traction · starts near wall",
+    "JK · Turret shooter · Tank traction",
     "Can: HIVE, FLOWER",
-    "Can't: defence",
-    "9s cycle · 12.5 kg",
-    "Known issues: Chain slips",
+    "Can't: floor intake",
+    "Chain slips",
   ]);
   expect(pitLines({ pitReportId: "p", teamNumber: 7, scout: "", createdAt: "" })).toEqual(["?"]);
 });
 
-test("breakageLine reads when, what, how bad, why and after", () => {
+test("breakageLine reads when, what, how bad and who", () => {
   expect(breakageLine({
     breakageId: "b", teamNumber: 7, reporter: "Bo", createdAt: "", matchLabel: "Q4", mechanism: "drive", component: "wheel hub",
-    failureType: "loose-disconnected", severity: 3, cause: "wear", causeConfidence: "likely", recovered: false, fix: "new hub",
-  })).toBe("Q4 · drive: wheel hub · loose disconnected · severity 3 · cause wear (likely) · did not recover · fix: new hub · Bo");
+    failureType: "loose-disconnected", severity: 3,
+  })).toBe("Q4 · drive: wheel hub · loose disconnected · severity 3 · Bo");
   expect(breakageLine({ breakageId: "b", teamNumber: 7, reporter: "", createdAt: "" })).toBe("pit/practice");
 });

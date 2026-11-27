@@ -41,7 +41,7 @@ export function Card({ title, id, control, openKey, className, tone, children }:
 // switched on yet; anything else offers Retry.
 export function Waiting({ load, what, retry }: { load: Load<unknown>; what: string; retry(): void }) {
   if (load.state === "loading") return <p>Loading…</p>;
-  if (load.state === "failed" && load.why === MAPS_NOT_READY) return <p className="caption">{MAPS_NOT_READY}</p>;
+  if (load.state === "failed" && load.why === MAPS_NOT_READY) return <p className="caption keep">{MAPS_NOT_READY}</p>;
   return <p>Couldn't load {what}. <button type="button" onClick={retry}>Retry</button></p>;
 }
 
@@ -275,7 +275,7 @@ export function RatingChart({ points }: { points: HistoryPoint[] }) {
     document.addEventListener("pointerdown", close);
     return () => document.removeEventListener("pointerdown", close);
   }, [open]);
-  if (!c) return <p className="caption">No played matches yet.</p>;
+  if (!c) return <p className="caption keep">No played matches yet.</p>;
   const dot = open != null ? c.dots[open] : null;
   // The nearest match to a pointer: its x in the chart's own units, then the strip it falls in.
   const at = (e: ReactPointerEvent<SVGRectElement>) => {

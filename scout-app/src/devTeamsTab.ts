@@ -73,13 +73,11 @@ const laterRow = (n: number) => {
 // As the functions give them: blank fields left out. They match the dev stand-in's seeded pit report and breakage.
 const DEV_PIT = {
   pitReportId: "dev-pit-1", teamNumber: 12345, scout: "Alice Nguyen", createdAt: at(-60),
-  drivetrain: "mecanum", archetype: "turret-shooter", canHive: true, canDefend: false, claimedCycleSeconds: 9, knownIssues: "Intake belt slips when hot",
+  drivetrain: "mecanum", archetype: "turret-shooter", canHive: true, canFloorIntake: true, notes: "Intake belt slips when hot",
 };
-// A pit report for a team nobody has scouted in a match yet: its claimed cycle time is all the strategy app has.
-const DEV_PIT_CLAIM = { pitReportId: "dev-pit-2", teamNumber: 18172, scout: "Sam", createdAt: at(-45), drivetrain: "tank", claimedCycleSeconds: 14 };
 const DEV_BREAKAGE = {
   breakageId: "dev-breakage-1", teamNumber: 16021, reporter: "Sam", createdAt: at(-60), matchKey: "DEVNOW-q2", matchLabel: "Q2",
-  phase: "teleop", mechanism: "drive", component: "wheel hub", failureType: "loose-disconnected", severity: 3, recovered: false,
+  mechanism: "drive", component: "wheel hub", failureType: "loose-disconnected", severity: 3,
 };
 
 export const DEV_TEAMS_TAB: TeamsTab = {
@@ -180,7 +178,7 @@ export const DEV_TEAMS_TAB: TeamsTab = {
     ...UNSCOUTED.map((teamNumber) => ({
       teamNumber, name: NAMES[teamNumber], need: true, matches: 0, played: 8, toCome: 0, scheduled: 8, missing: LATER.map((n) => `Q${n}`), twice: [],
       points: 0, autoPoints: 0, teleopPoints: 0, parkPoints: 0, autoScored: 0, cycles: 0,
-      squares: [], starts: [], reports: [], pits: teamNumber === 18172 ? [DEV_PIT_CLAIM] : [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [],
+      squares: [], starts: [], reports: [], pits: [], breakages: [], brokeDownMatches: 0, notes: [], autoPaths: [],
     })),
   ],
 };

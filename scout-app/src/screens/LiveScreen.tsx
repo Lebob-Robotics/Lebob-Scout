@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
 import { FieldPicture } from "../components/FieldPicture";
 import { Grid } from "../components/Grid";
-import { matchSeconds, phaseAt, skipToTeleop } from "../clock";
+import { matchSeconds, phaseAt, skipToTeleop, type Phase } from "../clock";
 import { FIELDS } from "../field";
 import { liveReducer, type LiveAction, type LiveState } from "../live";
 import type { Draft } from "../observation";
 import { matchSummary } from "../summary";
+
+// The phase pill's words: the gap between AUTO and TELEOP is the transition.
+const PHASE_NAME: Record<Phase, string> = { auto: "AUTO", changeover: "TRANSITION", teleop: "TELEOP", endgame: "ENDGAME", over: "OVER" };
 
 const clockText = (remaining: number) => {
   const s = Math.max(0, Math.ceil(remaining));
@@ -77,7 +80,7 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
 
       <div className="field-space">
         <div className="field">
-          <FieldPicture fieldKey={draft.fieldKey} flipped={draft.flipped} />
+          <FieldPicture fieldKey={draft.fieldKey} flipped={draft.flipped} scoring={draft.alliance} />
           <Grid field={field} flipped={draft.flipped} selected={mode === "intake" ? area : square} disabled={!mode}
             onPick={(s) => act({ type: "square", square: s, seconds: matchSeconds(draft.startedAtMs, Date.now()) })} />
         </div>
@@ -93,12 +96,12 @@ export function LiveScreen({ draft, onChange, onEnd }: { draft: Draft; onChange(
       </div>
 
       <div className="bar">
-        <output className="clock"><span className={`phase ${phase}`}>{phase.toUpperCase()}</span> {clockText(remaining)}</output>
+        <output className="clock"><span className={`phase ${phase}`}>{PHASE_NAME[phase]}</span> {clockText(remaining)}</output>
         {!confirming && (phase === "auto" || phase === "changeover") && (
           <button type="button" className="skip" onClick={() => onChange({ ...draft, startedAtMs: skipToTeleop(Date.now(), field) })}>Skip to TELEOP</button>
         )}
         {/* One hint, always mounted, so screen readers hear the change. */}
-        <p className="hint" aria-live="polite">{confirming ? "End the match now?" : hint}</p>
+        <p className="hint" aria-live="polite"><span className="hint-team">{draft.teamNumber}</span> {confirming ? "End the match now?" : hint}</p>
         {/* Keep going sits where End match was, so a double tap keeps the match running. */}
         {confirming ? (
           <>

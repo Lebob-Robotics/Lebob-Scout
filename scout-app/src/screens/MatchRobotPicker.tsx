@@ -131,7 +131,6 @@ export function MatchRobotPicker({ api, eventUuid, value, onChange, startTyped =
           <Dropdown
             id="match"
             label="Match"
-            mono
             value={match.matchUuid}
             items={[...matches].sort(order).map((m) => ({ value: m.matchUuid, label: matchLabel(m) }))}
             onChange={(v) => { setMatchUuid(v); setPresences(null); onChange(null); }}

@@ -1,8 +1,8 @@
-import { PalantirApiError } from "@osdk/client";
-import type { Client } from "@osdk/client";
+import { PalantirApiError, createAttachmentUpload } from "@osdk/client";
+import type { Attachment, Client } from "@osdk/client";
 import { Users } from "@osdk/foundry.admin";
 import {
-  BreakageReport, Event, Match, MatchObservation, PitSurvey, Presence, Team, createBreakageReport, createMatchObservation, createPitSurvey,
+  BreakageReport, Event, Match, MatchObservation, Participation, PitSurvey, Presence, Team, createBreakageReport, createMatchObservation, createPitSurvey,
   modifyBreakageReport, modifyMatchObservation, modifyPitSurvey, teamsTab,
 } from "@lebob-scout/sdk";
 import type { FinalPage, Observation, Target } from "./observation";
@@ -25,6 +25,10 @@ export type ScoutTally = TeamsTab["scouts"][number];
 export type EventRow = { eventUuid: string; eventCode: string; eventName: string; dateStart: string; dateEnd: string };
 export type MatchRow = { matchUuid: string; matchNumber: number; matchType: "qualification" | "playoff"; scheduledTime: string | null; actualTime: string | null };
 export type PresenceRow = { presenceUuid: string; matchUuid: string; teamUuid: string; teamNumber: number; alliance: "red" | "blue"; station: number };
+// A team of the event, for the Pit and Breakage dropdowns.
+export type TeamOption = { teamNumber: number; teamUuid: string | null; name: string };
+// A new pit photo to send: its id on the phone, a file name, and the shrunk JPEG.
+export type PitUpload = { id: string; name: string; blob: Blob };
 export type Patch = Partial<Omit<Target, "eventUuid"> & FinalPage> & { label?: string };
 export type Api = {
   currentUser(): Promise<{ id: string; name: string }>;
@@ -42,8 +46,14 @@ export type Api = {
   // Pit surveys and breakages carry the event code, not the event id. Newest first.
   pits(eventCode: string): Promise<PitReport[]>;
   breakages(eventCode: string): Promise<BreakageReportRow[]>;
-  // Create, or replace every field of the one with the same id.
-  savePit(p: PitReport): Promise<void>;
+  // The event's teams, by number. Rejects when the lists can't be read.
+  eventTeams(eventUuid: string): Promise<TeamOption[]>;
+  // Create, or replace every field of the one with the same id. `uploads` are the report's new photos (p.photoIds).
+  savePit(p: PitReport, uploads: PitUpload[]): Promise<void>;
+  // A saved photo's picture, by the attachment id a pit report lists in `images`; valid after that report has been read.
+  pitPhoto(imageId: string): Promise<Blob>;
+  // The attachment ids of the photos on these pit reports (ids as the Teams tab's profiles list them).
+  pitPhotoIds(pitReportIds: string[]): Promise<string[]>;
   saveBreakage(b: BreakageReportRow): Promise<void>;
 };
 
@@ -125,6 +135,13 @@ async function all<T>(rows: AsyncIterable<T>): Promise<T[]> {
 }
 
 export function createApi(client: Client): Api {
+  // Saved photos seen in the pit reports read so far, by attachment id, so a thumbnail can be fetched.
+  const attachments = new Map<string, Attachment>();
+  const readPit = (o: PitSurvey.OsdkInstance) => {
+    const images = imagesOf(o);
+    for (const a of images) attachments.set(a.rid, a);
+    return toPitReport(o, images.map((a) => a.rid));
+  };
   // By the numbers the picker shows (see numbered), so a typed P4 finds the fourth playoff even when all are stored as 1.
   const findMatch = async (eventUuid: string, matchType: string, matchNumber: number) =>
     numbered((await all(client(Match).where({ eventUuid: { $eq: eventUuid }, matchType: { $eq: matchType } }).asyncIter())).map(toMatchRow))
@@ -179,54 +196,88 @@ export function createApi(client: Client): Api {
     },
     async pits(eventCode) {
       const rows = await all(client(PitSurvey).where({ eventCode: { $eq: eventCode } }).asyncIter({ $orderBy: { createdAt: "desc" } }));
-      return rows.map(toPitReport);
+      return rows.map(readPit);
     },
     async breakages(eventCode) {
       const rows = await all(client(BreakageReport).where({ eventCode: { $eq: eventCode } }).asyncIter({ $orderBy: { createdAt: "desc" } }));
       return rows.map(toBreakageReport);
     },
     // Create, or on a second send (or an edit) replace every field of the stored one.
-    async savePit(p) {
+    async eventTeams(eventUuid) {
+      const parts = await all(client(Participation).where({ eventUuid: { $eq: eventUuid } }).asyncIter());
+      const numbers = [...new Set(parts.map((p) => p.teamNumber ?? 0).filter((n) => n > 0))];
+      const names = new Map<number, string>();
+      for (let i = 0; i < numbers.length; i += 200) {
+        for (const tm of await all(client(Team).where({ teamNumber: { $in: numbers.slice(i, i + 200) } }).asyncIter())) names.set(tm.teamNumber ?? 0, tm.name ?? "");
+      }
+      const uuids = new Map(parts.map((p) => [p.teamNumber ?? 0, p.teamUuid ?? null]));
+      return numbers.sort((a, b) => a - b).map((teamNumber) => ({ teamNumber, teamUuid: uuids.get(teamNumber) ?? null, name: names.get(teamNumber) ?? "" }));
+    },
+    async savePit(p, uploads) {
       const found = (await client(PitSurvey).where({ pitReportId: { $eq: p.pitReportId } }).fetchPage({ $pageSize: 1 })).data.length > 0;
-      const { pit_report_id, ...fields } = toParams(p);
+      // The photos already saved go by id and the new ones as uploads; the client uploads those as it applies the action.
+      const images = [...(p.images ?? []), ...uploads.map((u) => createAttachmentUpload(u.blob, u.name))];
+      const { pit_report_id, ...fields } = pitParams(p, images);
       if (found) await apply(client(modifyPitSurvey), { "j87bj1om.pit-survey": pit_report_id, ...fields });
       else await apply(client(createPitSurvey), { pit_report_id, ...fields });
     },
+    async pitPhoto(imageId) {
+      const a = attachments.get(imageId);
+      if (!a) throw new Error("Photo not loaded");
+      const res = await a.fetchContents();
+      if (!res.ok) throw new Error("Couldn't load the photo");
+      return res.blob();
+    },
+    async pitPhotoIds(pitReportIds) {
+      if (!pitReportIds.length) return [];
+      const rows = await all(client(PitSurvey).where({ pitReportId: { $in: pitReportIds } }).asyncIter());
+      return rows.flatMap((o) => readPit(o).images);
+    },
     async saveBreakage(b) {
       const found = (await client(BreakageReport).where({ breakageId: { $eq: b.breakageId } }).fetchPage({ $pageSize: 1 })).data.length > 0;
-      const { breakage_id, ...fields } = toParams(b);
+      const { breakage_id, ...fields } = breakageParams(b);
       if (found) await apply(client(modifyBreakageReport), { "j87bj1om.breakage-report": breakage_id, ...fields });
       else await apply(client(createBreakageReport), { breakage_id, ...fields });
     },
   };
 }
 
-type Params = Record<string, string | number | boolean | null>;
+type Params = Record<string, unknown>;
+const snake = (k: string) => k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
+const pick = (r: object, keys: readonly string[]): Params =>
+  Object.fromEntries(keys.map((k) => [snake(k), (r as Record<string, unknown>)[k] ?? null]));
+
 // The pit and breakage actions take each field as snake_case: teamNumber is team_number. null clears a field.
-export const toParams = (r: PitReport | BreakageReportRow): Params =>
-  Object.fromEntries(Object.entries(r).map(([k, v]) => [k.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`), v]));
-// toParams builds the parameters from the field names, so TypeScript can't check them against the action; the
-// toParams test and the live check against the dummy event do.
+// The parameters come from these lists, never from whatever keys a stored report has, so a report queued by an older
+// build (with fields since removed) still sends.
+const PIT_KEPT = ["pitReportId", "eventCode", "teamNumber", "scout", "createdAt", "drivetrain", "archetype",
+  "canHive", "canFlower", "canNectar", "canFloorIntake", "canFlowerIntake", "notes"] as const;
+const BREAKAGE_KEPT = ["breakageId", "eventCode", "teamNumber", "teamUuid", "reporter", "createdAt", "matchKey",
+  "mechanism", "component", "failureType", "severity", "notes"] as const;
+export const pitParams = (p: PitReport, images: unknown[]): Params => ({ ...pick(p, PIT_KEPT), images });
+export const breakageParams = (b: BreakageReportRow): Params => pick(b, BREAKAGE_KEPT);
+// pitParams and breakageParams build the parameters from field names, so TypeScript can't check them against the
+// action; their tests and the live check against the dummy event do.
 const apply = (action: { applyAction: unknown }, params: Params) =>
   (action.applyAction as (p: Params) => Promise<unknown>).call(action, params);
 
 const orNull = <T>(v: T | null | undefined): T | null => v ?? null;
-export const toPitReport = (o: Partial<PitSurvey.Props>): PitReport => ({
+// The SDK has no PitSurvey.images or BreakageReport.notes until it is regenerated after the ontology change, so they
+// are read through these two casts. Drop them once the SDK has the properties.
+const imagesOf = (o: object): Attachment[] => (o as { images?: Attachment[] }).images ?? [];
+const notesOf = (o: object): string | null => (o as { notes?: string | null }).notes ?? null;
+
+// `images` are the attachment ids of the saved photos (see imagesOf).
+export const toPitReport = (o: Partial<PitSurvey.Props>, images: string[] = []): PitReport => ({
   pitReportId: o.pitReportId ?? "", eventCode: o.eventCode ?? "", teamNumber: o.teamNumber ?? 0, scout: o.scout ?? "", createdAt: o.createdAt ?? "",
-  drivetrain: orNull(o.drivetrain), archetype: orNull(o.archetype), preferredStart: orNull(o.preferredStart),
+  drivetrain: orNull(o.drivetrain), archetype: orNull(o.archetype),
   canHive: orNull(o.canHive), canFlower: orNull(o.canFlower), canNectar: orNull(o.canNectar),
-  canFloorIntake: orNull(o.canFloorIntake), canFlowerIntake: orNull(o.canFlowerIntake), canDefend: orNull(o.canDefend),
-  autoLeave: orNull(o.autoLeave), autoPark: orNull(o.autoPark),
-  autoTipsClaimed: orNull(o.autoTipsClaimed), claimedTipsPerMatch: orNull(o.claimedTipsPerMatch), claimedCycleSeconds: orNull(o.claimedCycleSeconds),
-  heightInches: orNull(o.heightInches), weightKg: orNull(o.weightKg),
-  autoRoutines: orNull(o.autoRoutines), knownIssues: orNull(o.knownIssues), notes: orNull(o.notes),
+  canFloorIntake: orNull(o.canFloorIntake), canFlowerIntake: orNull(o.canFlowerIntake),
+  notes: orNull(o.notes), images, photoIds: [],
 });
 export const toBreakageReport = (o: Partial<BreakageReport.Props>): BreakageReportRow => ({
   breakageId: o.breakageId ?? "", eventCode: o.eventCode ?? "", teamNumber: o.teamNumber ?? 0, teamUuid: orNull(o.teamUuid),
   reporter: o.reporter ?? "", createdAt: o.createdAt ?? "", matchKey: orNull(o.matchKey),
-  phase: orNull(o.phase), fieldLocation: orNull(o.fieldLocation), mechanism: orNull(o.mechanism), component: orNull(o.component),
-  failureType: orNull(o.failureType), severity: orNull(o.severity), symptoms: orNull(o.symptoms), actionBefore: orNull(o.actionBefore),
-  cause: orNull(o.cause), causeConfidence: orNull(o.causeConfidence), lostSeconds: orNull(o.lostSeconds), repairMinutes: orNull(o.repairMinutes),
-  recovered: orNull(o.recovered), happenedBefore: orNull(o.happenedBefore), recurrence: orNull(o.recurrence),
-  fix: orNull(o.fix), spareUsed: orNull(o.spareUsed), evidence: orNull(o.evidence),
+  mechanism: orNull(o.mechanism), component: orNull(o.component),
+  failureType: orNull(o.failureType), severity: orNull(o.severity), notes: notesOf(o),
 });

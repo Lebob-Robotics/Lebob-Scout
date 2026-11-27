@@ -1,4 +1,6 @@
-import type { Api } from "./api";
+import type { Api, PitUpload } from "./api";
+import { photoStore } from "./photos";
+import type { PhotoStore } from "./photos";
 import { reportId } from "./storage";
 import type { Store } from "./storage";
 
@@ -16,16 +18,29 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 export const shortError = (e: unknown) => (e instanceof Error ? e.message : String(e)).split("\n")[0].slice(0, 120);
 
 // Match reports: attempts > 0 means a create may have reached the server, so check before creating a second copy.
-// Pit and breakage reports are saved as "create or replace", which is safe to send again.
+// Pit and breakage reports are saved as "create or replace", which is safe to send again. A pit report's new photos
+// are read from the phone's photo store and go up with it; they are deleted from the phone once it is saved. A photo the
+// phone no longer holds is skipped, so the report still sends.
 export async function flush(
-  api: Pick<Api, "exists" | "create" | "savePit" | "saveBreakage">, store: Store, timeoutMs = 20_000,
+  api: Pick<Api, "exists" | "create" | "savePit" | "saveBreakage">, store: Store, timeoutMs = 20_000, photos: PhotoStore = photoStore,
 ): Promise<{ saved: number; waiting: number }> {
   let saved = 0;
   for (const p of [...store.pending()]) {
     const id = reportId(p);
     if (p.kind === "pit" || p.kind === "breakage") {
       try {
-        await withTimeout(p.kind === "pit" ? api.savePit(p.pit) : api.saveBreakage(p.breakage), timeoutMs);
+        if (p.kind === "pit") {
+          const ids = p.pit.photoIds ?? [];
+          const uploads: PitUpload[] = [];
+          for (const [i, photoId] of ids.entries()) {
+            const blob = await photos.get(photoId);
+            if (blob) uploads.push({ id: photoId, name: `robot-${p.pit.teamNumber}-${Date.now()}-${i + 1}.jpg`, blob });
+          }
+          await withTimeout(api.savePit(p.pit, uploads), timeoutMs);
+          await photos.remove(ids);
+        } else {
+          await withTimeout(api.saveBreakage(p.breakage), timeoutMs);
+        }
         store.remove(id);
         saved++;
       } catch (e) {

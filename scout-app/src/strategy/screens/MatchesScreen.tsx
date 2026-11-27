@@ -44,7 +44,7 @@ export function MatchesScreen({ ctx }: { ctx: Ctx }) {
                     <td><span className="ablocks">{block("red", rs, f.played)}{block("blue", rs, f.played)}</span></td>
                     <td className="num">
                       {f.played ? `${f.redActual ?? "–"}–${f.blueActual ?? "–"}`
-                        : none ? <span className="caption" title={`No data on ${f.missing!.join(", ")}`}>Not enough data</span>
+                        : none ? <span className="caption keep" title={`No data on ${f.missing!.join(", ")}`}>Not enough data</span>
                         : <span className="expected">≈{expected(f.redScore, f.officialRed)}–{expected(f.blueScore, f.officialBlue)}</span>}
                     </td>
                     <td className="num">{none ? "–" : pct(f.pRed)}</td>

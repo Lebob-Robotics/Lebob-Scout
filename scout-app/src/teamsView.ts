@@ -35,42 +35,30 @@ export function chips(t: TeamProfile): Chip[] {
 
 const CAN: [keyof PitSummary, string][] = [
   ["canHive", "HIVE"], ["canFlower", "FLOWER"], ["canNectar", "NECTAR"], ["canFloorIntake", "floor intake"],
-  ["canFlowerIntake", "FLOWER intake"], ["canDefend", "defence"], ["autoLeave", "auto leave"], ["autoPark", "auto park"],
+  ["canFlowerIntake", "FLOWER intake"],
 ];
 const words = (v: string | undefined) => (v ? optionLabel(v) : null);
 const join = (parts: (string | false | null | undefined)[]) => parts.filter(Boolean).join(" · ");
 
-// A pit report as lines for the team's profile: who and what it is, what it can and can't do, what it claims, notes.
+// A pit report as lines for the team's profile: who and what it is, what it can and can't do, notes.
 // Blank fields are left out; a line with nothing in it is dropped.
 export function pitLines(p: PitSummary): string[] {
   const can = CAN.filter(([k]) => p[k] === true).map(([, l]) => l);
   const cannot = CAN.filter(([k]) => p[k] === false).map(([, l]) => l);
   return [
-    join([p.scout || "?", words(p.archetype), words(p.drivetrain), p.preferredStart && `starts ${words(p.preferredStart)!.toLowerCase()}`]),
+    join([p.scout || "?", words(p.archetype), words(p.drivetrain)]),
     can.length ? `Can: ${can.join(", ")}` : "",
     cannot.length ? `Can't: ${cannot.join(", ")}` : "",
-    join([
-      p.claimedCycleSeconds != null && `${p.claimedCycleSeconds}s cycle`,
-      p.claimedTipsPerMatch != null && `${p.claimedTipsPerMatch} TIPS / match`,
-      p.autoTipsClaimed != null && `${p.autoTipsClaimed} auto TIPS`,
-      p.heightInches != null && `${p.heightInches} in`,
-      p.weightKg != null && `${p.weightKg} kg`,
-    ]),
-    p.autoRoutines ? `Auto: ${p.autoRoutines}` : "",
-    p.knownIssues ? `Known issues: ${p.knownIssues}` : "",
     p.notes ?? "",
   ].filter(Boolean);
 }
 
-// One breakage as a line: when, what broke, how badly, why, and what happened after.
+// One breakage as a line: when, what broke, how badly, and who reported it.
 export const breakageLine = (b: BreakageSummary) => join([
   b.matchLabel ?? "pit/practice",
   b.component && b.mechanism ? `${b.mechanism}: ${b.component}` : b.component || b.mechanism,
   words(b.failureType)?.toLowerCase(),
   b.severity != null && `severity ${b.severity}`,
-  b.cause && `cause ${words(b.cause)!.toLowerCase()}${b.causeConfidence ? ` (${b.causeConfidence})` : ""}`,
-  b.recovered === true ? "recovered" : b.recovered === false && "did not recover",
-  b.fix && `fix: ${b.fix}`,
   b.reporter,
 ]);
 

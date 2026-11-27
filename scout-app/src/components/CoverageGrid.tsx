@@ -19,7 +19,7 @@ export function CoverageGrid({ coverage, eventUuid, gapsOnly, onGapsOnly, onScou
   const width = Math.max(...coverage.rows.map((r) => r.cells.length));
   return (
     <>
-      <p className="caption">{coverageLine(coverage)}</p>
+      <p className="caption keep">{coverageLine(coverage)}</p>
       <button type="button" aria-pressed={gapsOnly} onClick={() => onGapsOnly(!gapsOnly)}>Only matches with gaps</button>
       {rows.length ? (
         <div className="coverage" style={{ gridTemplateColumns: `2.25rem repeat(${width}, minmax(3.5rem, 1fr))` }}>

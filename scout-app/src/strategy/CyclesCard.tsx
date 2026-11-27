@@ -15,11 +15,9 @@ const PART_NAMES: Record<Part["name"], string> = { collect: "Collect", travel: "
 const ROUTE_COLOUR = "#d4d4d8";
 const poly = (pts: [number, number][]) => pts.map((q) => q.join(",")).join(" ");
 
-// The cycle time: scouted, or (in italics, tagged) what the pit report claims.
+// The cycle time, from our scouting; a dash when none is timed.
 export function CycleTimeFig({ time }: { time: CycleTime | null }) {
-  if (!time) return <>–</>;
-  if (time.source === "scouted") return <span className="fig" title="Scouted">{one(time.value)}s</span>;
-  return <span className="fig model" title="The pit report's claim: no cycles scouted yet">{one(time.value)}s<small> pit claim</small></span>;
+  return time ? <span className="fig" title="Scouted">{one(time.value)}s</span> : <>–</>;
 }
 
 // One team's teleop cycles, from our scouting only: how many a match, how long and where the time goes, pieces each
@@ -28,7 +26,7 @@ export function CyclesCard({ ctx, team }: { ctx: Ctx; team: number }) {
   const [measure, setMeasure] = useState<CycleMeasure>("passes");
   const c = ctx.teamCycles(team);
   const fig = cyclesFigure(c);
-  const time = cycleTime(fig ? c : undefined, ctx.profile(team)?.pits ?? []);
+  const time = cycleTime(fig ? c : undefined);
   const parts = fig ? timeParts(c) : null;
   return (
     <Card title="Cycles" control={fig && <Switch label="Cycle map" value={measure} options={MEASURES} onChange={setMeasure} />}>

@@ -131,7 +131,7 @@ export function StartPad({ fieldKey, flipped, alliance, value, onChange, onFlip 
         </div>
       </div>
       <div className="start-bar">
-        <p className="caption" aria-live="polite">{caption}</p>
+        <p className={!alliance || wrongHalf || value !== null ? "caption keep" : "caption"} aria-live="polite">{caption}</p>
         <button type="button" onClick={onFlip}>Rotate view</button>
         {!full && <button type="button" onClick={openFull}><span aria-hidden="true">⛶</span> Fullscreen</button>}
       </div>

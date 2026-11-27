@@ -96,7 +96,7 @@ export function AutoPathPad({ fieldKey, flipped, value, onChange, start, allianc
       </div>
       <div className="field-space">
         <div className="field">
-          <FieldPicture fieldKey={fieldKey} flipped={flipped} />
+          <FieldPicture fieldKey={fieldKey} flipped={flipped} scoring={alliance} />
           <div
             className="pad-surface"
             aria-label="Field diagram: draw the AUTO path"
@@ -122,7 +122,7 @@ export function AutoPathPad({ fieldKey, flipped, value, onChange, start, allianc
           </div>
         </div>
       </div>
-      <p className="caption" aria-live="polite">{caption}</p>
+      <p className={full ? "caption keep" : "caption"} aria-live="polite">{caption}</p>
     </div>
   );
 }

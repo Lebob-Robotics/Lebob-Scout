@@ -1,18 +1,7 @@
 import { test, expect } from "vitest";
-import { cellName, cellTarget, clockTime, coverageLine, gapRows, noteLine, scoutLine } from "./teams";
+import { cellName, cellTarget, clockTime, coverageLine, gapRows, noteLine } from "./teams";
 
 const now = new Date(2026, 10, 25, 18, 0).getTime(); // a Wednesday evening, phone's own time
-const scout = { scoutUserId: "u1", scoutName: "Alice", reports: 3, pitReports: 0, breakages: 0, lastAt: new Date(2026, 10, 25, 14, 5).toISOString() };
-
-test("scoutLine gives name, reports and the latest time in the phone's own time", () => {
-  expect(scoutLine(scout, "u2", now)).toBe("Alice · 3 match reports · last 2:05\u00a0pm");
-});
-
-test("scoutLine marks the signed-in scout, says 1 report, and shows ? for no name", () => {
-  expect(scoutLine({ ...scout, reports: 1 }, "u1", now)).toBe("Alice (you) · 1 match report · last 2:05\u00a0pm");
-  expect(scoutLine({ ...scout, scoutName: "", lastAt: new Date(2026, 10, 25, 0, 30).toISOString() }, "u2", now)).toBe("? · 3 match reports · last 12:30\u00a0am");
-  expect(scoutLine({ ...scout, lastAt: new Date(2026, 10, 25, 12, 0).toISOString() }, "u2", now)).toBe("Alice · 3 match reports · last 12:00\u00a0pm");
-});
 
 test("clockTime adds the short weekday only for a time on another day", () => {
   expect(clockTime(new Date(2026, 10, 25, 9, 0).toISOString(), now)).toBe("9:00\u00a0am");
@@ -20,10 +9,6 @@ test("clockTime adds the short weekday only for a time on another day", () => {
   expect(clockTime(new Date(2026, 10, 22, 9, 0).toISOString(), now)).toBe("Sun 9:00\u00a0am");
   expect(clockTime(new Date(2026, 10, 21, 16, 10).toISOString(), now)).toBe("Sat 4:10\u00a0pm");
   expect(clockTime(new Date(2026, 10, 26, 0, 5).toISOString(), now)).toBe("Thu 12:05\u00a0am");
-});
-
-test("scoutLine names the day of a latest report from another day", () => {
-  expect(scoutLine({ ...scout, lastAt: new Date(2026, 10, 21, 16, 10).toISOString() }, "u2", now)).toBe("Alice · 3 match reports · last Sat 4:10\u00a0pm");
 });
 
 test("noteLine names the event and how a match counts as played", () => {
@@ -79,11 +64,6 @@ test("cellName says the match, alliance, team, reports and what a tap does", () 
   expect(cellName(r, cell(3), false)).toBe("Q3, red, 12345 Bolt, 3 reports");
 });
 
-test("scoutLine adds pit reports and breakages when there are any, and drops 0 match reports for a pit-only scout", () => {
-  expect(scoutLine({ ...scout, pitReports: 2, breakages: 1 }, "u2", now)).toBe("Alice · 3 match reports · 2 pit reports · 1 breakage · last 2:05 pm");
-  expect(scoutLine({ ...scout, scoutUserId: "", scoutName: "JK", reports: 0, pitReports: 1 }, "", now)).toBe("JK · 1 pit report · last 2:05 pm");
-});
-
 test("clockTime reads a moment on the event's clock when given its zone", () => {
   const at = Date.parse("2026-12-04T22:00:00Z"); // 9:00 am Saturday in Sydney, 6:00 am Saturday in Perth
   expect(clockTime("2026-12-04T22:00:00Z", at, "Australia/Sydney")).toBe("9:00 am");
@@ -101,11 +81,6 @@ test("clockTime gives nothing for an empty or unreadable time, with or without a
 test("clockTime reads a time with no zone as UTC, as the old site wrote them", () => {
   const at = Date.parse("2026-12-04T22:00:00Z");
   expect(clockTime("2026-12-04T22:00:00", at, "Australia/Sydney")).toBe("9:00 am");
-});
-
-test("scoutLine leaves off \"last\" when none of the scout's reports has a time", () => {
-  expect(scoutLine({ ...scout, lastAt: "" }, "u2", now)).toBe("Alice · 3 match reports");
-  expect(scoutLine({ ...scout, lastAt: "" }, "u2", now, "Australia/Sydney")).toBe("Alice · 3 match reports");
 });
 
 test("noteLine says whose clock the times are on", () => {

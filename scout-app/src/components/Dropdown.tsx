@@ -9,9 +9,9 @@ import { SEARCH_OVER, filterItems, placePanel, stepIndex, typeAhead, type DdItem
 // `label` names the list for screen readers and heads the sheet; `id` lets a <label htmlFor> point at the button.
 const phone = () => typeof matchMedia === "function" && matchMedia("(max-width: 640px), (pointer: coarse)").matches;
 
-export function Dropdown({ id, label, value, items, onChange, placeholder = "–", search, mono = false, className }: {
+export function Dropdown({ id, label, value, items, onChange, placeholder = "–", search, className }: {
   id?: string; label: string; value: string; items: DdItem[]; onChange(value: string): void;
-  placeholder?: string; search?: boolean; mono?: boolean; className?: string;
+  placeholder?: string; search?: boolean; className?: string;
 }) {
   const [open, setOpen] = useState<{ sheet: boolean; place: Place | null } | null>(null);
   const [query, setQuery] = useState("");
@@ -95,7 +95,7 @@ export function Dropdown({ id, label, value, items, onChange, placeholder = "–
   const place = open?.place;
   return (
     <>
-      <button ref={button} id={id} type="button" className={["dd-btn", mono && "mono", className].filter(Boolean).join(" ")}
+      <button ref={button} id={id} type="button" className={["dd-btn", className].filter(Boolean).join(" ")}
         aria-haspopup="listbox" aria-expanded={!!open} aria-label={`${label}: ${text || "not set"}`}
         onClick={() => (open ? close(true) : show())}
         onKeyDown={(e) => { if (!open && (e.key === "ArrowDown" || e.key === "ArrowUp")) { e.preventDefault(); show(); } }}>
@@ -119,10 +119,10 @@ export function Dropdown({ id, label, value, items, onChange, placeholder = "–
             <div ref={list} className="dd-list" role="listbox" aria-label={label}>
               {shown.length ? shown.map((it) => (
                 <button key={it.value} type="button" role="option" aria-selected={it.value === value}
-                  className={mono ? "dd-opt mono" : "dd-opt"} onClick={() => pick(it.value)}>
+                  className="dd-opt" onClick={() => pick(it.value)}>
                   <span className={it.tone ? `dd-l ally ${it.tone}` : "dd-l"}>{it.label}</span>{it.sub && <span className="dd-s">{it.sub}</span>}
                 </button>
-              )) : <p className="caption dd-none">Nothing matches.</p>}
+              )) : <p className="caption keep dd-none">Nothing matches.</p>}
             </div>
           </div>
         </>,

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { EventRow } from "../../api";
 import { Dropdown } from "../../components/Dropdown";
+import { notesOn, setNotes as storeNotes } from "../../prefs";
 import { useTheme, type ThemeChoice } from "../../theme";
 import { Card } from "../parts";
 import { ALLIANCE_CHOICES, REFRESH_CHOICES, parseTeam, type Settings } from "../settings";
@@ -32,6 +33,7 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
   const [teamText, setTeamText] = useState(String(settings.ourTeam));
   const typed = parseTeam(teamText);
   const [asked, setAsked] = useState(false);
+  const [notes, setNotes] = useState(notesOn);
 
   return (
     <div className="strategy-screen">
@@ -44,7 +46,7 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
               : (
                 <div className="event-pick">
                   <span className="label">Event</span>
-                  <Dropdown label="Event" mono value={event?.eventUuid ?? ""} placeholder="Pick an event" onChange={onEvent}
+                  <Dropdown label="Event" value={event?.eventUuid ?? ""} placeholder="Pick an event" onChange={onEvent}
                     items={events.data.map((e) => ({ value: e.eventUuid, label: e.eventName }))} />
                 </div>
               )}
@@ -69,7 +71,7 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
             <Seg label="Refresh every" value={settings.refreshMinutes} onChange={(v) => onChange({ refreshMinutes: v })}
               options={REFRESH_CHOICES.map((m): [number, string] => [m, m ? `${m} min` : "Off"])} />
             <button type="button" onClick={() => { setAsked(true); onRefresh(); }}>Refresh now</button>
-            {asked && <p className="caption" role="status">Asked for the latest figures. They show when they arrive.</p>}
+            {asked && <p className="caption keep" role="status">Asked for the latest figures. They show when they arrive.</p>}
           </Card>
         </div>
 
@@ -80,6 +82,7 @@ export function SettingsScreen({ events, retryEvents, event, onEvent, settings, 
             <Seg label="Team heatmap opens on" value={settings.measure} onChange={(v) => onChange({ measure: v })}
               options={[["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]]} />
             <Seg label="Times" value={settings.clock} onChange={(v) => onChange({ clock: v })} options={[["event", "Event's clock"], ["device", "This device"]]} />
+            <Seg label="Help notes" value={notes ? "on" : "off"} onChange={(v) => { storeNotes(v === "on"); setNotes(v === "on"); }} options={[["on", "On"], ["off", "Off"]]} />
           </Card>
 
           <Card title="Theme">

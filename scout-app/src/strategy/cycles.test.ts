@@ -25,12 +25,10 @@ test("cyclesFigure gives cycles per match with its low and high match, or nothin
   expect(cyclesFigure(undefined)).toBeNull();
 });
 
-test("cycleTime is scouted first, then the pit report's claim, never anything else", () => {
-  expect(cycleTime(team({ seconds: 14.2 }), [{ claimedCycleSeconds: 9 }])).toEqual({ value: 14.2, source: "scouted" });
-  expect(cycleTime(team(), [{}, { claimedCycleSeconds: 9 }])).toEqual({ value: 9, source: "pit" });
-  expect(cycleTime(undefined, [{ claimedCycleSeconds: 11 }])).toEqual({ value: 11, source: "pit" });
-  expect(cycleTime(undefined, [])).toBeNull();
-  expect(cycleTime(team(), [{}])).toBeNull();
+test("cycleTime is the scouted time, or nothing", () => {
+  expect(cycleTime(team({ seconds: 14.2 }))).toEqual({ value: 14.2 });
+  expect(cycleTime(team())).toBeNull();
+  expect(cycleTime(undefined)).toBeNull();
 });
 
 test("timeParts splits the cycle time into collect, travel and shoot shares that add up", () => {

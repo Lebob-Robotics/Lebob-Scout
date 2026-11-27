@@ -39,14 +39,14 @@ export function TeamRow({ team: t, now, timeZone, open, onToggle, measure, onMea
   const nextAt = t.nextTime ? clockTime(t.nextTime, now, timeZone) : "";
 
   return (
-    <details className="team" open={open} onToggle={(e) => { if (e.currentTarget.open !== open) onToggle(e.currentTarget.open); }}>
+    <details className={t.need ? "team need" : "team"} open={open} onToggle={(e) => { if (e.currentTarget.open !== open) onToggle(e.currentTarget.open); }}>
       <summary>
         <span className="num">{t.teamNumber}</span>
         <span className="name">{t.name}</span>
         <span className="chips">{chips(t).map((c) => <span key={c.text} className={`chip ${c.tone}`}>{c.text}</span>)}</span>
       </summary>
       <div className="team-body">
-        {t.nextLabel && <p className="caption">Next scheduled: {t.nextLabel}{nextAt ? ` at ${nextAt}` : ""}.</p>}
+        {t.nextLabel && <p className="caption keep">Next scheduled: {t.nextLabel}{nextAt ? ` at ${nextAt}` : ""}.</p>}
         {t.matches ? (
           <>
             <dl className="tiles">{tiles.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>

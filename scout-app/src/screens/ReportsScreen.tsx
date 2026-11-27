@@ -52,7 +52,6 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, waitingLabels =
 
   return (
     <div className="reports">
-      <h1>Reports</h1>
       {waiting > 0 && (
         <div className="banner">
           <p>Saved on this phone: {waiting === 1 ? "1 report waits to send" : `${waiting} reports wait to send`}</p>
@@ -61,27 +60,30 @@ export function ReportsScreen({ api, eventUuid, userId, waiting, waitingLabels =
           {lastError && <p className="last-error">Last try: {lastError}</p>}
         </div>
       )}
-      <button type="button" className="new" onClick={onNew}>New match</button>
-      {failed ? (
-        <p>Couldn't load reports. <button type="button" className="retry" onClick={reload}>Retry</button></p>
-      ) : !reports ? (
-        <p>Loading…</p>
-      ) : !reports.length ? (
-        <p>No reports yet for this event.</p>
-      ) : (
-        <ul className="report-list">
-          {sortReports(reports, userId).map((o) => (
-            <li key={o.observationId}>
-              <button type="button" className="report" onClick={() => setOpen(o)}>
-                <span className={`ally ${o.alliance}`}>{o.alliance === "red" ? "Red" : "Blue"}</span>
-                <strong>{o.label}</strong>
-                {!o.matchUuid && <span className="tag">unlinked</span>}
-                <span className="meta">{o.scoutName} · {taps(o)}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+      <div className="card">
+        <h2>Match reports</h2>
+        <button type="button" className="new" onClick={onNew}>New match</button>
+        {failed ? (
+          <p>Couldn't load reports. <button type="button" className="retry" onClick={reload}>Retry</button></p>
+        ) : !reports ? (
+          <p>Loading…</p>
+        ) : !reports.length ? (
+          <p>No reports yet for this event.</p>
+        ) : (
+          <ul className="report-list">
+            {sortReports(reports, userId).map((o) => (
+              <li key={o.observationId}>
+                <button type="button" className="report" onClick={() => setOpen(o)}>
+                  <span className={`ally ${o.alliance}`}>{o.alliance === "red" ? "Red" : "Blue"}</span>
+                  <strong>{o.label}</strong>
+                  {!o.matchUuid && <span className="tag">unlinked</span>}
+                  <span className="meta">{o.scoutName} · {taps(o)}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   );
 }

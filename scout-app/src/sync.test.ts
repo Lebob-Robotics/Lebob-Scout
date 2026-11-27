@@ -1,6 +1,7 @@
 import { test, expect } from "vitest";
 import { flush, linkUnlinked, shortError } from "./sync";
 import { createStore } from "./storage";
+import { createPhotoStore } from "./photos";
 import { anyPresence, breakageReport, fake, fakeStorage, obs, pitReport, storeWith } from "./testHelpers";
 
 test("a good save leaves the queue empty", async () => {
@@ -69,6 +70,27 @@ test("pit and breakage reports send as create-or-replace alongside match reports
   const api = fake({});
   expect(await flush(api, s)).toEqual({ saved: 3, waiting: 0 });
   expect(api.calls).toEqual(["create a", "savePit p1", "saveBreakage b1"]);
+});
+test("a pit report's new photos go up with it and are deleted from the phone once it is saved", async () => {
+  const photos = createPhotoStore();
+  await photos.put("n1", new Blob(["a"])); await photos.put("n2", new Blob(["b"]));
+  const s = createStore(fakeStorage());
+  s.enqueueReport({ kind: "pit", pit: { ...pitReport("p1"), photoIds: ["n1", "gone", "n2"] } });
+  const api = fake({}); api.saveThrows = true;
+  expect(await flush(api, s, 1000, photos)).toEqual({ saved: 0, waiting: 1 });
+  expect(await photos.get("n1")).not.toBeNull(); // a failed send keeps the photos for the retry
+  api.saveThrows = false;
+  expect(await flush(api, s, 1000, photos)).toEqual({ saved: 1, waiting: 0 });
+  expect(api.calls.at(-1)).toBe("savePit p1 +2"); // the photo the phone no longer held is skipped
+  expect(await photos.get("n1")).toBeNull();
+  expect(await photos.get("n2")).toBeNull();
+});
+test("a pit report queued before photos existed still sends", async () => {
+  const s = createStore(fakeStorage());
+  const old = pitReport("p1") as Partial<ReturnType<typeof pitReport>>;
+  delete old.images; delete old.photoIds;
+  s.enqueueReport({ kind: "pit", pit: old as ReturnType<typeof pitReport> });
+  expect(await flush(fake({}), s)).toEqual({ saved: 1, waiting: 0 });
 });
 test("a pit report that fails to send stays queued with its error, and the rest still send", async () => {
   const s = createStore(fakeStorage());

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CURRENT_FIELD_KEY, FIELDS } from "./field";
-import { matchSummary, queuePill } from "./summary";
+import { matchSummary, unsentNote } from "./summary";
 
 const field = FIELDS[CURRENT_FIELD_KEY];
 
@@ -20,11 +20,19 @@ describe("matchSummary", () => {
   });
 });
 
-describe("queuePill", () => {
-  it("shows the waiting count, and Offline when there is no signal", () => {
-    expect(queuePill(true, 0)).toBe("0 unsent");
-    expect(queuePill(true, 2)).toBe("2 unsent");
-    expect(queuePill(false, 0)).toBe("Offline");
-    expect(queuePill(false, 3)).toBe("Offline · 3 unsent");
+describe("unsentNote", () => {
+  it("is empty when nothing waits", () => {
+    expect(unsentNote(true, 0, null)).toBe("");
+    expect(unsentNote(false, 0, null)).toBe("");
+  });
+
+  it("counts the reports and says internet is needed", () => {
+    expect(unsentNote(false, 1, null)).toBe("1 report hasn't been sent yet. This phone has no internet. Reports need internet to send, and send by themselves once it is back online.");
+    expect(unsentNote(false, 3, "x")).toContain("3 reports haven't been sent yet. This phone has no internet.");
+  });
+
+  it("when online, says the last failure", () => {
+    expect(unsentNote(true, 2, "timed out")).toBe("2 reports haven't been sent yet. They need internet to send. The last try failed: timed out. They try again by themselves.");
+    expect(unsentNote(true, 2, null)).toContain("sending now");
   });
 });

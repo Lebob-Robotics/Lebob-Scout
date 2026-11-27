@@ -17,7 +17,7 @@ export function MatchScreen({ ctx, matchUuid, onMatch }: { ctx: Ctx; matchUuid: 
   const f = model.forecasts.find((x) => x.matchUuid === matchUuid) ?? defaultMatch(model.forecasts, ctx.ourTeam);
   if (!f) return <div className="strategy-screen"><p>No forecasts yet for this event.</p></div>;
   const picker = (
-    <Dropdown label="Match" mono value={f.matchUuid} onChange={onMatch}
+    <Dropdown label="Match" value={f.matchUuid} onChange={onMatch}
       items={model.forecasts.map((x) => ({ value: x.matchUuid, label: labels.get(x.matchUuid) ?? "", sub: `${x.red.join(" ")} v ${x.blue.join(" ")}${x.played ? " (played)" : ""}` }))} />
   );
   return <div className="strategy-screen"><Plan key={f.matchUuid} ctx={ctx} f={f} picker={picker} /></div>;
@@ -114,9 +114,9 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
         const opr = ctx.model.teams.find((r) => r.teamNumber === team)?.opr ?? null;
         const p = ctx.profile(team);
         const pts = ctx.points(team);
-        // Cycles from our scouting only; a team nobody scouted shows its pit report's claimed cycle time.
+        // Cycles from our scouting only; a team nobody scouted shows a dash.
         const cyc = cyclesFigure(ctx.teamCycles(team));
-        const time = cycleTime(cyc ? ctx.teamCycles(team) : undefined, p?.pits ?? []);
+        const time = cycleTime(cyc ? ctx.teamCycles(team) : undefined);
         const map = maps?.[side].robots.find((r) => r.teamNumber === team);
         return (
           <div key={team} className="robot">
@@ -133,7 +133,7 @@ function AllianceCol({ ctx, f, side, maps, scope }: { ctx: Ctx; f: Forecast; sid
             {map?.matches || p?.starts.length ? (
               <HeatField small cells={teamCells(map?.squares ?? [], scope)} tone={scope} starts={(p?.starts ?? []).map((s) => ({ ...s, alliance: side }))} smooth={ctx.settings.heatStyle === "smooth"}
                 label={`${team} ${scope === "scored" ? "scoring" : "pick-ups"} per match, and start spots`} />
-            ) : <p className="caption">Not scouted yet.</p>}
+            ) : <p className="caption keep">Not scouted yet.</p>}
           </div>
         );
       })}

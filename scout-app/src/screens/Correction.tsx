@@ -26,9 +26,11 @@ export function Correction({ api, report, onBack, onSaved }: { api: Api; report:
     <>
       <div className="reports">
         <button type="button" className="back" onClick={onBack}>Back</button>
-        <h1 className="match-label">{report.label}</h1>
-        <p>Recorded by {report.scoutName} · {taps(report)} (taps can't be changed)</p>
-        <MatchRobotPicker key={report.observationId} api={api} eventUuid={report.eventUuid} value={target} onChange={setTarget} />
+        <div className="card">
+          <h2>{report.label}</h2>
+          <p>Recorded by {report.scoutName} · {taps(report)} (taps can't be changed)</p>
+          <MatchRobotPicker key={report.observationId} api={api} eventUuid={report.eventUuid} value={target} onChange={setTarget} />
+        </div>
       </div>
       <FinalScreen
         key={report.observationId}

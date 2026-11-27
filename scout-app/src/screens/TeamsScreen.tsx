@@ -5,7 +5,7 @@ import { TeamRow } from "../components/TeamRow";
 import type { Observation, Target } from "../observation";
 import { rememberedEvent } from "../schedule";
 import { withTimeout } from "../sync";
-import { noteLine, scoutLine } from "../teams";
+import { noteLine } from "../teams";
 import { type Filter, shown } from "../teamsView";
 import { Correction } from "./Correction";
 
@@ -109,17 +109,16 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
 
   return (
     <div className="reports teams">
-      <div className="teams-head">
-        <h1>Teams</h1>
-        {data && <button type="button" onClick={reload} disabled={busy}>{busy ? "Refreshing…" : "Refresh"}</button>}
-      </div>
       {!data ? (
         busy ? <p>Loading…</p> : <p>Couldn't load teams. {retry}</p>
       ) : (
         <>
           {failed && <p className="save-note error" role="alert">Couldn't refresh. Showing the last figures.</p>}
           <section className="card">
-            <h2>Scouting status</h2>
+            <div className="teams-head">
+              <h2>Scouting status</h2>
+              <button type="button" onClick={reload} disabled={busy}>{busy ? "Refreshing…" : "Refresh"}</button>
+            </div>
             <dl className="tiles">
               <div><dt>teams</dt><dd>{data.teams.length}</dd></div>
               <div><dt>need scouting</dt><dd>{data.needScouting}</dd></div>
@@ -163,14 +162,6 @@ export function TeamsScreen({ api, eventUuid, userId, waiting, refresh = 0, hidd
           <section className="card">
             <h2>Match coverage</h2>
             <CoverageGrid coverage={data.coverage} eventUuid={eventUuid} gapsOnly={gapsOnly} onGapsOnly={setGapsOnly} onScout={scout} />
-          </section>
-          <section className="card">
-            <h2>Scouts</h2>
-            {data.scouts.length ? (
-              <ul className="scouts">{data.scouts.map((s) => <li key={s.scoutUserId}>{scoutLine(s, userId, last.at, data.timeZone)}</li>)}</ul>
-            ) : (
-              <p>No reports yet for this event.</p>
-            )}
           </section>
         </>
       )}

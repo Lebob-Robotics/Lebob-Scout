@@ -1,4 +1,4 @@
-import type { Coverage, CoverageCell, CoverageRow, ScoutTally } from "./api";
+import type { Coverage, CoverageCell, CoverageRow } from "./api";
 import type { Target } from "./observation";
 import { storedMs } from "./screens/reportTime";
 
@@ -37,19 +37,6 @@ export const clockTime = (iso: string, now: number, timeZone?: string) => {
   const t = inZone(ms, timeZone);
   const day = t.day === inZone(now, timeZone).day ? "" : `${t.weekday} `;
   return `${day}${t.hours % 12 || 12}:${String(t.minutes).padStart(2, "0")} ${t.hours < 12 ? "am" : "pm"}`;
-};
-
-const count = (n: number, one: string) => `${n} ${one}${n === 1 ? "" : "s"}`;
-// Match reports always show, unless the scout has only pit or breakage reports; those show when there are any.
-// "last" is left off when none of the scout's reports has a time.
-export const scoutLine = (s: ScoutTally, userId: string, now: number, timeZone?: string) => {
-  const kinds = [
-    (s.reports || !(s.pitReports || s.breakages)) && count(s.reports, "match report"),
-    s.pitReports > 0 && count(s.pitReports, "pit report"),
-    s.breakages > 0 && count(s.breakages, "breakage"),
-  ].filter(Boolean);
-  const last = clockTime(s.lastAt, now, timeZone);
-  return `${s.scoutName || "?"}${s.scoutUserId && s.scoutUserId === userId ? " (you)" : ""} · ${kinds.join(" · ")}${last ? ` · last ${last}` : ""}`;
 };
 
 // The coverage card's summary, from the counts the function gives.

@@ -18,7 +18,7 @@ import { applyMotion } from "./prefs";
 import { TeamsScreen } from "./screens/TeamsScreen";
 import { createStore, pendingLabel } from "./storage";
 import { READ_LIMIT_MS, linkUnlinked, withTimeout } from "./sync";
-import { queuePill } from "./summary";
+import { unsentNote } from "./summary";
 import { useOnline } from "./useOnline";
 import { useSaveQueue } from "./useSaveQueue";
 
@@ -286,10 +286,10 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
       />
     );
   } else if (screen === "pit" && event) {
-    body = <PitScreen key={`pit-${formTeam.n}`} api={api} eventCode={event.eventCode} waiting={waitingPits} refresh={queue.saved}
+    body = <PitScreen key={`pit-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingPits} refresh={queue.saved}
       initialTeam={formTeam.team} whoAmI={whoAmI} onSave={(pit) => queueReport({ kind: "pit", pit })} />;
   } else if (screen === "breakage" && event) {
-    body = <BreakageScreen key={`breakage-${formTeam.n}`} api={api} eventCode={event.eventCode} waiting={waitingBreakages} refresh={queue.saved}
+    body = <BreakageScreen key={`breakage-${formTeam.n}`} api={api} eventUuid={event.eventUuid} eventCode={event.eventCode} waiting={waitingBreakages} refresh={queue.saved}
       initialTeam={formTeam.team} whoAmI={whoAmI} onSave={(breakage) => queueReport({ kind: "breakage", breakage })} />;
   } else {
     body = <SetupScreen api={api} initial={scoutTarget ?? undefined} onStart={(t, square, flipped, wallPos) => { keep(newDraft(t, square, flipped, wallPos)); setScreen("live"); }} />;
@@ -297,7 +297,7 @@ export default function App({ api, signedOut = false, onSignIn }: { api: Api; si
 
   return (
     <>
-      {!live && <Header event={event?.eventCode} pill={queuePill(online, queue.waiting)} />}
+      {!live && <Header event={event?.eventCode} unsent={unsentNote(online, queue.waiting, queue.lastError)} />}
       {!live && TABS.some(([s]) => s === screen) && eventUuid && !correcting && (
         <nav className="tabs" aria-label="Screens">
           {TABS.map(([s, label]) => (

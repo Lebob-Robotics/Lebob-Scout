@@ -179,6 +179,8 @@ export function createDevStrategyApi({ failModel = false, failMaps = false, fail
     matches: (e) => base.matches(e),
     presences: (m) => base.presences(m),
     teamsTab: (e) => base.teamsTab(e),
+    pitPhoto: (id) => base.pitPhoto(id),
+    pitPhotoIds: (ids) => base.pitPhotoIds(ids),
     ratings: (e) => read(e, ratings, []),
     projections: (e) => read(e, projections, []),
     games: (e) => read(e, (gs) => gs, []),
