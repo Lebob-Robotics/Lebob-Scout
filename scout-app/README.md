@@ -2,6 +2,14 @@
 
 A phone web app for scouting robotics matches. A scout picks the match and robot, taps what the robot does on a field grid during the match, fills in a short final page, and the report is saved to Palantir Foundry. The match in progress and any unsent reports are kept on the phone, so a refresh or a drop in signal loses nothing.
 
+This project builds two React apps that share one Foundry site and one sign-in:
+
+- the scout app, `index.html` with its entry `src/scout/main.tsx` and its screens in `src/scout/`, served at `/`;
+- the strategy app, `strategy/index.html` with its entry `src/strategy/main.tsx`, served at `/strategy/` (an old `/strategy` link is forwarded there);
+- code both use (the Foundry API, sign-in, field drawing, the dropdown, styles, the save queue, start-up in `src/shared/boot.tsx`) in `src/shared/`. Neither app imports the other's folder.
+
+One `npm run build` makes `dist/index.html` and `dist/strategy/index.html`, and one deploy publishes both. Sign-in always returns to `/auth/callback`, which the scout page answers; if the strategy app started the sign-in, the scout page sends the browser back to it.
+
 ## Running it
 
 ```sh
@@ -9,9 +17,11 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173/?dev=1 to use made-up data held in memory instead of Foundry (development builds only). Add `&fail=1` to make the schedule fail, `&failsave=1` to make corrections fail, `&failcreate=1` to make saving a new report fail, or `&failteams=1` to make the Teams tab fail. In this mode the Teams tab draws from the fixture in `src/devTeamsTab.ts` and makes no Foundry calls.
+Open http://localhost:5173/?dev=1 to use made-up data held in memory instead of Foundry (development builds only). Add `&fail=1` to make the schedule fail, `&failsave=1` to make corrections fail, `&failcreate=1` to make saving a new report fail, or `&failteams=1` to make the Teams tab fail. In this mode the Teams tab draws from the fixture in `src/shared/devTeamsTab.ts` and makes no Foundry calls.
 
-Without `?dev=1` the app signs in to Foundry with the settings in `.env.development`.
+Open http://localhost:5173/strategy/?dev=1 for the strategy app on its own made-up data.
+
+Without `?dev=1` the apps sign in to Foundry with the settings in `.env.development`.
 
 ## Checks
 
@@ -44,11 +54,11 @@ The app talks to Foundry through the generated SDK `@lebob-scout/sdk`. After cha
 set -a; . ~/.config/lebob-foundry.env; set +a; npm install @lebob-scout/sdk@^<new version>
 ```
 
-Then update `src/api.ts` to match, and run the checks. `scripts/spike.mjs` is a good place to try a changed action against Foundry first (it writes test rows with `eventUuid` "spike").
+Then update `src/shared/api.ts` to match, and run the checks. `scripts/spike.mjs` is a good place to try a changed action against Foundry first (it writes test rows with `eventUuid` "spike").
 
 ## The Teams tab
 
-The Teams tab shows, for the remembered event, which robots still need a report, a profile and map for each team, the match coverage grid and the scouts list. The sums run in Foundry as TypeScript functions, so the strategist's Workshop pages can call the same functions and show the same figures. The app calls `teamsTab` through the SDK (`api.teamsTab` in `src/api.ts`) and draws what comes back.
+The Teams tab shows, for the remembered event, which robots still need a report, a profile and map for each team, the match coverage grid and the scouts list. The sums run in Foundry as TypeScript functions, so the strategist's Workshop pages can call the same functions and show the same figures. The app calls `teamsTab` through the SDK (`api.teamsTab` in `src/shared/api.ts`) and draws what comes back.
 
 The first call after a quiet spell can take several seconds, so the app makes one background `teamsTab` call when it opens and ignores the result.
 
@@ -109,7 +119,7 @@ Adding a function, or changing a parameter or the shape of a result, also needs 
 2. Add the function to the scout app's resources in Developer Console (the SDK in use is 0.3.0).
 3. Generate a new SDK version there.
 4. Bump `@lebob-scout/sdk` in `package.json` and install it with the token loaded, as in "When the ontology changes".
-5. Update `src/api.ts` (the result types there come from `teamsTab.ReturnType`), run the checks and deploy.
+5. Update `src/shared/api.ts` (the result types there come from `teamsTab.ReturnType`), run the checks and deploy.
 
 ## Checking the live figures
 
@@ -128,9 +138,9 @@ Both were open on 25 November 2026. They come from the schedule import in the ol
 
 ## A new season
 
-1. Add an entry to `FIELDS` in `src/field.ts` with the new grid size and phase times.
-2. Add a picture for it to `PICTURES` in `src/components/FieldPicture.tsx`.
-3. Change `CURRENT_FIELD_KEY` in `src/field.ts` to the new key.
+1. Add an entry to `FIELDS` in `src/shared/field.ts` with the new grid size and phase times.
+2. Add a picture for it to `PICTURES` in `src/shared/components/FieldPicture.tsx`.
+3. Change `CURRENT_FIELD_KEY` in `src/shared/field.ts` to the new key.
 4. Keep the old entries. Saved reports carry their field key, and corrections draw them with the old picture.
-5. The grid covers the middle 75% of the picture (`inset: 0 12.5%` on `.grid` and `.pad-surface` in `src/app.css`). If the new picture's margins differ, change both.
+5. The grid covers the middle 75% of the picture (`inset: 0 12.5%` on `.grid` and `.pad-surface` in `src/shared/app.css`). If the new picture's margins differ, change both.
 6. Add the season's points values and auto length to `SEASONS` in `scout-functions/typescript-functions/src/teams/season.ts`, keyed by the new field key, and publish the functions. An unknown key uses the 2026 values.

@@ -1,6 +1,6 @@
 // The strategy app's settings, kept per device. Anything missing, unknown or unreadable takes its default, and storage
 // that refuses leaves the defaults for this page load.
-import { TEAM_MAX } from "../schedule";
+import { TEAM_MAX } from "../shared/schedule";
 
 export type HeatStyle = "squares" | "smooth";
 export type AutoStyle = "averaged" | "drawn";

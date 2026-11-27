@@ -1,5 +1,6 @@
 import react from '@vitejs/plugin-react'
 import { execSync } from 'node:child_process'
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 
 // The version this build is: git describe, the same number `osdk site deploy` gives the site (foundry.config.json).
@@ -22,4 +23,14 @@ export default defineConfig({
     },
   ],
   define: { __APP_VERSION__: JSON.stringify(version) },
+  // Two apps, one site: the scout app (index.html) and the strategy app (strategy/index.html), each its own page,
+  // entry and bundle. Code both use is in src/shared and lands in shared chunks.
+  build: {
+    rollupOptions: {
+      input: {
+        scout: fileURLToPath(new URL('./index.html', import.meta.url)),
+        strategy: fileURLToPath(new URL('./strategy/index.html', import.meta.url)),
+      },
+    },
+  },
 })

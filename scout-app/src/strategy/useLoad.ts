@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { shortError, withTimeout } from "../sync";
+import { shortError, withTimeout } from "../shared/sync";
 
 const LIMIT_MS = 20_000;
 

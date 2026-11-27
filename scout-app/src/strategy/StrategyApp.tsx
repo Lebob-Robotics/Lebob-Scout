@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { EventRow, TeamProfile, TeamsTab } from "../api";
-import mark from "../assets/strategy-mark.png";
-import { firstEvent } from "../schedule";
+import type { EventRow, TeamProfile, TeamsTab } from "../shared/api";
+import mark from "./assets/strategy-mark.png";
+import { firstEvent } from "../shared/schedule";
 import type { StrategyApi } from "./api";
 import { keepShut, likely, matchLabels, orderForecasts, pointsFigure, scaleMax } from "./logic";
 import type { Figure, OprRow } from "./logic";

@@ -3,8 +3,8 @@ import {
   EventRating, Match, Presence, RankProjection,
   fieldMaps as fieldMapsQuery, matchMaps as matchMapsQuery, pointSplits as pointSplitsQuery, teamCycles as teamCyclesQuery,
 } from "@lebob-scout/sdk";
-import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "../api";
-import { numbered } from "../schedule";
+import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "../shared/api";
+import { numbered } from "../shared/schedule";
 import type { Game } from "./scouted";
 import type { MatchMaps, PointSplit, Projection, Rating, TeamCycles, TeamMap } from "./types";
 

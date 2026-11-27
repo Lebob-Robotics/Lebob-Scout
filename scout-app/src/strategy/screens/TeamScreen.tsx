@@ -1,16 +1,16 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { clockTime } from "../../teams";
-import { breakageLine, pitLines } from "../../teamsView";
+import { clockTime } from "../../shared/teams";
+import { breakageLine, pitLines } from "../../shared/teamsView";
 import type { Ctx } from "../StrategyApp";
 import {
   likely, one, pct, pointsTitle, rangeText, scoutMoreTiles, scoutTiles, scoutedMatchPoints, scoutingFirst, sideOf, teamCells, tipsPerMatch,
   whole, winChance,
   type Measure,
 } from "../logic";
-import { Dropdown } from "../../components/Dropdown";
+import { Dropdown } from "../../shared/components/Dropdown";
 import { AutoPaths, Card, HeatField, PtsFig, RangeBar, RatingChart, Switch, TeamName, Tiles, Waiting } from "../parts";
 import { CyclesCard } from "../CyclesCard";
-import { PitPhotoList } from "../../components/PitPhotos";
+import { PitPhotoList } from "../../shared/components/PitPhotos";
 import type { HeatField as FieldView } from "../settings";
 
 const MEASURES: [Measure, string][] = [["auto", "Auto scored"], ["teleop", "Teleop scored"], ["pickedUp", "Picked up"]];

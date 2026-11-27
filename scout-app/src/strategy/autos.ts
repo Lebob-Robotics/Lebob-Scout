@@ -1,7 +1,7 @@
 // A team's autos for the Auto paths card: as drawn, or all averaged into one rounded path.
 // Points are the scout app's: 0 to 100 across the grid area, red's wall on the left, as stored (see autoPath.ts).
-import { splitPath } from "../autoPath";
-import { CURRENT_FIELD_KEY, FIELDS, flipSquare, isSquare, squareName } from "../field";
+import { splitPath } from "../shared/autoPath";
+import { CURRENT_FIELD_KEY, FIELDS, flipSquare, isSquare, squareName } from "../shared/field";
 
 export type Pt = [number, number];
 export type Shot = { square: string; count: number };

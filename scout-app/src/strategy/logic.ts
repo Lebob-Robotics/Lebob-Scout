@@ -1,6 +1,6 @@
 // Sums and orderings for the strategy screens. No React here, so each is tested on its own.
-import { CURRENT_FIELD_KEY, FIELDS, flipSquare } from "../field";
-import type { TeamProfile } from "../api";
+import { CURRENT_FIELD_KEY, FIELDS, flipSquare } from "../shared/field";
+import type { TeamProfile } from "../shared/api";
 import type { AllianceMap, Forecast, MatchMaps, Projection, SquareMap, SquareOverlap, TeamMap } from "./types";
 
 // Figures as the screens show them: ratings to one decimal, chances as whole percentages, "–" when missing.

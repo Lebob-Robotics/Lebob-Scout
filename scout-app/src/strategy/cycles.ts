@@ -1,6 +1,6 @@
 // Sums behind the Cycles card and the Match planner's cycle figures. Cycles come only from our scouting (teamCycles).
 // Never from the rating, and a team nobody scouted has no cycle time.
-import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
+import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../shared/field";
 import { chaikin, resample, type Pt } from "./autos";
 import type { Cell } from "./logic";
 import type { CyclePoint, CycleRoute, CycleRow, CycleSquare, TeamCycles } from "./types";

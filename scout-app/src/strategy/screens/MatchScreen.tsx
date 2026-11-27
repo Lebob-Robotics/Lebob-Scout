@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Dropdown } from "../../components/Dropdown";
+import { Dropdown } from "../../shared/components/Dropdown";
 import type { Ctx } from "../StrategyApp";
 import { defaultMatch, favouriteWon, one, overlapCells, pct, pointsTitle, rangeText, robotsOf, scoutedMatchPoints, teamCells, type Side } from "../logic";
 import { CycleTimeFig } from "../CyclesCard";

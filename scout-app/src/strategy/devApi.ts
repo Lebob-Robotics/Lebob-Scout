@@ -1,9 +1,9 @@
 // Development stand-in for the strategy app, built on the scout app's dev data (same events, schedule, line-ups and
 // Teams tab): official scores for the played matches, five more qualifications still to play, the standing now, and
 // the model's HIVE figures (all that is read from it). In dev, team 12345 plays the part of us (see main.tsx).
-import type { MatchRow, PresenceRow } from "../api";
-import { createDevApi } from "../devApi";
-import { DEV_TEAMS_TAB } from "../devTeamsTab";
+import type { MatchRow, PresenceRow } from "../shared/api";
+import { createDevApi } from "../shared/devApi";
+import { DEV_TEAMS_TAB } from "../shared/devTeamsTab";
 import { MAPS_NOT_READY, type StrategyApi } from "./api";
 import { resample } from "./autos";
 import { alignCycle, averageCycle, centre, crossedSquares } from "./cycles";

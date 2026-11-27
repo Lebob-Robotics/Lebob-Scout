@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { CURRENT_FIELD_KEY, FIELDS } from "../field";
+import { CURRENT_FIELD_KEY, FIELDS } from "../shared/field";
 import type { Ctx } from "./StrategyApp";
 import {
   arrowHead, averageLabel, cycleCells, cycleTime, cyclesFigure, foldNote, roundedLine, routeLines, routeWidth, timeParts, type CycleMeasure, type CycleTime, type Part,

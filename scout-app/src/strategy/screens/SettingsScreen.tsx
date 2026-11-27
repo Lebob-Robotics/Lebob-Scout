@@ -1,8 +1,8 @@
 import { useState } from "react";
-import type { EventRow } from "../../api";
-import { Dropdown } from "../../components/Dropdown";
-import { notesOn, setNotes as storeNotes } from "../../prefs";
-import { useTheme, type ThemeChoice } from "../../theme";
+import type { EventRow } from "../../shared/api";
+import { Dropdown } from "../../shared/components/Dropdown";
+import { notesOn, setNotes as storeNotes } from "../../shared/prefs";
+import { useTheme, type ThemeChoice } from "../../shared/theme";
 import { Card } from "../parts";
 import { ALLIANCE_CHOICES, REFRESH_CHOICES, parseTeam, type Settings } from "../settings";
 import type { Load } from "../useLoad";

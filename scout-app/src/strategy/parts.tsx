@@ -1,11 +1,11 @@
 // Pieces the strategy screens share: cards, loading, tables that sort, range bars, heatmaps, auto paths and the rating chart.
 import { useEffect, useId, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import type { ReactNode } from "react";
-import type { StartDot } from "../api";
-import { FieldPicture } from "../components/FieldPicture";
-import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../field";
-import { wallPoint } from "../startWall";
-import { shade } from "../teamsView";
+import type { StartDot } from "../shared/api";
+import { FieldPicture } from "../shared/components/FieldPicture";
+import { CURRENT_FIELD_KEY, FIELDS, squareName } from "../shared/field";
+import { wallPoint } from "../shared/startWall";
+import { shade } from "../shared/teamsView";
 import { MAPS_NOT_READY } from "./api";
 import { hitIndex, matchName, ratingChart } from "./chart";
 import { bar, keepShut, likely, nextSort, one, popPlace, rangeText, readShut, sortRows } from "./logic";
