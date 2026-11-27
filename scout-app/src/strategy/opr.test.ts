@@ -1,5 +1,5 @@
 import { expect, test } from "vitest";
-import { fitOpr, oprHistory, solve, type Played } from "./opr";
+import { fitOpr, oprHistory, oprReady, solve, type Played } from "./opr";
 
 const g = (label: string, red: number[], blue: number[], redScore: number, blueScore: number): Played => ({ label, red, blue, redScore, blueScore });
 
@@ -55,4 +55,13 @@ test("oprHistory refits after each match and records every team fitted so far", 
   expect(h.filter((p) => p.teamNumber === 1).map((p) => [p.afterMatch, p.lastMatch])).toEqual([[1, "Q1"], [2, "Q2"], [3, "Q3"]]);
   expect(h.find((p) => p.afterMatch === 1 && p.teamNumber === 1)!.oprSe).toBeNull();
   expect(new Set(h.filter((p) => p.afterMatch === 3).map((p) => p.ratingRank))).toEqual(new Set([1, 2, 3, 4, 5, 6, 7, 8]));
+});
+
+test("oprReady waits until every scheduled team has played 3 scored matches", () => {
+  const g = (red: number[], blue: number[]): Played => ({ label: "Q", red, blue, redScore: 50, blueScore: 40 });
+  const three = [g([1, 2], [3, 4]), g([1, 3], [2, 4]), g([1, 4], [2, 3])];
+  expect(oprReady([1, 2, 3, 4], three)).toBe(true);
+  expect(oprReady([1, 2, 3, 4], three.slice(0, 2))).toBe(false);          // everyone on 2
+  expect(oprReady([1, 2, 3, 4, 5], three)).toBe(false);                   // team 5 is scheduled but has played none
+  expect(oprReady([], three)).toBe(false);
 });

@@ -63,7 +63,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           </Card>
 
           <Card title="OPR">
-            <RatingChart points={history} />
+            {model.oprReady ? <RatingChart points={history} /> : <p className="caption">OPR shows once every team has played 3 matches with a score.</p>}
           </Card>
 
           <Card title="Scouting">

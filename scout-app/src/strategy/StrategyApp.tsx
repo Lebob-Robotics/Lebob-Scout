@@ -5,7 +5,7 @@ import { firstEvent } from "../schedule";
 import type { StrategyApi } from "./api";
 import { keepShut, likely, matchLabels, orderForecasts, pointsFigure, scaleMax } from "./logic";
 import type { Figure, OprRow } from "./logic";
-import { fitOpr, oprHistory, type Played } from "./opr";
+import { fitOpr, oprHistory, oprReady, type Played } from "./opr";
 import { bonusRates, isPlayed, label, officialShare, scoutForecasts, strengths, type Game, type Strength } from "./scouted";
 import { defaultSettings, keepSettings, readSettings, type Settings } from "./settings";
 import { useLoad, type Load } from "./useLoad";
@@ -39,6 +39,8 @@ const localToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 
 export type Model = {
   ratings: Rating[]; projections: Projection[]; games: Game[];
   forecasts: Forecast[]; teams: OprRow[]; history: HistoryPoint[];
+  // False until every scheduled team has played OPR_MIN_MATCHES scored matches; until then OPR and its history are empty.
+  oprReady: boolean;
 };
 type Read = { ratings: Rating[]; projections: Projection[]; games: Game[] };
 
@@ -224,7 +226,8 @@ function work(read: Read, scouting: TeamsTab | null) {
   const rates = bonusRates(games, projections);
   const forecasts = orderForecasts(scoutForecasts(games, st, rates, nameOf));
   const played: Played[] = games.filter(isPlayed).sort(timeOrder).map((g) => ({ label: label(g), red: g.red, blue: g.blue, redScore: g.redScore!, blueScore: g.blueScore! }));
-  const fit = fitOpr(played);
+  const ready = oprReady([...new Set(games.flatMap((g) => [...g.red, ...g.blue]))], played);
+  const fit = ready ? fitOpr(played) : new Map<number, never>();
   const hive = new Map(ratings.map((r) => [r.teamNumber, r.hiveRating]));
   const r1 = (x: number) => Math.round(x * 10) / 10;
   const teams: OprRow[] = all.map((t) => {
@@ -232,6 +235,6 @@ function work(read: Read, scouting: TeamsTab | null) {
     return { teamNumber: t, teamName: nameOf(t), opr: f ? r1(f.opr) : null, oprSe: f?.se == null ? null : r1(f.se), hiveRating: hive.get(t) ?? null };
   });
   const shares = new Map(all.map((t) => [t, games.map((g) => officialShare(g, t, prof)).filter((v): v is number => v != null)]));
-  const model: Model = { ratings, projections, games, forecasts, teams, history: oprHistory(played) };
+  const model: Model = { ratings, projections, games, forecasts, teams, history: ready ? oprHistory(played) : [], oprReady: ready };
   return { model, profiles, shares, st, rates, byUuid: new Map(games.map((g) => [g.matchUuid, g])) };
 }

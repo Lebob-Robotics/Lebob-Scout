@@ -9,7 +9,7 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
   const cols: Col<RatingRow>[] = [
     { key: "team", label: "Team", value: (r) => r.teamNumber, natural: "asc", show: (r) => <TeamName team={r.teamNumber} name={r.teamName} onOpen={ctx.openTeam} /> },
     {
-      key: "opr", label: "OPR", value: (r) => r.opr, title: "Points a team adds to its alliance per match, fitted on this event's official scores, with its likely (80%) range",
+      key: "opr", label: "OPR", value: (r) => r.opr, title: "Points a team adds to its alliance per match, fitted on this event's official scores, with its likely (80%) range. Shown once every team has played 3 matches",
       show: (r) => (r.opr == null ? "–" : <RangeBar value={r.opr} low={r.low ?? r.opr} high={r.high ?? r.opr} max={scale.rating}
         title={r.low != null && r.high != null && r.low !== r.high ? `${rangeText(r.low, r.high)} likely` : "Too few matches for a likely range"} />),
     },
@@ -30,8 +30,9 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
       <Card title="Teams">
         {ctx.scouting.state !== "ok" && <Waiting load={ctx.scouting} what="the scouting figures" retry={ctx.retryScouting} />}
         {rows.length ? (
-          <SortTable label="Teams" rows={rows} cols={cols} initial={{ key: "opr", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
+          <SortTable label="Teams" rows={rows} cols={cols} initial={{ key: model.oprReady ? "opr" : "points", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
         ) : <p>No teams yet for this event.</p>}
+        {rows.length > 0 && !model.oprReady && <p className="caption">OPR shows once every team has played 3 matches with a score: before that it can't tell partners apart.</p>}
       </Card>
     </div>
   );

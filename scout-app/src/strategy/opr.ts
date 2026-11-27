@@ -5,6 +5,16 @@ import type { HistoryPoint } from "./types";
 
 export type Played = { label: string; red: number[]; blue: number[]; redScore: number; blueScore: number };
 export type Opr = { opr: number; se: number | null };
+
+// OPR is shown only once every team on the schedule has played this many matches with a score: with fewer, the fit
+// has too few alliance scores per team to tell partners apart and its figures can be anything (even negative).
+export const OPR_MIN_MATCHES = 3;
+export function oprReady(teams: number[], played: Played[], min = OPR_MIN_MATCHES): boolean {
+  if (!teams.length) return false;
+  const n = new Map<number, number>();
+  played.forEach((g) => [...g.red, ...g.blue].forEach((t) => n.set(t, (n.get(t) ?? 0) + 1)));
+  return teams.every((t) => (n.get(t) ?? 0) >= min);
+}
 const RIDGE = 1e-6;
 const UNDETERMINED = 1e3;
 
