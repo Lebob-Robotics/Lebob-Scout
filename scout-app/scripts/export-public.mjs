@@ -74,7 +74,10 @@ function scrub(v) {
 }
 
 fs.mkdirSync(path.join(OUT, "photos"), { recursive: true });
+// Only these events go on the public page (event codes; PUBLIC_EVENTS=AUPEQ,AUCMP to change). Default: the WA Qualifier.
+const PUBLIC_EVENTS = new Set((process.env.PUBLIC_EVENTS ?? "AUPEQ").split(",").map((c) => c.trim().toUpperCase()).filter(Boolean));
 const events = (await search("Event", eq("ourEvent", true)))
+  .filter((e) => PUBLIC_EVENTS.has(String(e.eventCode).toUpperCase()))
   .map((e) => ({ eventUuid: e.eventUuid, eventCode: e.eventCode, eventName: e.eventName, dateStart: e.dateStart, dateEnd: e.dateEnd }))
   .sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)));
 let photos = 0;
