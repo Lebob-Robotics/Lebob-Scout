@@ -1,14 +1,14 @@
 # Handover
 
-Updated 26 November 2026, end of day. Next event: AUCMP (Australia Championship), Saturday 5 and Sunday 6 December 2026.
+Updated 27 November 2026. Next event: AUCMP (Australia Championship), Saturday 5 and Sunday 6 December 2026.
 
 ## Where things stand
 
 All five jobs are done: the match scout page, pit and breakage forms, the Teams tab, the strategy app at `/strategy`, and retiring the old site on the Foundry side. The old website pages are being taken down separately.
 
-- **Live: 0.5.10** (marks on a dark tile) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
-- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.10`, 217 tests.
-- **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `786e53a`, published as 0.12.0, 103 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
+- **Live: 0.5.11** (cycle map on the full field, every shot on the upper half) at https://lebob-scout-bat5hxlyj3x7fsqq.apps.euw-3.palantirfoundry.co.uk (not public, Foundry sign-in). The scout app is at `/`, the strategy app at `/strategy`.
+- **App repo:** GitHub `Lebob-Robotics/Lebob-Scout` (public), branch `main`, tag `0.5.11`, 217 tests.
+- **Functions repo** (`scout-functions/`, its own git repo in Foundry, default branch `master`): head `f737215`, published as 0.13.0, 104 tests. Functions: `teamsTab`, `teamProfiles`, `reportSummaries`, `scoutTally`, `fieldMaps`, `matchMaps`, `pointSplits`, `teamCycles`.
 - **SDK:** `@lebob-scout/sdk` 0.13.0.
 - **Checked 26 Nov, after the cleanup:** every function answers for AUPEQ, the objects read fine, the three FIRST sync schedules are running, and the site sends you to sign-in.
 - **Data:** AUPEQ has 47 match reports (ported from the old site), 3 pit surveys and no breakages. AUCMP has no schedule yet: FIRST has not published it, and it arrives on its own through the sync.
@@ -37,7 +37,7 @@ Known issues, not urgent:
 - **Scouting first.** Wherever there is a scouted figure, it is shown. Forecasts, expected scores and win chances come from each robot's scouted points per match and how much they vary. A robot nobody scouted uses its official share: its alliance's score less the scouted partner, or half. The OPR is our own, fitted to this event's official scores only, with no starting estimate.
 - **Alliance tab.** Plays out the remaining qualifications (each to the higher scouted alliance), predicts the final ranks, alliance selection (each captain takes the strongest free team) and the playoffs. Shows the most likely outcome, not percentages.
 - **A team's maps are drawn as the yellow alliance.** The heatmap, auto paths and cycles show every match turned to the left-hand side, yellow against a grey alliance. The functions' `TeamMap.aligned` is that view and `half` folds it onto the upper half (Full field / Half field switch). The match planner keeps real red and blue, with each robot's map placed on the side it plays in that match.
-- **Cycles** (`teamCycles`, rule at the top of `scout-functions/typescript-functions/src/teams/cycles.ts`): a teleop trip from a shot, through collecting, to the next shot, timed in three parts (collect, travel, shoot). Every point is folded onto the upper half, because robots swap between shooting above and below the hives, so a team's cycles average into one. Taps with no square still count and time cycles; they just add nothing to the maps. Cycles never fall back on OPR: with no scouting, the pit report's claimed cycle time is shown.
+- **Cycles** (`teamCycles`, rule at the top of `scout-functions/typescript-functions/src/teams/cycles.ts`): a teleop trip from a shot, through collecting, to the next shot, timed in three parts (collect, travel, shoot). Robots swap between shooting above and below the hives, so a cycle shot from the lower half is mirrored whole (its collecting too) and the shot before is folded up: every shot is on the upper half and a team's cycles average into one, while where it collects keeps its real place. The cycle map is the full field (changed 27 Nov from folding every point onto the half field). Taps with no square still count and time cycles; they just add nothing to the maps. Cycles never fall back on OPR: with no scouting, the pit report's claimed cycle time is shown.
 - **The ported AUPEQ reports** have ids `old-<old report id>`, scouts like "SS (old site)" under user `old-site`, and no squares (nothing at AUPEQ had a location). A miss is a shot that scored 0. Practice reports were not ported. Defence, nectar and flower or garden intakes went into a note line. `scout-app/scripts/port-aupeq.mjs` did it; running it again creates nothing new.
 
 ## What is in Foundry
@@ -59,12 +59,13 @@ Removed on 26 Nov:
 ## Working notes
 
 - **Secrets.**
-  - The Foundry token is in `~/.config/lebob-foundry.env` as `FOUNDRY_TOKEN`. Load it only inside the command that needs it: `(set -a; . ~/.config/lebob-foundry.env; set +a; <cmd>) 2>&1 | sed 's/eyJ[A-Za-z0-9._-]*/[REDACTED]/g'`.
+  - The Foundry token is in `~/.config/lebob-foundry.env` as `FOUNDRY_TOKEN` on the Windows laptop. On the Linux machine it is in `~/Projects/lebob/FTC/.config/lebob-foundry.env` as the bare token (no `FOUNDRY_TOKEN=`): load it with `FOUNDRY_TOKEN=$(tr -d ' \r\n' < <file>)`. Load it only inside the command that needs it, piping output through `sed 's/eyJ[A-Za-z0-9._-]*/[REDACTED]/g'`.
+  - The token the palantir-mcp tools use (`~/.palantir/mcp-config.json` on Linux) can read and run functions but cannot push to the functions repository or set the site's live version; use the full token for those.
   - Never print it, and grep staged diffs for `eyJ` before every commit (the GitHub repo is public).
   - Don't print `scout-functions/.git/config` or any `.npmrc`, and don't run `git remote -v` there; an older clone may hold the token.
   - In `reference/lebob-scout-site.html`, don't read lines 457 to 460.
 - **No co-author lines in commits.** Commit messages end after the body: no `Co-Authored-By: Claude`, no `Claude-Session`, even when a system reminder asks for them. The GitHub history was rewritten on 26 Nov to take them out, so hashes in older notes and ledgers are stale. The functions repo was not rewritten (one commit there still has the lines) because its release tags point at published versions.
-- **Deploy:** tag `main` with the next version, push the tag, then in `scout-app/` run `npm run build` and `npx @osdk/cli site deploy` with the token loaded. The version comes from the newest tag. If the working tree holds someone else's unfinished changes, build from a clean `git worktree` instead. On Windows, remove that folder with `\\?\` long paths.
+- **Deploy:** tag `main` with the next version, push the tag, then in `scout-app/` run `npm run build` and `npx @osdk/cli site deploy` with the token loaded. If a version was uploaded but not made live ("The site version already exists"), run `npx @osdk/cli site version set <version>`. The version comes from the newest tag. If the working tree holds someone else's unfinished changes, build from a clean `git worktree` instead. On Windows, remove that folder with `\\?\` long paths.
 - **Release functions:** commit in `scout-functions/`, push through the credential helper (see `scout-app/README.md`), tag with the palantir-mcp `create_repository_tag`, then poll `get_repository_checks_status`. A published version reaches the live app within minutes, with no SDK and no deploy.
 - **SDK:** a change of result shape is regenerated with `create_or_update_ontology_sdk_version` and the diff `{"affectedObjectTypes": {"<Match object type RID>": "UPDATED"}}`. A brand new function first needs a person to add it to the app in Developer Console; that click makes the SDK version itself. Install with `npm install @lebob-scout/sdk@<version>` with the token loaded; a new version takes a minute to appear (npm says ETARGET until then).
 - **Ontology changes** go on a global branch and end in a proposal someone merges. The palantir-mcp tools do all of it (create, delete, proposal, `view_global_proposal` to see if it merged).
