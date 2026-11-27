@@ -3,7 +3,7 @@ import { execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 
-// The public strategy page (src/publicMain.tsx), served from lebob.com.au/strategy/ by the Lebob-Website deploy job,
+// The public strategy page (src/strategy/publicMain.tsx), served from lebob.com.au/strategy/ by the Lebob-Website deploy job,
 // which puts the exported data in data/ beside it (scripts/export-public.mjs). `npm run build:public` writes dist-public/.
 const version = (() => {
   try { return execSync('git describe --tags', { encoding: 'utf8' }).trim() } catch { return 'dev' }

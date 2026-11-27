@@ -3,8 +3,8 @@
 // no Foundry account. Each read goes through the same converters as the real app (toGames, toRating, toProjection,
 // toMatchRow, toPresenceRow), so the two show the same figures.
 import type { Event, EventRating, Match, Presence, RankProjection } from "@lebob-scout/sdk";
-import { toEventRow, toMatchRow, toPresenceRow, type TeamsTab } from "../api";
-import { numbered } from "../schedule";
+import { toEventRow, toMatchRow, toPresenceRow, type TeamsTab } from "../shared/api";
+import { numbered } from "../shared/schedule";
 import { MAPS_NOT_READY, toGames, toProjection, toRating, type StrategyApi } from "./api";
 import type { MatchMaps, PointSplit, TeamCycles, TeamMap } from "./types";
 

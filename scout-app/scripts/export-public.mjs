@@ -1,5 +1,5 @@
 // Copies what the strategy app reads from Foundry into static files, for the public strategy page at
-// lebob.com.au/strategy (src/publicMain.tsx, src/strategy/publicApi.ts). Run with the token loaded:
+// lebob.com.au/strategy (src/strategy/publicMain.tsx, src/strategy/publicApi.ts). Run with the token loaded:
 //   FOUNDRY_TOKEN=... node scripts/export-public.mjs <out dir>
 // Writes <out>/data/index.json (our events and when this ran), <out>/data/<eventUuid>.json (the raw Match, Presence,
 // EventRating and RankProjection objects, and the teamsTab, fieldMaps, pointSplits, teamCycles and matchMaps
