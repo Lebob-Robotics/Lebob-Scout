@@ -825,3 +825,6 @@ button.team-link:hover b, button.team-link:focus-visible b { color: var(--accent
 .photo-add:focus-within { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 .team-notes .photos { margin-top: .25rem; }
 .team-notes .photo { aspect-ratio: 4 / 3; }
+
+/* A newer version is deployed: a full-width button at the top, as on the old site. */
+.update-banner { position: fixed; left: 16px; right: 16px; top: 10px; z-index: 50; box-shadow: 0 4px 18px rgba(0, 0, 0, .5); }

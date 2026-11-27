@@ -9,6 +9,7 @@ import './app.css'
 import App from './App.tsx'
 import { createApi } from './api'
 import { Header } from './components/Header'
+import { UpdateBanner } from './components/UpdateBanner'
 import type { Api } from './api'
 import { createDevApi } from './devApi'
 import { client, isSignedOut, onSignedOutChange, refreshSilently, signIn } from './client'
@@ -21,6 +22,12 @@ import { OUR_TEAM } from './strategy/types'
 // and never needs the network to show a match that is in progress. Only signIn() redirects.
 const params = new URLSearchParams(location.search)
 const root = createRoot(document.getElementById('root')!)
+
+// The update banner sits in its own root on top of either app, whatever screen it is on (see UpdateBanner).
+if (!import.meta.env.DEV) {
+  const bar = document.body.appendChild(document.createElement('div'))
+  createRoot(bar).render(<UpdateBanner />)
+}
 const callbackPath = new URL(import.meta.env.VITE_FOUNDRY_REDIRECT_URL).pathname
 
 // The strategy app lives at /strategy on the same site; its code loads only there.
