@@ -30,6 +30,7 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
   const profile = ctx.profile(team);
   const points = ctx.points(team);
   const history = model.history.filter((h) => h.teamNumber === team);
+  const start = model.starts.get(team);
   const map = ctx.maps.state === "ok" ? ctx.maps.data.find((m) => m.teamNumber === team) : undefined;
   const matches = model.forecasts.filter((f) => sideOf(f, team));
   const teams = [...model.teams].sort((a, b) => a.teamNumber - b.teamNumber);
@@ -54,7 +55,8 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           )}>
             <Tiles tiles={[
               ["OPR", opr != null ? <RangeBar value={opr} low={range?.low ?? opr} high={range?.high ?? opr} max={scale.rating}
-                title={range ? `${rangeText(range.low, range.high)} likely` : "Too few matches for a likely range"} /> : "–"],
+                title={range ? `${rangeText(range.low, range.high)} likely` : ""} /> : "–"],
+              ...(start ? [[`OPR at ${start.event}`, one(start.opr)]] as [string, string][] : []),
               ["points / match", points ? <RangeBar value={points.value} low={points.low} high={points.high} max={scale.points} title={pointsTitle(points)} grey={points.official} /> : "–"],
               ["tips / match", one(tipsPerMatch(row?.hiveRating ?? null))],
               ["real rank", whole(proj?.rankNow)],
@@ -66,7 +68,10 @@ export function TeamScreen({ ctx, team, onTeam }: { ctx: Ctx; team: number; onTe
           </Card>
 
           <Card title="OPR">
-            {model.oprReady ? <RatingChart points={history} /> : <p className="caption">OPR shows once every team has played 3 matches with a score.</p>}
+            <RatingChart points={history} />
+            <p className="caption">{start
+              ? `Starts from its OPR at ${start.event} and moves to this event's scores as matches are played. The band is how sure the fit is.`
+              : "No earlier event this season: fitted on this event's scores once it has played. The band is how sure the fit is."}</p>
           </Card>
 
           <Card title="Scouting">

@@ -2,11 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { EventRow, TeamProfile, TeamsTab } from "../shared/api";
 import mark from "./assets/strategy-mark.png";
 import { firstEvent } from "../shared/schedule";
-import type { StrategyApi } from "./api";
+import type { Earlier, StrategyApi } from "./api";
 import type { Four } from "./custom";
 import { keepShut, likely, matchLabels, orderForecasts, pointsFigure, scaleMax } from "./logic";
 import type { Figure, OprRow } from "./logic";
-import { fitOpr, oprHistory, oprReady, type Played } from "./opr";
+import { carryOpr, fitOpr, oprHistory, type Played, type Start } from "./opr";
 import { bonusRates, isPlayed, label, officialShare, scoutForecasts, strengths, type Game, type Strength } from "./scouted";
 import { defaultSettings, keepSettings, readSettings, type Settings } from "./settings";
 import { useLoad, type Load } from "./useLoad";
@@ -40,10 +40,12 @@ const localToday = () => new Date(Date.now() - new Date().getTimezoneOffset() * 
 export type Model = {
   ratings: Rating[]; projections: Projection[]; games: Game[];
   forecasts: Forecast[]; teams: OprRow[]; history: HistoryPoint[];
-  // False until every scheduled team has played OPR_MIN_MATCHES scored matches; until then OPR and its history are empty.
-  oprReady: boolean;
+  // What each team's OPR started from: the OPR it carried out of its latest earlier event, and that event's code. A
+  // team with no earlier event is not in it.
+  starts: Map<number, Start>;
 };
-type Read = { ratings: Rating[]; projections: Projection[]; games: Game[] };
+// `earlier` is the earlier events the OPRs start from; empty when that read failed (the OPRs then use this event alone).
+type Read = { ratings: Rating[]; projections: Projection[]; games: Game[]; earlier: Earlier[] };
 
 // What every screen gets: the model (always loaded), and the scouting figures, maps and splits, each of which may
 // still be loading or have failed without stopping the rest.
@@ -158,8 +160,10 @@ function EventView({ api, eventUuid, tab, go, tick, settings, onSettings }: {
   const [breakageAsk, setBreakageAsk] = useState(0);
   const handledAsk = useRef(0);
   const [model, retryModel] = useLoad(eventUuid, async (): Promise<Read> => {
-    const [ratings, projections, games] = await Promise.all([api.ratings(eventUuid), api.projections(eventUuid), api.games(eventUuid)]);
-    return { ratings, projections, games };
+    const [ratings, projections, games, earlier] = await Promise.all([
+      api.ratings(eventUuid), api.projections(eventUuid), api.games(eventUuid), api.earlier(eventUuid).catch((): Earlier[] => []),
+    ]);
+    return { ratings, projections, games, earlier };
   }, tick);
   const [scouting, retryScouting] = useLoad(eventUuid, () => api.teamsTab(eventUuid), tick);
   const [maps, retryMaps] = useLoad(eventUuid, () => api.fieldMaps(eventUuid), tick);
@@ -217,7 +221,7 @@ function EventView({ api, eventUuid, tab, go, tick, settings, onSettings }: {
 }
 
 // From the read and the scouting: every team's strength, the scouting forecasts, our OPR and its history (played
-// matches in time order), each team's official shares, and the names.
+// matches in time order, starting from the OPRs carried out of earlier events), each team's official shares, and the names.
 const timeOrder = (a: Game, b: Game) => (a.time ?? "").localeCompare(b.time ?? "") || Number(a.level === "playoff") - Number(b.level === "playoff") || a.number - b.number;
 function work(read: Read, scouting: TeamsTab | null) {
   const { ratings, projections, games } = read;
@@ -228,16 +232,17 @@ function work(read: Read, scouting: TeamsTab | null) {
   const st = strengths(all, games, prof);
   const rates = bonusRates(games, projections);
   const forecasts = orderForecasts(scoutForecasts(games, st, rates, nameOf));
-  const played: Played[] = games.filter(isPlayed).sort(timeOrder).map((g) => ({ label: label(g), red: g.red, blue: g.blue, redScore: g.redScore!, blueScore: g.blueScore! }));
-  const ready = oprReady([...new Set(games.flatMap((g) => [...g.red, ...g.blue]))], played);
-  const fit = ready ? fitOpr(played) : new Map<number, never>();
+  const scored = (gs: Game[]): Played[] => gs.filter(isPlayed).sort(timeOrder).map((g) => ({ label: label(g), red: g.red, blue: g.blue, redScore: g.redScore!, blueScore: g.blueScore! }));
+  const played = scored(games);
+  const starts = carryOpr(read.earlier.map((e) => ({ code: e.code, games: scored(e.games) })));
+  const fit = fitOpr(played, starts, all);
   const hive = new Map(ratings.map((r) => [r.teamNumber, r.hiveRating]));
   const r1 = (x: number) => Math.round(x * 10) / 10;
   const teams: OprRow[] = all.map((t) => {
     const f = fit.get(t);
-    return { teamNumber: t, teamName: nameOf(t), opr: f ? r1(f.opr) : null, oprSe: f?.se == null ? null : r1(f.se), hiveRating: hive.get(t) ?? null };
+    return { teamNumber: t, teamName: nameOf(t), opr: f ? r1(f.opr) : null, oprSe: f ? r1(f.se) : null, hiveRating: hive.get(t) ?? null };
   });
   const shares = new Map(all.map((t) => [t, games.map((g) => officialShare(g, t, prof)).filter((v): v is number => v != null)]));
-  const model: Model = { ratings, projections, games, forecasts, teams, history: ready ? oprHistory(played) : [], oprReady: ready };
+  const model: Model = { ratings, projections, games, forecasts, teams, history: oprHistory(played, starts, all), starts };
   return { model, profiles, shares, st, rates, byUuid: new Map(games.map((g) => [g.matchUuid, g])) };
 }

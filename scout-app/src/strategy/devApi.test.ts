@@ -65,3 +65,15 @@ test("the dev cycles shoot from the upper half, with one averaged cycle; the dev
   expect(cycles.find((c) => c.teamNumber === 12345)!.mirroredShare).toBeGreaterThan(0);
   maps.forEach((m) => m.half.forEach((s) => expect(Number(s.square.slice(1))).toBeLessThanOrEqual(3)));
 });
+
+test("the dev earlier event has scored matches for six of the eight teams", async () => {
+  const api = createDevStrategyApi();
+  const [e] = await api.earlier(E);
+  expect(e.code).toBe("DEVQ1");
+  expect(e.games.length).toBe(9);
+  expect(e.games.every((g) => g.redScore != null && g.blueScore != null && new Set([...g.red, ...g.blue]).size === 4)).toBe(true);
+  const teams = new Set(e.games.flatMap((g) => [...g.red, ...g.blue]));
+  expect(teams.size).toBe(6);
+  expect(teams.has(14469) || teams.has(21230)).toBe(false);
+  expect(await api.earlier("dev-event-next")).toEqual([]);
+});

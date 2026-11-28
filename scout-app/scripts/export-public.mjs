@@ -84,6 +84,22 @@ const events = (await search("Event", eq("ourEvent", true)))
   .filter((e) => PUBLIC_EVENTS.has(String(e.eventCode).toUpperCase()))
   .map((e) => ({ eventUuid: e.eventUuid, eventCode: e.eventCode, eventName: e.eventName, dateStart: e.dateStart, dateEnd: e.dateEnd }))
   .sort((a, b) => String(a.dateStart).localeCompare(String(b.dateStart)));
+// The earlier events an event's OPRs start from, as the app picks them (earlierEvents in src/strategy/api.ts): same
+// country, not one of our made-up LB events, began before it and within 300 days, oldest first. Only their official matches and alliances: no scouting.
+const allEvents = await search("Event");
+const startOf = (x) => (x.dateStart ? Date.parse(x.dateStart) : NaN);
+async function earlierOf(eventUuid) {
+  const ev = allEvents.find((x) => x.eventUuid === eventUuid), t = ev ? startOf(ev) : NaN;
+  if (!ev?.country || !Number.isFinite(t)) return [];
+  const before = allEvents.filter((x) => x.eventUuid !== eventUuid && !/^LB/i.test(x.eventCode ?? "") && x.country === ev.country && startOf(x) < t && startOf(x) >= t - 300 * 86_400_000)
+    .sort((a, b) => startOf(a) - startOf(b) || String(a.eventCode).localeCompare(String(b.eventCode)));
+  const out = [];
+  for (const x of before) {
+    const ms = await search("Match", eq("eventUuid", x.eventUuid));
+    out.push({ code: x.eventCode ?? "", matches: ms, presences: await inList("Presence", "matchUuid", ms.map((m) => m.matchUuid)) });
+  }
+  return out;
+}
 let photos = 0;
 const published = [];
 for (const ev of events) {
@@ -115,7 +131,8 @@ for (const ev of events) {
       } catch (err) { console.warn(`  photo ${rid}: ${err.message}`); }
     }
   }
-  const data = scrub({ matches, presences, ratings, projections, teamsTab, fieldMaps, pointSplits, teamCycles, matchMaps, pitImages });
+  const earlier = await earlierOf(e);
+  const data = scrub({ matches, presences, ratings, projections, teamsTab, fieldMaps, pointSplits, teamCycles, matchMaps, pitImages, earlier });
   if (data.teamsTab) {
     data.teamsTab.scouts = [];
     data.teamsTab.teams = data.teamsTab.teams.map((t) => ({

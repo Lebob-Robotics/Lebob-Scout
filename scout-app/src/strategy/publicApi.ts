@@ -13,6 +13,8 @@ export type EventFile = {
   matches: Match.Props[]; presences: Presence.Props[]; ratings: Partial<EventRating.Props>[]; projections: Partial<RankProjection.Props>[];
   teamsTab: TeamsTab | null; fieldMaps: TeamMap[] | null; pointSplits: PointSplit[] | null; teamCycles: TeamCycles[] | null;
   matchMaps: Record<string, MatchMaps>; pitImages: Record<string, string[]>;
+  // The earlier events the OPRs start from, oldest first (exports from before 0.5.24 have none).
+  earlier?: { code: string; matches: Match.Props[]; presences: Presence.Props[] }[];
 };
 export type IndexFile = { exportedAt: string; events: Pick<Event.Props, "eventUuid" | "eventCode" | "eventName" | "dateStart" | "dateEnd">[] };
 
@@ -71,6 +73,10 @@ export function createPublicStrategyApi(base: string, get: typeof fetch = fetch)
       if (!(await known(e))) return [];
       const f = await event(e); remember(e, f);
       return toGames(f.matches, f.presences);
+    },
+    async earlier(e) {
+      if (!(await known(e))) return [];
+      return ((await event(e)).earlier ?? []).map((x) => ({ code: x.code, games: toGames(x.matches, x.presences) }));
     },
     fieldMaps: (e) => fn(e, (f) => f.fieldMaps),
     async matchMaps(e, m) {

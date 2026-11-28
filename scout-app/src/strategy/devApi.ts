@@ -4,7 +4,7 @@
 import type { MatchRow, PresenceRow } from "../shared/api";
 import { createDevApi } from "../shared/devApi";
 import { DEV_TEAMS_TAB } from "../shared/devTeamsTab";
-import { MAPS_NOT_READY, type StrategyApi } from "./api";
+import { MAPS_NOT_READY, type Earlier, type StrategyApi } from "./api";
 import { resample } from "./autos";
 import { alignCycle, averageCycle, centre, crossedSquares } from "./cycles";
 import { buildMatchMaps, foldHalf } from "./logic";
@@ -53,6 +53,20 @@ async function games(): Promise<Game[]> {
   });
   const later: Game[] = LATER.map(([n, red, blue]) => ({ matchUuid: `dev-q${n}`, level: "qual", number: n, time: null, red, blue, redScore: null, blueScore: null }));
   return [...now, ...later];
+}
+
+// A made-up earlier event the OPRs start from: six of the eight teams (14469 and 21230 are new this event), each a
+// little weaker than now, in nine scored matches.
+const EARLIER_TEAMS = TEAMS.filter((t) => t !== 14469 && t !== 21230);
+function earlier(): Earlier[] {
+  const then = (ts: number[], seed: number) => Math.max(0, Math.round(ts.reduce((a, t) => a + TRUE[t][0] * 0.85, 0) + wobble(seed) * 12));
+  const games: Game[] = Array.from({ length: 9 }, (_, i) => {
+    const at = (k: number) => EARLIER_TEAMS[(i * 5 + k * (1 + (i % 3))) % EARLIER_TEAMS.length];
+    const four = [...new Set([at(0), at(1), at(2), at(3), ...EARLIER_TEAMS])].slice(0, 4);
+    const red: [number, number] = [four[0], four[1]], blue: [number, number] = [four[2], four[3]];
+    return { matchUuid: `dev-earlier-q${i + 1}`, level: "qual", number: i + 1, time: `2026-01-01T0${i}:00:00Z`, red, blue, redScore: then(red, 100 + i), blueScore: then(blue, 200 + i) };
+  });
+  return [{ code: "DEVQ1", games }];
 }
 
 // The model's EventRating, read only for its HIVE figure and names.
@@ -184,6 +198,7 @@ export function createDevStrategyApi({ failModel = false, failMaps = false, fail
     ratings: (e) => read(e, ratings, []),
     projections: (e) => read(e, projections, []),
     games: (e) => read(e, (gs) => gs, []),
+    earlier: (e) => read(e, earlier, []),
     fieldMaps: (e) => (failMaps ? fail(MAPS_NOT_READY) : wait(ours(e) ? FIELD_MAPS : [])),
     async matchMaps(e, m) {
       if (failMaps) return fail(MAPS_NOT_READY);

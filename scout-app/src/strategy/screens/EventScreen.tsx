@@ -9,9 +9,9 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
   const cols: Col<RatingRow>[] = [
     { key: "team", label: "Team", value: (r) => r.teamNumber, natural: "asc", show: (r) => <TeamName team={r.teamNumber} name={r.teamName} onOpen={ctx.openTeam} /> },
     {
-      key: "opr", label: "OPR", value: (r) => r.opr, title: "Points a team adds to its alliance per match, fitted on this event's official scores, with its likely (80%) range. Shown once every team has played 3 matches",
+      key: "opr", label: "OPR", value: (r) => r.opr, title: "Points a team adds to its alliance per match, fitted on official scores, with its likely (80%) range. It starts from the team's previous event this season and moves to this event's scores as matches are played",
       show: (r) => (r.opr == null ? "–" : <RangeBar value={r.opr} low={r.low ?? r.opr} high={r.high ?? r.opr} max={scale.rating}
-        title={r.low != null && r.high != null && r.low !== r.high ? `${rangeText(r.low, r.high)} likely` : "Too few matches for a likely range"} />),
+        title={r.low != null && r.high != null && r.low !== r.high ? `${rangeText(r.low, r.high)} likely` : ""} />),
     },
     {
       key: "points", label: "Points / match", value: (r) => r.points?.value, title: "Scouted points per match, lowest to highest match. Grey: official points share, not scouted",
@@ -30,9 +30,11 @@ export function EventScreen({ ctx }: { ctx: Ctx }) {
       <Card title="Teams">
         {ctx.scouting.state !== "ok" && <Waiting load={ctx.scouting} what="the scouting figures" retry={ctx.retryScouting} />}
         {rows.length ? (
-          <SortTable label="Teams" rows={rows} cols={cols} initial={{ key: model.oprReady ? "opr" : "points", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
+          <SortTable label="Teams" rows={rows} cols={cols} initial={{ key: rows.some((r) => r.opr != null) ? "opr" : "points", dir: "desc" }} rowKey={(r) => r.teamNumber} onRow={(r) => ctx.openTeam(r.teamNumber)} />
         ) : <p>No teams yet for this event.</p>}
-        {rows.length > 0 && !model.oprReady && <p className="caption">OPR shows once every team has played 3 matches with a score: before that it can't tell partners apart.</p>}
+        {rows.length > 0 && <p className="caption">{model.starts.size
+          ? "OPR starts from each team's previous event this season and moves to this event's scores as matches are played. The bar is its likely range: wide early, narrower with every match."
+          : "OPR is fitted on this event's scores. The bar is its likely range: wide early, narrower with every match. A team shows once it has played."}</p>}
       </Card>
     </div>
   );

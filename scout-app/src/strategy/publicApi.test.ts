@@ -45,3 +45,15 @@ test("pit photos come from the exported copies", async () => {
   expect(await api.pitPhotoIds(["pit-1", "pit-2"])).toEqual(["photo-a"]);
   expect(await (await api.pitPhoto("photo-a")).text()).toBe("jpg");
 });
+
+test("the public API reads the earlier events the OPRs start from, and an older export has none", async () => {
+  const api = createPublicStrategyApi("/d/", get);
+  expect(await api.earlier(E)).toEqual([]);
+  expect(await api.earlier("other")).toEqual([]);
+  const withEarlier = { ...file, earlier: [{ code: "AUOLD", matches: [match("o1", "2026-11-01T09:00:00Z", 44)],
+    presences: [slot("o1", "red", 1, 5), slot("o1", "red", 2, 6), slot("o1", "blue", 1, 7), slot("o1", "blue", 2, 8)] }] };
+  const get2 = (async (url: string) => new Response(JSON.stringify(url.endsWith("index.json") ? index : withEarlier))) as unknown as typeof fetch;
+  const earlier = await createPublicStrategyApi("/d/", get2).earlier(E);
+  expect(earlier.map((e) => e.code)).toEqual(["AUOLD"]);
+  expect(earlier[0].games[0]).toMatchObject({ red: [5, 6], blue: [7, 8], redScore: 44, blueScore: 10 });
+});

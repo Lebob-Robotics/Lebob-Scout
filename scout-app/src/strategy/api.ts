@@ -1,6 +1,6 @@
 import type { Client } from "@osdk/client";
 import {
-  EventRating, Match, Presence, RankProjection,
+  Event, EventRating, Match, Presence, RankProjection,
   fieldMaps as fieldMapsQuery, matchMaps as matchMapsQuery, pointSplits as pointSplitsQuery, teamCycles as teamCyclesQuery,
 } from "@lebob-scout/sdk";
 import type { Api, EventRow, MatchRow, PresenceRow, TeamsTab } from "../shared/api";
@@ -15,12 +15,29 @@ export type StrategyApi = Pick2<Api, "ourEvents" | "matches" | "presences" | "te
   projections(eventUuid: string): Promise<Projection[]>;
   // Every match with its alliances and official scores (Match and Presence objects).
   games(eventUuid: string): Promise<Game[]>;
+  // The earlier events this event's OPRs start from, oldest first: every event in the same country that began before
+  // it, within the season. Empty when the event has no country or nothing came before it.
+  earlier(eventUuid: string): Promise<Earlier[]>;
   fieldMaps(eventUuid: string): Promise<TeamMap[]>;
   matchMaps(eventUuid: string, matchUuid: string): Promise<MatchMaps>;
   pointSplits(eventUuid: string): Promise<PointSplit[]>;
   teamCycles(eventUuid: string): Promise<TeamCycles[]>;
 };
 type Pick2<T, K extends keyof T> = { [P in K]: T[P] };
+export type Earlier = { code: string; games: Game[] };
+// An earlier event counts when it began before this one and no more than this long before: a season, not last year's.
+export const SEASON_DAYS = 300;
+type EventDates = Pick2<Event.Props, "eventUuid" | "eventCode" | "country" | "dateStart">;
+// Our made-up events (LBBEST, and LBPRAC and LBTOP before it) replay other events' matches: never an earlier event.
+export const MADE_UP = /^LB/i;
+// Which of `all` are earlier events of `event`, oldest first (same start: by code, so the order never changes).
+export function earlierEvents<T extends EventDates>(event: EventDates | undefined, all: T[]): T[] {
+  const at = (e: EventDates) => (e.dateStart ? Date.parse(e.dateStart) : NaN);
+  const t = event ? at(event) : NaN;
+  if (!event?.country || !Number.isFinite(t)) return [];
+  return all.filter((e) => e.eventUuid !== event.eventUuid && !MADE_UP.test(e.eventCode ?? "") && e.country === event.country && at(e) < t && at(e) >= t - SEASON_DAYS * 86_400_000)
+    .sort((a, b) => at(a) - at(b) || (a.eventCode ?? "").localeCompare(b.eventCode ?? ""));
+}
 export type { EventRow, MatchRow, PresenceRow, TeamsTab };
 
 async function all<T>(rows: AsyncIterable<T>): Promise<T[]> {
@@ -71,6 +88,12 @@ const notReady = () => Promise.reject(new Error(MAPS_NOT_READY));
 
 export function createStrategyApi(client: Client, base: Api, functions?: MapFunctions): StrategyApi {
   const where = (eventUuid: string) => ({ eventUuid: { $eq: eventUuid } });
+  const presencesOf = async (ms: { matchUuid: string }[]) => {
+    const ids = ms.map((m) => m.matchUuid);
+    const ps: Presence.Props[] = [];
+    for (let i = 0; i < ids.length; i += 200) ps.push(...await all(client(Presence).where({ matchUuid: { $in: ids.slice(i, i + 200) } }).asyncIter()));
+    return ps;
+  };
   return {
     ourEvents: () => base.ourEvents(),
     matches: (e) => base.matches(e),
@@ -82,10 +105,19 @@ export function createStrategyApi(client: Client, base: Api, functions?: MapFunc
     async projections(e) { return (await all(client(RankProjection).where(where(e)).asyncIter())).map(toProjection); },
     async games(e) {
       const ms = await all(client(Match).where(where(e)).asyncIter());
-      const ids = ms.map((m) => m.matchUuid);
-      const ps: Presence.Props[] = [];
-      for (let i = 0; i < ids.length; i += 200) ps.push(...await all(client(Presence).where({ matchUuid: { $in: ids.slice(i, i + 200) } }).asyncIter()));
-      return toGames(ms, ps);
+      return toGames(ms, await presencesOf(ms));
+    },
+    async earlier(e) {
+      const [event] = await all(client(Event).where(where(e)).asyncIter());
+      if (!event?.country) return [];
+      const before = earlierEvents(event, await all(client(Event).where({ country: { $eq: event.country } }).asyncIter()));
+      if (!before.length) return [];
+      const ms = await all(client(Match).where({ eventUuid: { $in: before.map((x) => x.eventUuid) } }).asyncIter());
+      const ps = await presencesOf(ms);
+      return before.map((x) => {
+        const mine = ms.filter((m) => m.eventUuid === x.eventUuid), ids = new Set(mine.map((m) => m.matchUuid));
+        return { code: x.eventCode ?? "", games: toGames(mine, ps.filter((q) => q.matchUuid != null && ids.has(q.matchUuid))) };
+      });
     },
     fieldMaps: (e) => functions?.fieldMaps(e) ?? notReady(),
     matchMaps: (e, m) => functions?.matchMaps(e, m) ?? notReady(),
